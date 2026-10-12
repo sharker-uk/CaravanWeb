@@ -36,6 +36,7 @@
         .btn-action:hover { filter: brightness(1.1); }
 
         #toast { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); border: 1px solid #e67e22; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; display: none; z-index: 100; pointer-events: none; }
+        #interaction-hint { position: absolute; left: 16px; top: 68px; background: rgba(0,0,0,0.75); border: 1px solid #4a6278; color: var(--text); padding: 8px 12px; border-radius: 4px; font-size: 12px; z-index: 4; pointer-events: none; }
         
         .satisfaction-bar { height: 4px; width: 100%; background: #c0392b; margin-top: 4px; border-radius: 2px; overflow: hidden; }
         #satisfaction-fill { height: 100%; background: #27ae60; width: 50%; transition: width 0.5s; }
@@ -59,6 +60,7 @@
     </div>
 
     <canvas id="gameCanvas"></canvas>
+    <div id="interaction-hint">WASD / Arrows: Move · Click ground: Walk · Click object, then E: Interact</div>
 
     <div id="inspector">
         <div class="inspector-title" id="ins-name">Caravan Details</div>
@@ -129,8 +131,13 @@ let state = {
     handymen: 0,
     camera: { x: 100, y: 100, zoom: 1.8 },
     activeTool: 'select',
-    selectedEntity: null
+    selectedEntity: null,
+    player: {x: 5.5, y: 10.5},
+    playerPath: [],
+    interactionTarget: null
 };
+const pressedKeys = new Set();
+const PLAYER_SPEED = 4;
 
 // --- Initialization ---
 function init() {
@@ -216,6 +223,12 @@ function init() {
         caravan.smokeParticles = [];
         return caravan;
     });
+    if (data.player && Number.isFinite(data.player.x) && Number.isFinite(data.player.y) &&
+        canOccupyPlayer(data.player.x, data.player.y)) {
+        state.player = {...data.player};
+    }
+    state.playerPath = [];
+    state.interactionTarget = null;
 }
 
 function generateNewMap() {
@@ -282,8 +295,195 @@ function getTileProperties(x, y) {
         walkable: tile.terrain === 'grass' && !tree && !hasObject,
         buildable,
         occupied: Boolean(tree || pitch || hasObject),
-        interactable: Boolean(pitchIsAvailable || caravan)
+        interactable: Boolean(pitchIsAvailable || caravan || facility)
     };
+}
+
+function canOccupyPlayer(x, y) {
+    const radius = 0.18;
+    return [[0, 0], [-radius, -radius], [radius, -radius], [-radius, radius], [radius, radius]]
+        .every(([offsetX, offsetY]) => {
+            const tileX = Math.floor(x + offsetX);
+            const tileY = Math.floor(y + offsetY);
+            return getTileProperties(tileX, tileY).walkable;
+        });
+}
+
+function findPathToAny(destinationTiles) {
+    const start = {x: Math.floor(state.player.x), y: Math.floor(state.player.y)};
+    const destinations = new Set(destinationTiles.map(tile => `${tile.x},${tile.y}`));
+    const startKey = `${start.x},${start.y}`;
+    const queue = [start];
+    const previous = new Map([[startKey, null]]);
+    let destinationKey = destinations.has(startKey) ? startKey : null;
+
+    for (let index = 0; index < queue.length && !destinationKey; index++) {
+        const current = queue[index];
+        for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+            const x = current.x + dx;
+            const y = current.y + dy;
+            const key = `${x},${y}`;
+            if (previous.has(key) || !getTileProperties(x, y).walkable) continue;
+            previous.set(key, `${current.x},${current.y}`);
+            if (destinations.has(key)) {
+                destinationKey = key;
+                break;
+            }
+            queue.push({x, y});
+        }
+    }
+
+    if (!destinationKey) return null;
+    const path = [];
+    for (let key = destinationKey; key && key !== startKey; key = previous.get(key)) {
+        const [x, y] = key.split(',').map(Number);
+        path.unshift({x: x + 0.5, y: y + 0.5});
+    }
+    return path;
+}
+
+function findInteractableAt(x, y) {
+    const caravan = state.caravans.find(item =>
+        x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
+        y >= item.pitch.y && y < item.pitch.y + item.pitch.h);
+    if (caravan) return {kind: 'caravan', entity: caravan, x: caravan.pitch.x,
+        y: caravan.pitch.y, w: caravan.pitch.w, h: caravan.pitch.h};
+
+    const facility = state.facilities.find(item =>
+        x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h);
+    if (facility) return {kind: 'facility', entity: facility, x: facility.x,
+        y: facility.y, w: facility.w, h: facility.h};
+
+    const pitch = state.pitches.find(item => !item.occupied &&
+        x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h);
+    if (pitch) return {kind: 'pitch', entity: pitch, x: pitch.x,
+        y: pitch.y, w: pitch.w, h: pitch.h};
+    return null;
+}
+
+function approachInteractable(target) {
+    const candidates = [];
+    for (let x = target.x; x < target.x + target.w; x++) {
+        candidates.push({x, y: target.y - 1});
+        candidates.push({x, y: target.y + target.h});
+    }
+    for (let y = target.y; y < target.y + target.h; y++) {
+        candidates.push({x: target.x - 1, y});
+        candidates.push({x: target.x + target.w, y});
+    }
+    const path = findPathToAny(candidates.filter(tile => getTileProperties(tile.x, tile.y).walkable));
+    if (!path) {
+        state.playerPath = [];
+        state.interactionTarget = null;
+        showToast('❌ There is no clear way to approach that object.');
+        return;
+    }
+    state.playerPath = path;
+    state.interactionTarget = target;
+    updateInteractionHint();
+}
+
+function movePlayerTo(x, y) {
+    if (!getTileProperties(x, y).walkable) {
+        showToast('❌ You cannot walk there.');
+        return;
+    }
+    const path = findPathToAny([{x, y}]);
+    if (!path) {
+        showToast('❌ There is no clear route there.');
+        return;
+    }
+    state.playerPath = path;
+    state.interactionTarget = null;
+}
+
+function distanceToTarget(target) {
+    const dx = Math.max(target.x - state.player.x, 0, state.player.x - (target.x + target.w));
+    const dy = Math.max(target.y - state.player.y, 0, state.player.y - (target.y + target.h));
+    return Math.hypot(dx, dy);
+}
+
+function interactWith(target) {
+    if (target.kind === 'caravan') {
+        state.selectedEntity = target.entity;
+        updateUI();
+        return;
+    }
+    if (target.kind === 'facility') {
+        const name = target.entity.type === 'shop' ? 'Shop' : 'Toilets';
+        showToast(`${name}: Park facility`);
+        return;
+    }
+    if (target.kind === 'pitch') {
+        showToast(`Empty ${target.entity.type} pitch`);
+    }
+}
+
+function interactNearby() {
+    const target = state.interactionTarget &&
+        distanceToTarget(state.interactionTarget) <= 1.25
+        ? state.interactionTarget
+        : [...state.caravans.map(entity => ({kind: 'caravan', entity, ...entity.pitch})),
+            ...state.facilities.map(entity => ({kind: 'facility', entity, ...entity})),
+            ...state.pitches.filter(entity => !entity.occupied)
+                .map(entity => ({kind: 'pitch', entity, ...entity}))]
+            .filter(item => distanceToTarget(item) <= 1.25)
+            .sort((a, b) => distanceToTarget(a) - distanceToTarget(b))[0];
+
+    if (!target) {
+        showToast('Walk closer to an object to interact.');
+        return;
+    }
+    interactWith(target);
+}
+
+function updateInteractionHint() {
+    const hint = document.getElementById('interaction-hint');
+    if (!hint) return;
+    const target = state.interactionTarget;
+    let message = 'WASD / Arrows: Move · Click ground: Walk · Click object, then E: Interact';
+    if (target && distanceToTarget(target) <= 1.25) {
+        message = 'Press E to interact';
+    } else if (target) {
+        message = 'Approaching object... · E: Interact when nearby';
+    }
+    if (hint.innerText !== message) hint.innerText = message;
+}
+
+function updatePlayerMovement(deltaSeconds) {
+    const horizontal = Number(pressedKeys.has('d') || pressedKeys.has('arrowright')) -
+        Number(pressedKeys.has('a') || pressedKeys.has('arrowleft'));
+    const vertical = Number(pressedKeys.has('s') || pressedKeys.has('arrowdown')) -
+        Number(pressedKeys.has('w') || pressedKeys.has('arrowup'));
+    if (horizontal || vertical) {
+        state.playerPath = [];
+        state.interactionTarget = null;
+        const length = Math.hypot(horizontal, vertical);
+        const distance = PLAYER_SPEED * deltaSeconds / length;
+        const nextX = state.player.x + horizontal * distance;
+        const nextY = state.player.y + vertical * distance;
+        if (canOccupyPlayer(nextX, state.player.y)) state.player.x = nextX;
+        if (canOccupyPlayer(state.player.x, nextY)) state.player.y = nextY;
+    } else if (state.playerPath.length) {
+        let remaining = PLAYER_SPEED * deltaSeconds;
+        while (remaining > 0 && state.playerPath.length) {
+            const destination = state.playerPath[0];
+            const dx = destination.x - state.player.x;
+            const dy = destination.y - state.player.y;
+            const distance = Math.hypot(dx, dy);
+            if (distance <= remaining) {
+                state.player.x = destination.x;
+                state.player.y = destination.y;
+                state.playerPath.shift();
+                remaining -= distance;
+            } else {
+                state.player.x += dx / distance * remaining;
+                state.player.y += dy / distance * remaining;
+                remaining = 0;
+            }
+        }
+    }
+    updateInteractionHint();
 }
 
 function saveGame() {
@@ -307,7 +507,8 @@ function saveGame() {
             satisfaction: state.satisfaction,
             rating: state.rating,
             weather: state.weather,
-            camera: state.camera
+            camera: state.camera,
+            player: state.player
         }));
     } catch (error) {
         console.error('Unable to save the game.', error);
@@ -395,13 +596,17 @@ function handleGridClick(gx, gy) {
     const tile = state.tiles[gy][gx];
 
     if (state.activeTool === 'select') {
-        const properties = getTileProperties(gx, gy);
-        const car = properties.interactable
-            ? state.caravans.find(c =>
-                gx >= c.pitch.x && gx < c.pitch.x + c.pitch.w &&
-                gy >= c.pitch.y && gy < c.pitch.y + c.pitch.h)
+        const target = getTileProperties(gx, gy).interactable
+            ? findInteractableAt(gx, gy)
             : null;
-        state.selectedEntity = car;
+        if (target) {
+            approachInteractable(target);
+        } else {
+            state.selectedEntity = null;
+            state.interactionTarget = null;
+            updateUI();
+            movePlayerTo(gx, gy);
+        }
         return;
     }
 
@@ -492,8 +697,12 @@ function spend(amt) {
 // --- Rendering ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+let lastFrameTime = 0;
 
-function draw() {
+function draw(timestamp = 0) {
+    const deltaSeconds = lastFrameTime ? Math.min((timestamp - lastFrameTime) / 1000, 0.05) : 0;
+    lastFrameTime = timestamp;
+    updatePlayerMovement(deltaSeconds);
     ctx.clearRect(0,0,canvas.width, canvas.height);
     ctx.save();
     ctx.translate(state.camera.x, state.camera.y);
@@ -562,6 +771,17 @@ function draw() {
         if (c.isBroken) { ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(px+pw/2, py+ph/2, 4, 0, Math.PI*2); ctx.fill(); }
     });
 
+    // Player
+    const playerX = state.player.x * TILE_SIZE;
+    const playerY = state.player.y * TILE_SIZE;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(playerX, playerY + 5, 6, 3, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#f5cba7';
+    ctx.beginPath(); ctx.arc(playerX, playerY, 5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#1a252f'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#2e86c1';
+    ctx.fillRect(playerX - 4, playerY + 3, 8, 5);
+
     ctx.restore();
     requestAnimationFrame(draw);
 }
@@ -621,6 +841,7 @@ function sellSelectedCaravan() {
     state.caravans = state.caravans.filter(item => item !== caravan);
     caravan.pitch.occupied = false;
     state.selectedEntity = null;
+    state.interactionTarget = null;
     saveGame();
     updateUI();
     showToast(`💰 Unit sold for £${salePrice}.`);
@@ -655,6 +876,18 @@ function resetGame() {
 
 // Input Handlers
 canvas.addEventListener('mousedown', e => { state.isDown = true; state.lastM = {x: e.clientX, y: e.clientY}; });
+window.addEventListener('keydown', e => {
+    const key = e.key.toLowerCase();
+    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) e.preventDefault();
+    if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+        pressedKeys.add(key);
+    } else if (key === 'e' && !e.repeat) {
+        interactNearby();
+    }
+});
+window.addEventListener('keyup', e => pressedKeys.delete(e.key.toLowerCase()));
+window.addEventListener('blur', () => pressedKeys.clear());
+window.addEventListener('beforeunload', saveGame);
 window.addEventListener('mouseup', e => {
     if (state.isDown && Math.hypot(e.clientX - state.lastM.x, e.clientY - state.lastM.y) < 5) {
         const rect = canvas.getBoundingClientRect();
