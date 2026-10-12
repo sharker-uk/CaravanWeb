@@ -828,14 +828,38 @@ function placeFacility(x, y, w, h, type, cost) {
 }
 
 function createPitch(x, y, w, h, type, cost) {
-    if (!isFootprintAvailable(x, y, w, h)) {
+    const origin = findPitchPlacement(x, y, w, h);
+    if (!origin) {
         showToast('❌ That space is blocked or out of bounds.');
         return;
     }
     if (!spend(cost)) return;
-    state.pitches.push({x, y, w, h, type, occupied: false});
+    state.pitches.push({...origin, w, h, type, occupied: false});
     playSound(659, 'sine', 0.1);
     saveGame();
+}
+
+function findPitchPlacement(x, y, w, h) {
+    if (isFootprintAvailable(x, y, w, h)) return {x, y};
+
+    const flippedOrigins = [
+        {x: x - w + 1, y},
+        {x, y: y - h + 1},
+        {x: x - w + 1, y: y - h + 1}
+    ];
+    return flippedOrigins.find(origin =>
+        isFootprintAvailable(origin.x, origin.y, w, h) &&
+        hasAdjacentRoad(origin.x, origin.y, w, h)) || null;
+}
+
+function hasAdjacentRoad(x, y, w, h) {
+    for (let tileX = x; tileX < x + w; tileX++) {
+        if (state.tiles[y - 1]?.[tileX]?.road || state.tiles[y + h]?.[tileX]?.road) return true;
+    }
+    for (let tileY = y; tileY < y + h; tileY++) {
+        if (state.tiles[tileY]?.[x - 1]?.road || state.tiles[tileY]?.[x + w]?.road) return true;
+    }
+    return false;
 }
 
 function spend(amt) {
