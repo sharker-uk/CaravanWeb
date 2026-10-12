@@ -1075,20 +1075,37 @@ function updateUI() {
             : `${availablePitches} pitch${availablePitches === 1 ? '' : 'es'} available`;
 
     const ins = document.getElementById('inspector');
+    const actionButtons = [
+        document.getElementById('btn-repair'),
+        document.getElementById('btn-upgrade'),
+        document.getElementById('btn-skirting'),
+        document.getElementById('btn-sell')
+    ];
     if (state.selectedEntity) {
         ins.style.display = 'block';
         const c = state.selectedEntity;
         const hookups = getPitchHookups(c.pitch);
         const hookupStatus = UTILITY_TYPES.map(type =>
             `${type}: ${hookups[type] ? 'connected' : 'not connected'}`).join('<br>');
-        document.getElementById('ins-name').innerText = c.tier === 1 ? "Retro Tin Unit" : "Luxury Static";
+        document.getElementById('ins-name').innerText = c.tier === 1 ? 'Retro Tin Unit' : 'Luxury Static';
         document.getElementById('ins-content').innerHTML = `Condition: ${Math.floor(c.condition)}%<br>Rent: £${c.getDailyRent()}/day<br>Status: ${c.isBroken ? '⚠️ BROKEN' : 'OK'}${c.tier === 2 ? `<br>Rental: ${c.isRentalReady() ? 'Ready' : 'Needs all hookups'}<br>${hookupStatus}` : ''}`;
+        actionButtons.forEach(button => {
+            button.style.display = 'block';
+        });
         document.getElementById('btn-repair').disabled = !c.isBroken || state.cash < 40;
         document.getElementById('btn-upgrade').disabled = c.hasDecking || state.cash < 400;
         document.getElementById('btn-skirting').disabled = c.hasSkirting || state.cash < 150;
         document.getElementById('btn-sell').disabled = false;
     } else {
-        ins.style.display = 'none';
+        ins.style.display = 'block';
+        document.getElementById('ins-name').innerText = 'Park Overview';
+        const occupied = state.pitches.filter(pitch => pitch.occupied).length;
+        const demand = getGuestDemand();
+        document.getElementById('ins-content').innerHTML = `Cash: £${Math.floor(state.cash).toLocaleString()}<br>Occupancy: ${occupied}/${state.pitches.length || 0}<br>Rating: ${state.rating.toFixed(1)} / 5<br>Demand: ${demand.level} (${demand.score}%)`;
+        actionButtons.forEach(button => {
+            button.style.display = 'none';
+            button.disabled = true;
+        });
     }
 }
 

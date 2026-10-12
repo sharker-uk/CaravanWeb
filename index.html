@@ -34,14 +34,20 @@
     <canvas id="gameCanvas"></canvas>
     <div id="interaction-hint">WASD / Arrows: Move · Click ground: Walk · Click object, then E: Interact</div>
 
-    <div id="inspector">
-        <div class="inspector-title" id="ins-name">Caravan Details</div>
-        <div id="ins-content"></div>
-        <button class="btn-action" id="btn-repair">🔧 Repair Boiler (£40)</button>
-        <button class="btn-action" id="btn-upgrade" style="background: #2980b9;">🔨 Add Veranda (£400)</button>
-        <button class="btn-action" id="btn-skirting" style="background: #8e44ad;">🛡️ Fit Skirting (£150)</button>
-        <button class="btn-action" id="btn-sell" style="background: #7f8c8d; margin-top: 15px;">💰 Sell Unit</button>
-    </div>
+    <aside id="inspector" class="context-panel" aria-live="polite">
+        <div class="context-header">
+            <span class="context-label">Context</span>
+            <button class="context-close" type="button" onclick="state.selectedEntity = null; updateUI();" aria-label="Clear selection">×</button>
+        </div>
+        <div class="inspector-title" id="ins-name">Park Overview</div>
+        <div id="ins-content" class="context-body"></div>
+        <div class="context-actions">
+            <button class="btn-action" id="btn-repair">🔧 Repair Boiler (£40)</button>
+            <button class="btn-action" id="btn-upgrade" style="background: #2980b9;">🔨 Add Veranda (£400)</button>
+            <button class="btn-action" id="btn-skirting" style="background: #8e44ad;">🛡️ Fit Skirting (£150)</button>
+            <button class="btn-action" id="btn-sell" style="background: #7f8c8d; margin-top: 15px;">💰 Sell Unit</button>
+        </div>
+    </aside>
 
     <aside id="build-menu" aria-label="Park management menu">
         <nav id="menu-tabs" aria-label="Tool categories">
