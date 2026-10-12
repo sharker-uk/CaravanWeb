@@ -43,37 +43,73 @@
         <button class="btn-action" id="btn-sell" style="background: #7f8c8d; margin-top: 15px;">💰 Sell Unit</button>
     </div>
 
-    <div id="bottom-toolbar">
-        <label class="speed-control" for="day-length">
-            <span>Day length: <span id="day-length-value">10</span> min</span>
-            <input id="day-length" type="range" min="3" max="60" step="1" value="10"
-                aria-label="In-game day length in real-time minutes">
-        </label>
-        <div class="tool-btn active" onclick="setTool('select', this)">🔍<br>Select</div>
-        <div class="tool-btn" onclick="setTool('road', this)">🛣️<br>Tarmac (£20)</div>
-        <div class="tool-btn" onclick="setTool('path', this)">🚶<br>Path (£10)</div>
-        <div class="tool-btn" onclick="setTool('pitch_grass', this)">⛺<br>Grass P. (£100)</div>
-        <div class="tool-btn" onclick="setTool('pitch_gravel', this)">🚛<br>Hardst. (£250)</div>
-        <div class="tool-btn" onclick="setTool('buy_tin', this)">🚐<br>Tin Banger</div>
-        <div class="tool-btn" onclick="setTool('buy_classic', this)">🏠<br>Classic '02</div>
-        <div class="tool-btn" onclick="setTool('build_toilets', this)">🚻<br>Toilets (£800)</div>
-        <div class="tool-btn" onclick="setTool('build_shop', this)">🛒<br>Shop (£1.5k)</div>
-        <div class="tool-btn" onclick="setTool('build_playground', this)">🛝<br>Play Park (£2.2k)</div>
-        <div class="tool-btn" onclick="setTool('build_pub', this)">🍺<br>Pub (£3k)</div>
-        <div class="tool-btn" onclick="setTool('build_restaurant', this)">🍽️<br>Restaurant (£4.5k)</div>
-        <div class="tool-btn" onclick="setTool('build_arcade', this)">🕹️<br>Arcade (£6k)</div>
-        <div class="tool-btn" onclick="setTool('build_entertainment_space', this)">🎤<br>Events (£8k)</div>
-        <div class="tool-btn" onclick="setTool('build_pool', this)">🏊<br>Pool (£12k)</div>
-        <div class="tool-btn" onclick="setTool('build_activity_centre', this)">🚴<br>Activity (£15k)</div>
-        <div class="tool-btn" onclick="setTool('build_entertainment_hub', this)">🎭<br>Hub (£25k)</div>
-        <div class="tool-btn utility-btn" onclick="setTool('utility_gas', this)">🔥<br>Gas (£25)</div>
-        <div class="tool-btn utility-btn" onclick="setTool('utility_water', this)">🚰<br>Water (£20)</div>
-        <div class="tool-btn utility-btn" onclick="setTool('utility_electricity', this)">⚡<br>Electric (£30)</div>
-        <div class="tool-btn utility-btn" onclick="setTool('utility_waste', this)">♻️<br>Waste (£35)</div>
-        <div class="tool-btn" onclick="setTool('build_tree', this)">🌳<br>Tree (£30)</div>
-        <div class="tool-btn" onclick="hireHandyman()">🛠️<br>Handyman</div>
-        <div class="tool-btn" onclick="resetGame()" style="color: #e74c3c">☢️<br>Reset</div>
-    </div>
+    <aside id="build-menu" aria-label="Park management menu">
+        <nav id="menu-tabs" aria-label="Tool categories">
+            <button class="menu-tab active" data-panel="terrain" onclick="showMenuPanel('terrain', this)" title="Ground, roads and pitches">🧱<span>Ground</span></button>
+            <button class="menu-tab" data-panel="accommodation" onclick="showMenuPanel('accommodation', this)" title="Buy accommodation">🚐<span>Units</span></button>
+            <button class="menu-tab" data-panel="facilities" onclick="showMenuPanel('facilities', this)" title="Build park facilities">🏪<span>Build</span></button>
+            <button class="menu-tab" data-panel="utilities" onclick="showMenuPanel('utilities', this)" title="Lay utility connections">🔌<span>Services</span></button>
+            <button class="menu-tab" data-panel="park" onclick="showMenuPanel('park', this)" title="Park tools and settings">⚙️<span>Park</span></button>
+        </nav>
+        <section class="menu-panel active" id="panel-terrain" aria-label="Ground tools">
+            <div class="menu-heading"><strong>Ground & pitches</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <div class="tool-grid">
+                <button class="tool-btn active" onclick="setTool('select', this)">🔍<span>Select</span></button>
+                <button class="tool-btn" onclick="setTool('road', this)">🛣️<span>Tarmac · £20</span></button>
+                <button class="tool-btn" onclick="setTool('path', this)">🚶<span>Path · £10</span></button>
+                <button class="tool-btn" onclick="setTool('pitch_grass', this)">⛺<span>Grass pitch · £100</span></button>
+                <button class="tool-btn" onclick="setTool('pitch_gravel', this)">🚛<span>Hardstanding · £250</span></button>
+            </div>
+        </section>
+        <section class="menu-panel" id="panel-accommodation" aria-label="Accommodation tools">
+            <div class="menu-heading"><strong>Accommodation</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <p class="menu-description">Select an empty pitch, then place a unit.</p>
+            <div class="tool-grid">
+                <button class="tool-btn" onclick="setTool('buy_tin', this)">🚐<span>Tin Banger</span></button>
+                <button class="tool-btn" onclick="setTool('buy_classic', this)">🏠<span>Classic '02</span></button>
+            </div>
+        </section>
+        <section class="menu-panel" id="panel-facilities" aria-label="Facility tools">
+            <div class="menu-heading"><strong>Park facilities</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <div class="tool-grid">
+                <button class="tool-btn" onclick="setTool('build_toilets', this)">🚻<span>Toilets · £800</span></button>
+                <button class="tool-btn" onclick="setTool('build_shop', this)">🛒<span>Shop · £1.5k</span></button>
+                <button class="tool-btn" onclick="setTool('build_playground', this)">🛝<span>Play park · £2.2k</span></button>
+                <button class="tool-btn" onclick="setTool('build_pub', this)">🍺<span>Pub · £3k</span></button>
+                <button class="tool-btn" onclick="setTool('build_restaurant', this)">🍽️<span>Restaurant · £4.5k</span></button>
+                <button class="tool-btn" onclick="setTool('build_arcade', this)">🕹️<span>Arcade · £6k</span></button>
+                <button class="tool-btn" onclick="setTool('build_entertainment_space', this)">🎤<span>Events · £8k</span></button>
+                <button class="tool-btn" onclick="setTool('build_pool', this)">🏊<span>Pool · £12k</span></button>
+                <button class="tool-btn" onclick="setTool('build_activity_centre', this)">🚴<span>Activity · £15k</span></button>
+                <button class="tool-btn" onclick="setTool('build_entertainment_hub', this)">🎭<span>Entertainment hub · £25k</span></button>
+            </div>
+        </section>
+        <section class="menu-panel" id="panel-utilities" aria-label="Utility tools">
+            <div class="menu-heading"><strong>Utility connections</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <p class="menu-description">Utility lines can only be laid beneath roads and paths.</p>
+            <div class="tool-grid">
+                <button class="tool-btn utility-btn" onclick="setTool('utility_gas', this)">🔥<span>Gas · £25</span></button>
+                <button class="tool-btn utility-btn" onclick="setTool('utility_water', this)">🚰<span>Water · £20</span></button>
+                <button class="tool-btn utility-btn" onclick="setTool('utility_electricity', this)">⚡<span>Electric · £30</span></button>
+                <button class="tool-btn utility-btn" onclick="setTool('utility_waste', this)">♻️<span>Waste · £35</span></button>
+            </div>
+        </section>
+        <section class="menu-panel" id="panel-park" aria-label="Park management tools">
+            <div class="menu-heading"><strong>Park management</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <div class="tool-grid">
+                <button class="tool-btn" onclick="setTool('build_tree', this)">🌳<span>Plant tree · £30</span></button>
+                <button class="tool-btn" onclick="hireHandyman()">🛠️<span>Hire handyman</span></button>
+                <button class="tool-btn" onclick="resetGame()" style="color:#ff8a80">☢️<span>Reset park</span></button>
+            </div>
+            <div class="settings-group">
+                <label class="speed-control" for="day-length">
+                    <span>In-game day length: <strong><span id="day-length-value">10</span> min</strong></span>
+                    <input id="day-length" type="range" min="3" max="60" step="1" value="10" aria-label="In-game day length in real-time minutes">
+                </label>
+            </div>
+        </section>
+        <button id="menu-reopen" onclick="toggleBuildMenu(true)" aria-label="Open build menu" title="Open park menu">☰</button>
+    </aside>
 
     <div id="toast">Message</div>
 </div>
