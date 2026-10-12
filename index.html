@@ -29,6 +29,15 @@
                 <span id="demand-capacity">No pitches</span>
             </div>
         </div>
+
+        <div class="stat-group sim-controls" aria-label="Simulation controls">
+            <button id="pause-toggle" class="sim-toggle" type="button" aria-label="Pause or resume simulation">⏸️ Pause</button>
+            <div class="speed-selector" aria-label="Simulation speed selector">
+                <button class="speed-btn active" data-speed="1" type="button">1×</button>
+                <button class="speed-btn" data-speed="2" type="button">2×</button>
+                <button class="speed-btn" data-speed="4" type="button">4×</button>
+            </div>
+        </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>

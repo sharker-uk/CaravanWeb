@@ -25,6 +25,11 @@
         .speed-control { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; color: var(--text); font-size: 11px; min-width: 150px; }
         .speed-control input { width: 140px; accent-color: var(--accent-bright); cursor: pointer; }
         .utility-btn { min-width: 62px; }
+        .sim-controls { display: flex; align-items: center; gap: 8px; }
+        .sim-toggle { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; color: var(--text); cursor: pointer; font-weight: 700; padding: 6px 10px; }
+        .speed-selector { display: inline-flex; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+        .speed-btn { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-weight: 700; padding: 6px 10px; }
+        .speed-btn.active { background: var(--accent-bright); color: #fff; }
 
         .context-panel { position: absolute; right: 16px; top: 68px; width: 240px; background: var(--ui-panel); border: 3px solid var(--ui-border); border-radius: 6px; padding: 12px; display: block; z-index: 5; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
         .context-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #4a6278; }

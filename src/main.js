@@ -16,6 +16,7 @@ function playSound(freq, type, duration) {
 const TILE_SIZE = 16;
 const GRID_W = 60;
 const GRID_H = 40;
+const SimulationClock = window.SimulationClock;
 
 const PALETTE = {
     grass: ['#556b2f', '#5c7433', '#4d612a'],
@@ -33,6 +34,8 @@ let state = {
     satisfaction: 60,
     day: 1, hour: 9, minute: 0,
     dayLengthMinutes: 10,
+    simulationSpeed: 1,
+    isPaused: false,
     weather: 'Sunny',
     tiles: [],
     pitches: [],
@@ -133,6 +136,10 @@ function init() {
     state.dayLengthMinutes = Number.isFinite(data.dayLengthMinutes)
         ? Math.min(Math.max(Math.round(data.dayLengthMinutes), 3), 60)
         : state.dayLengthMinutes;
+    state.simulationSpeed = Number.isFinite(data.simulationSpeed)
+        ? Math.max(1, Number(data.simulationSpeed))
+        : state.simulationSpeed;
+    state.isPaused = Boolean(data.isPaused);
     state.satisfaction = Number.isFinite(data.satisfaction) ? data.satisfaction : state.satisfaction;
     state.rating = Number.isFinite(data.rating) ? data.rating : state.rating;
     state.weather = typeof data.weather === 'string' ? data.weather : state.weather;
@@ -573,6 +580,8 @@ function saveGame() {
             rating: state.rating,
             weather: state.weather,
             dayLengthMinutes: state.dayLengthMinutes,
+            simulationSpeed: state.simulationSpeed,
+            isPaused: state.isPaused,
             camera: state.camera,
             player: state.player
         }));
@@ -604,16 +613,11 @@ class Caravan {
 
 // --- Game Logic ---
 function update(dt) {
-    state.minute += dt * (1440 / (state.dayLengthMinutes * 600));
-    while (state.minute >= 60) {
-        state.minute -= 60;
-        state.hour++;
-        if (state.hour >= 24) {
-            state.hour = 0;
-            state.day++;
-            onDaily();
-        }
-        onHourly();
+    if (!state.isPaused) {
+        SimulationClock.advanceSimulation(state, dt, {
+            onHourly,
+            onDaily
+        });
     }
 
     // Decay caravans
@@ -1055,6 +1059,11 @@ function updateUI() {
     const lighting = getDayNightLighting();
     document.getElementById('time-of-day').innerText = `${lighting.icon} ${lighting.phase}`;
     document.getElementById('day-length').value = state.dayLengthMinutes;
+    const pauseButton = document.getElementById('pause-toggle');
+    if (pauseButton) pauseButton.textContent = state.isPaused ? '▶️ Resume' : '⏸️ Pause';
+    document.querySelectorAll('.speed-btn').forEach(button => {
+        button.classList.toggle('active', Number(button.dataset.speed) === state.simulationSpeed);
+    });
     document.getElementById('day-length-value').innerText = state.dayLengthMinutes;
     document.getElementById('rating-display').innerText = state.rating.toFixed(1);
     document.getElementById('satisfaction-fill').style.width = state.satisfaction + '%';
@@ -1113,6 +1122,20 @@ function setDayLengthMinutes(minutes) {
     state.dayLengthMinutes = Math.min(Math.max(Math.round(minutes), 3), 60);
     document.getElementById('day-length').value = state.dayLengthMinutes;
     document.getElementById('day-length-value').innerText = state.dayLengthMinutes;
+    saveGame();
+}
+
+function setSimulationSpeed(speed) {
+    const nextSpeed = Number(speed);
+    if (!Number.isFinite(nextSpeed) || nextSpeed <= 0) return;
+    state.simulationSpeed = nextSpeed;
+    updateUI();
+    saveGame();
+}
+
+function togglePauseState() {
+    state.isPaused = !state.isPaused;
+    updateUI();
     saveGame();
 }
 
@@ -1215,6 +1238,8 @@ window.addEventListener('keydown', e => {
         pressedKeys.add(key);
     } else if (key === 'e' && !e.repeat) {
         interactNearby();
+    } else if (key === ' ' && !e.repeat) {
+        togglePauseState();
     }
 });
 window.addEventListener('keyup', e => pressedKeys.delete(e.key.toLowerCase()));
@@ -1247,6 +1272,10 @@ window.onload = () => {
     document.getElementById('btn-upgrade').addEventListener('click', upgradeSelectedCaravan);
     document.getElementById('btn-skirting').addEventListener('click', fitSelectedSkirting);
     document.getElementById('btn-sell').addEventListener('click', sellSelectedCaravan);
+    document.getElementById('pause-toggle').addEventListener('click', togglePauseState);
+    document.querySelectorAll('.speed-btn').forEach(button => button.addEventListener('click', () => {
+        setSimulationSpeed(Number(button.dataset.speed));
+    }));
     document.getElementById('day-length').addEventListener('input', event => {
         setDayLengthMinutes(Number(event.target.value));
     });
