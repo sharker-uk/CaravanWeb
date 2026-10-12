@@ -126,6 +126,7 @@ let state = {
     tiles: [],
     pitches: [],
     caravans: [],
+    guests: [],
     facilities: [],
     vehicles: [],
     handymen: 0,
@@ -223,6 +224,26 @@ function init() {
         caravan.smokeParticles = [];
         return caravan;
     });
+    const occupiedGuestPitches = new Set();
+    state.guests = (Array.isArray(data.guests) ? data.guests : []).flatMap(guest => {
+        const pitch = state.pitches[guest.pitchIndex];
+        if (!pitch || pitch.occupied || occupiedGuestPitches.has(guest.pitchIndex) ||
+            !isGuestAccommodationValid(pitch, guest.accommodation)) return [];
+        const ratingAtArrival = Number.isFinite(guest.ratingAtArrival)
+            ? guest.ratingAtArrival
+            : state.rating;
+        const restoredGuest = {
+            ...guest,
+            pitch,
+            ratingAtArrival,
+            dailyIncome: Number.isFinite(guest.dailyIncome)
+                ? guest.dailyIncome
+                : getGuestDailyIncome(ratingAtArrival)
+        };
+        pitch.occupied = true;
+        occupiedGuestPitches.add(guest.pitchIndex);
+        return [restoredGuest];
+    });
     if (data.player && Number.isFinite(data.player.x) && Number.isFinite(data.player.y) &&
         canOccupyPlayer(data.player.x, data.player.y)) {
         state.player = {...data.player};
@@ -272,6 +293,16 @@ function isValidTileData(tile) {
         (tile.road === undefined || typeof tile.road === 'boolean');
 }
 
+function isGuestAccommodationValid(pitch, accommodation) {
+    if (pitch.type === 'grass') return accommodation === 'tent' || accommodation === 'towed';
+    if (pitch.type === 'gravel') return accommodation === 'towed' || accommodation === 'static';
+    return false;
+}
+
+function getGuestDailyIncome(rating) {
+    return Math.max(0, Math.round(25 * rating));
+}
+
 function getTileProperties(x, y) {
     const tile = state.tiles[y]?.[x];
     if (!tile) {
@@ -285,9 +316,12 @@ function getTileProperties(x, y) {
     const caravan = state.caravans.find(item =>
         x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
         y >= item.pitch.y && y < item.pitch.y + item.pitch.h);
+    const guest = state.guests.find(item =>
+        x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
+        y >= item.pitch.y && y < item.pitch.y + item.pitch.h);
     const pitchIsAvailable = Boolean(pitch && !pitch.occupied);
     const tree = tile.nature === 'tree';
-    const hasObject = Boolean(facility || caravan);
+    const hasObject = Boolean(facility || caravan || guest);
     const buildable = tile.terrain === 'grass' && !tile.road && !tree &&
         !pitch && !hasObject;
 
@@ -295,7 +329,7 @@ function getTileProperties(x, y) {
         walkable: tile.terrain === 'grass' && !tree && !hasObject,
         buildable,
         occupied: Boolean(tree || pitch || hasObject),
-        interactable: Boolean(pitchIsAvailable || caravan || facility)
+        interactable: Boolean(pitchIsAvailable || caravan || guest || facility)
     };
 }
 
@@ -348,6 +382,12 @@ function findInteractableAt(x, y) {
         y >= item.pitch.y && y < item.pitch.y + item.pitch.h);
     if (caravan) return {kind: 'caravan', entity: caravan, x: caravan.pitch.x,
         y: caravan.pitch.y, w: caravan.pitch.w, h: caravan.pitch.h};
+
+    const guest = state.guests.find(item =>
+        x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
+        y >= item.pitch.y && y < item.pitch.y + item.pitch.h);
+    if (guest) return {kind: 'guest', entity: guest, x: guest.pitch.x,
+        y: guest.pitch.y, w: guest.pitch.w, h: guest.pitch.h};
 
     const facility = state.facilities.find(item =>
         x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h);
@@ -414,6 +454,10 @@ function interactWith(target) {
         showToast(`${name}: Park facility`);
         return;
     }
+    if (target.kind === 'guest') {
+        showToast(`Guest staying in ${target.entity.accommodation} · £${target.entity.dailyIncome}/day`);
+        return;
+    }
     if (target.kind === 'pitch') {
         showToast(`Empty ${target.entity.type} pitch`);
     }
@@ -424,6 +468,7 @@ function interactNearby() {
         distanceToTarget(state.interactionTarget) <= 1.25
         ? state.interactionTarget
         : [...state.caravans.map(entity => ({kind: 'caravan', entity, ...entity.pitch})),
+            ...state.guests.map(entity => ({kind: 'guest', entity, ...entity.pitch})),
             ...state.facilities.map(entity => ({kind: 'facility', entity, ...entity})),
             ...state.pitches.filter(entity => !entity.occupied)
                 .map(entity => ({kind: 'pitch', entity, ...entity}))]
@@ -489,10 +534,16 @@ function updatePlayerMovement(deltaSeconds) {
 function saveGame() {
     try {
         localStorage.setItem('caravan_tycoon_save', JSON.stringify({
-            schemaVersion: 2,
+            schemaVersion: 3,
             cash: state.cash,
             tiles: state.tiles,
             pitches: state.pitches,
+            guests: state.guests.map(guest => ({
+                pitchIndex: state.pitches.indexOf(guest.pitch),
+                accommodation: guest.accommodation,
+                ratingAtArrival: guest.ratingAtArrival,
+                dailyIncome: guest.dailyIncome
+            })),
             caravans: state.caravans.map(caravan => ({
                 ...caravan,
                 pitchIndex: state.pitches.indexOf(caravan.pitch),
@@ -576,12 +627,36 @@ function onHourly() {
     // Shop income
     const shops = state.facilities.filter(f => f.type === 'shop').length;
     state.cash += (shops * state.caravans.length * 2);
+    arriveGuest();
     saveGame();
+}
+
+function arriveGuest() {
+    const pitch = state.pitches.find(item => !item.occupied);
+    if (!pitch) return false;
+
+    const options = pitch.type === 'grass'
+        ? ['tent', 'towed']
+        : ['towed', 'static'];
+    const accommodation = options[Math.floor(Math.random() * options.length)];
+    const ratingAtArrival = state.rating;
+    const guest = {
+        pitch,
+        accommodation,
+        ratingAtArrival,
+        dailyIncome: getGuestDailyIncome(ratingAtArrival)
+    };
+    pitch.occupied = true;
+    state.guests.push(guest);
+    showToast(`A guest arrived with a ${accommodation} · £${guest.dailyIncome}/day`);
+    playSound(660, 'sine', 0.12);
+    return true;
 }
 
 function onDaily() {
     let income = 0;
     state.caravans.forEach(c => { if(!c.isBroken) income += c.getDailyRent(); });
+    state.guests.forEach(guest => { income += guest.dailyIncome; });
     state.cash += income;
     if (income > 0) {
         showToast(`💰 Daily Revenue: £${income}`);
@@ -769,6 +844,40 @@ function draw(timestamp = 0) {
         // Windows
         ctx.fillStyle = '#85c1e9'; ctx.fillRect(px+4, py+2, pw-8, 6);
         if (c.isBroken) { ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(px+pw/2, py+ph/2, 4, 0, Math.PI*2); ctx.fill(); }
+    });
+
+    // Guest accommodation and residents
+    state.guests.forEach(guest => {
+        const pitch = guest.pitch;
+        const px = pitch.x * TILE_SIZE;
+        const py = pitch.y * TILE_SIZE;
+        const width = pitch.w * TILE_SIZE;
+        const height = pitch.h * TILE_SIZE;
+        if (guest.accommodation === 'tent') {
+            ctx.fillStyle = '#c9823b';
+            ctx.beginPath();
+            ctx.moveTo(px + width * 0.2, py + height * 0.58);
+            ctx.lineTo(px + width * 0.5, py + height * 0.2);
+            ctx.lineTo(px + width * 0.8, py + height * 0.58);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#f2d7a0';
+            ctx.fillRect(px + width * 0.47, py + height * 0.43, width * 0.06, height * 0.15);
+        } else {
+            ctx.fillStyle = guest.accommodation === 'static' ? '#ded495' : '#d8cfbe';
+            ctx.fillRect(px + width * 0.16, py + height * 0.24, width * 0.68, height * 0.42);
+            ctx.strokeStyle = '#1a252f';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(px + width * 0.16, py + height * 0.24, width * 0.68, height * 0.42);
+            ctx.fillStyle = '#85c1e9';
+            ctx.fillRect(px + width * 0.26, py + height * 0.3, width * 0.16, height * 0.1);
+        }
+        const residentX = px + width * 0.5;
+        const residentY = py + height * 0.8;
+        ctx.fillStyle = '#f5cba7';
+        ctx.beginPath(); ctx.arc(residentX, residentY, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#e74c3c';
+        ctx.fillRect(residentX - 2, residentY + 2, 4, 5);
     });
 
     // Player
