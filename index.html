@@ -29,6 +29,8 @@
         .tool-btn { background: #34495e; border: 2px solid #1a252f; border-radius: 4px; padding: 6px; color: white; cursor: pointer; min-width: 70px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; transition: all 0.1s; }
         .tool-btn:hover { background: #4a6278; }
         .tool-btn.active { background: var(--accent-bright); border-color: #fff; transform: translateY(-3px); box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
+        .speed-control { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; color: var(--text); font-size: 11px; min-width: 150px; }
+        .speed-control input { width: 140px; accent-color: var(--accent-bright); cursor: pointer; }
 
         #inspector { position: absolute; right: 16px; top: 68px; width: 240px; background: var(--ui-panel); border: 3px solid var(--ui-border); border-radius: 6px; padding: 12px; display: none; z-index: 5; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
         .inspector-title { font-size: 1.1em; color: var(--accent-bright); margin-bottom: 8px; border-bottom: 1px solid #4a6278; padding-bottom: 4px; }
@@ -40,6 +42,10 @@
         
         .satisfaction-bar { height: 4px; width: 100%; background: #c0392b; margin-top: 4px; border-radius: 2px; overflow: hidden; }
         #satisfaction-fill { height: 100%; background: #27ae60; width: 50%; transition: width 0.5s; }
+        .demand-stat { display: grid; grid-template-columns: auto minmax(70px, 100px); gap: 2px 8px; min-width: 180px; }
+        .demand-track { height: 6px; background: #17232d; border-radius: 3px; overflow: hidden; }
+        #demand-fill { height: 100%; width: 0; background: #e67e22; transition: width 0.4s, background-color 0.4s; }
+        #demand-capacity { grid-column: 1 / -1; color: var(--text-dim); font-size: 10px; font-weight: normal; }
     </style>
 </head>
 <body>
@@ -49,6 +55,7 @@
         <div class="stat-group">
             <div id="park-name" style="color: var(--accent-bright);">🌲 Sandy Sands Deluxe</div>
             <div class="stat">📅 <span id="clock-display">Day 1, 09:00</span></div>
+            <div class="stat" id="time-of-day">☀️ Daylight</div>
             <div class="stat"><span id="weather-display">☀️</span> <span id="weather-text">Sunny</span></div>
         </div>
         
@@ -56,6 +63,13 @@
             <div class="stat" style="color: #2ecc71;">£ <span id="cash-display">1,500</span></div>
             <div class="stat">😊 <div style="width: 60px;"><div class="satisfaction-bar"><div id="satisfaction-fill"></div></div></div></div>
             <div class="stat">⭐ <span id="rating-display">1.0</span></div>
+            <div class="stat demand-stat" title="Estimated guest interest based on park rating and satisfaction">
+                <span>📈 Demand</span><span id="demand-level">Low</span>
+                <div id="demand-track" class="demand-track" role="meter" aria-label="Guest demand" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div id="demand-fill"></div>
+                </div>
+                <span id="demand-capacity">No pitches</span>
+            </div>
         </div>
     </div>
 
@@ -72,6 +86,11 @@
     </div>
 
     <div id="bottom-toolbar">
+        <label class="speed-control" for="day-length">
+            <span>Day length: <span id="day-length-value">10</span> min</span>
+            <input id="day-length" type="range" min="3" max="60" step="1" value="10"
+                aria-label="In-game day length in real-time minutes">
+        </label>
         <div class="tool-btn active" onclick="setTool('select', this)">🔍<br>Select</div>
         <div class="tool-btn" onclick="setTool('road', this)">🛣️<br>Tarmac (£20)</div>
         <div class="tool-btn" onclick="setTool('pitch_grass', this)">⛺<br>Grass P. (£100)</div>
@@ -122,6 +141,7 @@ let state = {
     rating: 1.0,
     satisfaction: 60,
     day: 1, hour: 9, minute: 0,
+    dayLengthMinutes: 10,
     weather: 'Sunny',
     tiles: [],
     pitches: [],
@@ -205,6 +225,9 @@ function init() {
     state.day = Number.isFinite(data.day) ? data.day : state.day;
     state.hour = Number.isFinite(data.hour) ? data.hour : state.hour;
     state.minute = Number.isFinite(data.minute) ? data.minute : state.minute;
+    state.dayLengthMinutes = Number.isFinite(data.dayLengthMinutes)
+        ? Math.min(Math.max(Math.round(data.dayLengthMinutes), 3), 60)
+        : state.dayLengthMinutes;
     state.satisfaction = Number.isFinite(data.satisfaction) ? data.satisfaction : state.satisfaction;
     state.rating = Number.isFinite(data.rating) ? data.rating : state.rating;
     state.weather = typeof data.weather === 'string' ? data.weather : state.weather;
@@ -232,10 +255,15 @@ function init() {
         const ratingAtArrival = Number.isFinite(guest.ratingAtArrival)
             ? guest.ratingAtArrival
             : state.rating;
+        const stayDaysRemaining = Number.isInteger(guest.stayDaysRemaining) &&
+            guest.stayDaysRemaining >= 1 && guest.stayDaysRemaining <= 14
+            ? guest.stayDaysRemaining
+            : 1 + Math.floor(Math.random() * 14);
         const restoredGuest = {
             ...guest,
             pitch,
             ratingAtArrival,
+            stayDaysRemaining,
             dailyIncome: Number.isFinite(guest.dailyIncome)
                 ? guest.dailyIncome
                 : getGuestDailyIncome(ratingAtArrival)
@@ -301,6 +329,34 @@ function isGuestAccommodationValid(pitch, accommodation) {
 
 function getGuestDailyIncome(rating) {
     return Math.max(0, Math.round(25 * rating));
+}
+
+function smoothstep(edge0, edge1, value) {
+    const progress = Math.min(Math.max((value - edge0) / (edge1 - edge0), 0), 1);
+    return progress * progress * (3 - 2 * progress);
+}
+
+function getDayNightLighting() {
+    const time = state.hour + state.minute / 60;
+    const dawnDarkness = 1 - smoothstep(4.5, 7, time);
+    const duskDarkness = smoothstep(17, 19.5, time);
+    const darkness = Math.max(dawnDarkness, duskDarkness);
+    let phase;
+    let icon;
+    if (time < 5 || time >= 20) {
+        phase = 'Night';
+        icon = '🌙';
+    } else if (time < 7) {
+        phase = 'Dawn';
+        icon = '🌅';
+    } else if (time < 17) {
+        phase = 'Daylight';
+        icon = '☀️';
+    } else {
+        phase = 'Dusk';
+        icon = '🌇';
+    }
+    return {phase, icon, darkness: darkness * 0.62};
 }
 
 function getTileProperties(x, y) {
@@ -455,7 +511,7 @@ function interactWith(target) {
         return;
     }
     if (target.kind === 'guest') {
-        showToast(`Guest staying in ${target.entity.accommodation} · £${target.entity.dailyIncome}/day`);
+        showToast(`Guest staying in ${target.entity.accommodation} · ${target.entity.stayDaysRemaining} day${target.entity.stayDaysRemaining === 1 ? '' : 's'} left`);
         return;
     }
     if (target.kind === 'pitch') {
@@ -534,7 +590,7 @@ function updatePlayerMovement(deltaSeconds) {
 function saveGame() {
     try {
         localStorage.setItem('caravan_tycoon_save', JSON.stringify({
-            schemaVersion: 3,
+            schemaVersion: 4,
             cash: state.cash,
             tiles: state.tiles,
             pitches: state.pitches,
@@ -542,7 +598,8 @@ function saveGame() {
                 pitchIndex: state.pitches.indexOf(guest.pitch),
                 accommodation: guest.accommodation,
                 ratingAtArrival: guest.ratingAtArrival,
-                dailyIncome: guest.dailyIncome
+                dailyIncome: guest.dailyIncome,
+                stayDaysRemaining: guest.stayDaysRemaining
             })),
             caravans: state.caravans.map(caravan => ({
                 ...caravan,
@@ -558,6 +615,7 @@ function saveGame() {
             satisfaction: state.satisfaction,
             rating: state.rating,
             weather: state.weather,
+            dayLengthMinutes: state.dayLengthMinutes,
             camera: state.camera,
             player: state.player
         }));
@@ -586,16 +644,16 @@ class Caravan {
 
 // --- Game Logic ---
 function update(dt) {
-    state.minute += dt * 0.05; 
-    if (state.minute >= 60) {
-        state.minute = 0;
+    state.minute += dt * (1440 / (state.dayLengthMinutes * 600));
+    while (state.minute >= 60) {
+        state.minute -= 60;
         state.hour++;
+        if (state.hour >= 24) {
+            state.hour = 0;
+            state.day++;
+            onDaily();
+        }
         onHourly();
-    }
-    if (state.hour >= 24) {
-        state.hour = 0;
-        state.day++;
-        onDaily();
     }
 
     // Decay caravans
@@ -644,11 +702,12 @@ function arriveGuest() {
         pitch,
         accommodation,
         ratingAtArrival,
-        dailyIncome: getGuestDailyIncome(ratingAtArrival)
+        dailyIncome: getGuestDailyIncome(ratingAtArrival),
+        stayDaysRemaining: 1 + Math.floor(Math.random() * 14)
     };
     pitch.occupied = true;
     state.guests.push(guest);
-    showToast(`A guest arrived with a ${accommodation} · £${guest.dailyIncome}/day`);
+    showToast(`A guest arrived with a ${accommodation} for ${guest.stayDaysRemaining} day${guest.stayDaysRemaining === 1 ? '' : 's'}`);
     playSound(660, 'sine', 0.12);
     return true;
 }
@@ -657,9 +716,25 @@ function onDaily() {
     let income = 0;
     state.caravans.forEach(c => { if(!c.isBroken) income += c.getDailyRent(); });
     state.guests.forEach(guest => { income += guest.dailyIncome; });
+    const departingGuests = [];
+    state.guests.forEach(guest => {
+        guest.stayDaysRemaining--;
+        if (guest.stayDaysRemaining <= 0) departingGuests.push(guest);
+    });
+    departingGuests.forEach(guest => {
+        guest.pitch.occupied = false;
+        state.guests.splice(state.guests.indexOf(guest), 1);
+    });
     state.cash += income;
+    if (income > 0 || departingGuests.length) {
+        const notices = [];
+        if (income > 0) notices.push(`💰 Daily Revenue: £${income}`);
+        if (departingGuests.length) {
+            notices.push(`${departingGuests.length} guest${departingGuests.length === 1 ? '' : 's'} checked out`);
+        }
+        showToast(notices.join(' · '));
+    }
     if (income > 0) {
-        showToast(`💰 Daily Revenue: £${income}`);
         playSound(880, 'sine', 0.2);
     }
     saveGame();
@@ -891,6 +966,15 @@ function draw(timestamp = 0) {
     ctx.fillStyle = '#2e86c1';
     ctx.fillRect(playerX - 4, playerY + 3, 8, 5);
 
+    const lighting = getDayNightLighting();
+    if (lighting.darkness > 0) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = `rgba(8, 16, 43, ${lighting.darkness})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+    }
+
     ctx.restore();
     requestAnimationFrame(draw);
 }
@@ -898,9 +982,29 @@ function draw(timestamp = 0) {
 // --- UI & Controls ---
 function updateUI() {
     document.getElementById('cash-display').innerText = Math.floor(state.cash).toLocaleString();
-    document.getElementById('clock-display').innerText = `Day ${state.day}, ${String(state.hour).padStart(2, '0')}:00`;
+    document.getElementById('clock-display').innerText =
+        `Day ${state.day}, ${String(state.hour).padStart(2, '0')}:${String(Math.floor(state.minute)).padStart(2, '0')}`;
+    const lighting = getDayNightLighting();
+    document.getElementById('time-of-day').innerText = `${lighting.icon} ${lighting.phase}`;
+    document.getElementById('day-length').value = state.dayLengthMinutes;
+    document.getElementById('day-length-value').innerText = state.dayLengthMinutes;
     document.getElementById('rating-display').innerText = state.rating.toFixed(1);
     document.getElementById('satisfaction-fill').style.width = state.satisfaction + '%';
+    const demand = getGuestDemand();
+    const demandTrack = document.getElementById('demand-track');
+    const demandFill = document.getElementById('demand-fill');
+    demandFill.style.width = `${demand.score}%`;
+    demandFill.style.backgroundColor = demand.score >= 67 ? '#27ae60' :
+        (demand.score >= 34 ? '#f1c40f' : '#e67e22');
+    document.getElementById('demand-level').innerText = `${demand.level} ${demand.score}%`;
+    demandTrack.setAttribute('aria-valuenow', demand.score);
+    const availablePitches = state.pitches.filter(pitch => !pitch.occupied).length;
+    const demandCapacity = document.getElementById('demand-capacity');
+    demandCapacity.innerText = state.pitches.length === 0
+        ? 'No pitches — guests cannot stay'
+        : availablePitches === 0
+            ? 'No vacancies — demand unserved'
+            : `${availablePitches} pitch${availablePitches === 1 ? '' : 'es'} available`;
 
     const ins = document.getElementById('inspector');
     if (state.selectedEntity) {
@@ -915,6 +1019,23 @@ function updateUI() {
     } else {
         ins.style.display = 'none';
     }
+}
+
+function setDayLengthMinutes(minutes) {
+    state.dayLengthMinutes = Math.min(Math.max(Math.round(minutes), 3), 60);
+    document.getElementById('day-length').value = state.dayLengthMinutes;
+    document.getElementById('day-length-value').innerText = state.dayLengthMinutes;
+    saveGame();
+}
+
+function getGuestDemand() {
+    const ratingInterest = Math.min(Math.max(state.rating, 0), 5) / 5;
+    const satisfactionInterest = Math.min(Math.max(state.satisfaction, 0), 100) / 100;
+    const score = Math.round((ratingInterest * 50 + satisfactionInterest * 50));
+    return {
+        score,
+        level: score >= 67 ? 'High' : score >= 34 ? 'Moderate' : 'Low'
+    };
 }
 
 function repairSelectedCaravan() {
@@ -1024,6 +1145,9 @@ window.onload = () => {
     document.getElementById('btn-upgrade').addEventListener('click', upgradeSelectedCaravan);
     document.getElementById('btn-skirting').addEventListener('click', fitSelectedSkirting);
     document.getElementById('btn-sell').addEventListener('click', sellSelectedCaravan);
+    document.getElementById('day-length').addEventListener('input', event => {
+        setDayLengthMinutes(Number(event.target.value));
+    });
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight - 132;
     init();
