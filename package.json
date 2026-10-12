@@ -1,0 +1,9 @@
+{
+  "name": "caravan-park-tycoon-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Static browser prototype for Caravan Park Tycoon",
+  "scripts": {
+    "check:syntax": "node --check src/main.js"
+  }
+}
