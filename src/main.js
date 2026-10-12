@@ -875,6 +875,13 @@ function spend(amt) {
 // --- Rendering ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+    const topBar = document.getElementById('top-bar');
+    const availableHeight = Math.max(160, window.innerHeight - (topBar?.getBoundingClientRect().height || 52));
+    canvas.width = window.innerWidth;
+    canvas.height = availableHeight;
+}
 let lastFrameTime = 0;
 
 function draw(timestamp = 0) {
@@ -1141,6 +1148,20 @@ function sellSelectedCaravan() {
     showToast(`💰 Unit sold for £${salePrice}.`);
 }
 
+function showMenuPanel(panel, btn) {
+    document.querySelectorAll('.menu-panel').forEach(item => item.classList.remove('active'));
+    document.querySelectorAll('.menu-tab').forEach(item => item.classList.remove('active'));
+    const panelElement = document.getElementById(`panel-${panel}`);
+    if (panelElement) panelElement.classList.add('active');
+    if (btn) btn.classList.add('active');
+    toggleBuildMenu(true);
+}
+
+function toggleBuildMenu(open) {
+    const menu = document.getElementById('build-menu');
+    if (menu) menu.classList.toggle('collapsed', !open);
+}
+
 function setTool(t, btn) {
     state.activeTool = t;
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
@@ -1212,8 +1233,8 @@ window.onload = () => {
     document.getElementById('day-length').addEventListener('input', event => {
         setDayLengthMinutes(Number(event.target.value));
     });
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight - 132;
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
     init();
     draw();
     setInterval(() => update(1), 100);
