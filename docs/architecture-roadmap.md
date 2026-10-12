@@ -5,7 +5,7 @@
 - [x] Create an isolated refactor branch.
 - [x] Extract inline CSS and JavaScript without intentionally changing game rules.
 - [ ] Verify the extracted build in a browser and inspect the Cloudflare Pages preview.
-- [ ] Add lightweight automated checks for syntax, save compatibility, grid/pathfinding and economy.
+- [x] Add lightweight automated checks for syntax, save compatibility, grid/pathfinding and economy.
 
 ## Phase 2 — Separate simulation from presentation
 
