@@ -1,0 +1,164 @@
+(function (globalScope) {
+    const DEFAULT_STATE = {
+        cash: 2000,
+        rating: 1.0,
+        satisfaction: 60,
+        day: 1,
+        hour: 9,
+        minute: 0,
+        dayLengthMinutes: 10,
+        simulationSpeed: 1,
+        isPaused: false,
+        weather: 'Sunny',
+        tiles: [],
+        pitches: [],
+        caravans: [],
+        guests: [],
+        facilities: [],
+        vehicles: [],
+        handymen: 0,
+        camera: { x: 100, y: 100, zoom: 1.8 },
+        activeTool: 'select',
+        selectedEntity: null,
+        player: { x: 5.5, y: 10.5 },
+        playerPath: [],
+        interactionTarget: null
+    };
+
+    function createGameState(overrides = {}) {
+        const nextState = {
+            ...DEFAULT_STATE,
+            ...overrides,
+            camera: {
+                ...DEFAULT_STATE.camera,
+                ...(overrides.camera || {})
+            },
+            player: {
+                ...DEFAULT_STATE.player,
+                ...(overrides.player || {})
+            }
+        };
+        return nextState;
+    }
+
+    function getTileProperties(state, x, y) {
+        if (!state || !Array.isArray(state.tiles) || !Array.isArray(state.pitches)) {
+            return { walkable: false, buildable: false, occupied: true, interactable: false };
+        }
+
+        const tile = state.tiles[y]?.[x];
+        if (!tile) {
+            return { walkable: false, buildable: false, occupied: true, interactable: false };
+        }
+
+        const pitch = state.pitches.find(item =>
+            x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
+        );
+        const facility = state.facilities.find(item =>
+            x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
+        );
+        const caravan = state.caravans.find(item =>
+            x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
+            y >= item.pitch.y && y < item.pitch.y + item.pitch.h
+        );
+        const guest = state.guests.find(item =>
+            x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
+            y >= item.pitch.y && y < item.pitch.y + item.pitch.h
+        );
+        const pitchIsAvailable = Boolean(pitch && !pitch.occupied);
+        const tree = tile.nature === 'tree';
+        const hasObject = Boolean(facility || caravan || guest);
+        const buildable = tile.terrain === 'grass' && !tile.road && !tile.path && !tree &&
+            !pitch && !hasObject;
+
+        return {
+            walkable: tile.terrain === 'grass' && !tree && !hasObject,
+            buildable,
+            occupied: Boolean(tree || pitch || hasObject),
+            interactable: Boolean(pitchIsAvailable || caravan || guest || facility)
+        };
+    }
+
+    function canOccupyPlayer(state, x, y) {
+        const radius = 0.18;
+        return [[0, 0], [-radius, -radius], [radius, -radius], [-radius, radius], [radius, radius]]
+            .every(([offsetX, offsetY]) => {
+                const tileX = Math.floor(x + offsetX);
+                const tileY = Math.floor(y + offsetY);
+                return getTileProperties(state, tileX, tileY).walkable;
+            });
+    }
+
+    function findPathToAny(state, destinationTiles) {
+        const start = { x: Math.floor(state.player.x), y: Math.floor(state.player.y) };
+        const destinations = new Set((destinationTiles || []).map(tile => `${Math.floor(tile.x)},${Math.floor(tile.y)}`));
+        const startKey = `${start.x},${start.y}`;
+        const queue = [start];
+        const previous = new Map([[startKey, null]]);
+        let destinationKey = destinations.has(startKey) ? startKey : null;
+
+        for (let index = 0; index < queue.length && !destinationKey; index++) {
+            const current = queue[index];
+            for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+                const x = current.x + dx;
+                const y = current.y + dy;
+                const key = `${x},${y}`;
+                if (previous.has(key) || !getTileProperties(state, x, y).walkable) continue;
+                previous.set(key, `${current.x},${current.y}`);
+                if (destinations.has(key)) {
+                    destinationKey = key;
+                    break;
+                }
+                queue.push({ x, y });
+            }
+        }
+
+        if (!destinationKey) return null;
+
+        const path = [];
+        for (let key = destinationKey; key && key !== startKey; key = previous.get(key)) {
+            const [x, y] = key.split(',').map(Number);
+            path.unshift({ x: x + 0.5, y: y + 0.5 });
+        }
+        return path;
+    }
+
+    function findInteractableAt(state, x, y) {
+        const caravan = state.caravans.find(item =>
+            x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
+            y >= item.pitch.y && y < item.pitch.y + item.pitch.h
+        );
+        if (caravan) return { kind: 'caravan', entity: caravan, x: caravan.pitch.x, y: caravan.pitch.y, w: caravan.pitch.w, h: caravan.pitch.h };
+
+        const guest = state.guests.find(item =>
+            x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
+            y >= item.pitch.y && y < item.pitch.y + item.pitch.h
+        );
+        if (guest) return { kind: 'guest', entity: guest, x: guest.pitch.x, y: guest.pitch.y, w: guest.pitch.w, h: guest.pitch.h };
+
+        const facility = state.facilities.find(item =>
+            x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
+        );
+        if (facility) return { kind: 'facility', entity: facility, x: facility.x, y: facility.y, w: facility.w, h: facility.h };
+
+        const pitch = state.pitches.find(item => !item.occupied &&
+            x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h);
+        if (pitch) return { kind: 'pitch', entity: pitch, x: pitch.x, y: pitch.y, w: pitch.w, h: pitch.h };
+        return null;
+    }
+
+    const api = {
+        DEFAULT_STATE,
+        createGameState,
+        getTileProperties,
+        canOccupyPlayer,
+        findPathToAny,
+        findInteractableAt
+    };
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = api;
+    }
+
+    globalScope.GameState = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
