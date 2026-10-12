@@ -18,6 +18,7 @@ const GRID_W = 60;
 const GRID_H = 40;
 const SimulationClock = window.SimulationClock;
 const GameStateApi = window.GameState;
+const SimulationApi = window.Simulation;
 
 const PALETTE = {
     grass: ['#556b2f', '#5c7433', '#4d612a'],
@@ -532,32 +533,34 @@ class Caravan {
 
 // --- Game Logic ---
 function update(dt) {
-    if (!state.isPaused) {
-        SimulationClock.advanceSimulation(state, dt, {
-            onHourly,
-            onDaily
+    if (SimulationApi && typeof SimulationApi.advanceSimulationState === 'function') {
+        SimulationApi.advanceSimulationState(state, dt, { onHourly, onDaily });
+    } else {
+        if (!state.isPaused) {
+            SimulationClock.advanceSimulation(state, dt, {
+                onHourly,
+                onDaily
+            });
+        }
+
+        state.caravans.forEach(c => {
+            let decay = state.weather === 'Rain' ? 0.02 : 0.005;
+            c.condition = Math.max(0, c.condition - decay);
+            if (c.condition < 40 && !c.isBroken && Math.random() < 0.001) c.isBroken = true;
         });
+
+        const facilityBenefits = {
+            toilets: 30, shop: 20, playground: 10, pub: 12, restaurant: 14,
+            arcade: 12, entertainment_space: 18, pool: 15, activity_centre: 18,
+            entertainment_hub: 25
+        };
+        let targetSat = 40 + state.facilities.reduce((total, facility) =>
+            total + (facilityBenefits[facility.type] || 0), 0);
+        if (state.caravans.some(c => c.isBroken)) targetSat -= 15;
+        targetSat = Math.min(Math.max(targetSat, 0), 100);
+        state.satisfaction += (targetSat - state.satisfaction) * 0.01;
+        state.rating = 1.0 + (state.caravans.length * 0.2) + (state.satisfaction / 50);
     }
-
-    // Decay caravans
-    state.caravans.forEach(c => {
-        let decay = state.weather === 'Rain' ? 0.02 : 0.005;
-        c.condition = Math.max(0, c.condition - decay);
-        if (c.condition < 40 && !c.isBroken && Math.random() < 0.001) c.isBroken = true;
-    });
-
-    // Satisfaction calculation
-    const facilityBenefits = {
-        toilets: 30, shop: 20, playground: 10, pub: 12, restaurant: 14,
-        arcade: 12, entertainment_space: 18, pool: 15, activity_centre: 18,
-        entertainment_hub: 25
-    };
-    let targetSat = 40 + state.facilities.reduce((total, facility) =>
-        total + (facilityBenefits[facility.type] || 0), 0);
-    if (state.caravans.some(c => c.isBroken)) targetSat -= 15;
-    targetSat = Math.min(Math.max(targetSat, 0), 100);
-    state.satisfaction += (targetSat - state.satisfaction) * 0.01;
-    state.rating = 1.0 + (state.caravans.length * 0.2) + (state.satisfaction / 50);
 
     updateUI();
 }
