@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caravan Park Tycoon: Deluxe</title>
+    <style>
+        :root {
+            --bg-color: #1a252f;
+            --ui-panel: #2c3e50;
+            --ui-border: #141e26;
+            --accent: #d35400;
+            --accent-bright: #e67e22;
+            --text: #ecf0f1;
+            --text-dim: #bdc3c7;
+            --danger: #c0392b;
+            --success: #27ae60;
+        }
+
+        body { margin: 0; padding: 0; background: var(--bg-color); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--text); overflow: hidden; user-select: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+        canvas { background: #4a5d33; cursor: crosshair; image-rendering: pixelated; flex-grow: 1; }
+
+        #top-bar { height: 52px; background: var(--ui-panel); display: flex; align-items: center; padding: 0 16px; border-bottom: 4px solid var(--ui-border); justify-content: space-between; font-weight: bold; z-index: 10; }
+        .stat-group { display: flex; gap: 12px; align-items: center; }
+        .stat { background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 4px; display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,0.05); }
+
+        #bottom-toolbar { height: 80px; background: var(--ui-panel); border-top: 4px solid var(--ui-border); display: flex; justify-content: center; align-items: center; gap: 6px; z-index: 10; padding: 0 10px; overflow-x: auto; }
+        .tool-btn { background: #34495e; border: 2px solid #1a252f; border-radius: 4px; padding: 6px; color: white; cursor: pointer; min-width: 70px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; transition: all 0.1s; }
+        .tool-btn:hover { background: #4a6278; }
+        .tool-btn.active { background: var(--accent-bright); border-color: #fff; transform: translateY(-3px); box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
+
+        #inspector { position: absolute; right: 16px; top: 68px; width: 240px; background: var(--ui-panel); border: 3px solid var(--ui-border); border-radius: 6px; padding: 12px; display: none; z-index: 5; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
+        .inspector-title { font-size: 1.1em; color: var(--accent-bright); margin-bottom: 8px; border-bottom: 1px solid #4a6278; padding-bottom: 4px; }
+        .btn-action { width: 100%; padding: 8px; margin-top: 6px; background: var(--success); border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: bold; font-size: 11px; }
+        .btn-action:hover { filter: brightness(1.1); }
+
+        #toast { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); border: 1px solid #e67e22; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; display: none; z-index: 100; pointer-events: none; }
+        
+        .satisfaction-bar { height: 4px; width: 100%; background: #c0392b; margin-top: 4px; border-radius: 2px; overflow: hidden; }
+        #satisfaction-fill { height: 100%; background: #27ae60; width: 50%; transition: width 0.5s; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="top-bar">
+        <div class="stat-group">
+            <div id="park-name" style="color: var(--accent-bright);">🌲 Sandy Sands Deluxe</div>
+            <div class="stat">📅 <span id="clock-display">Day 1, 09:00</span></div>
+            <div class="stat"><span id="weather-display">☀️</span> <span id="weather-text">Sunny</span></div>
+        </div>
+        
+        <div class="stat-group">
+            <div class="stat" style="color: #2ecc71;">£ <span id="cash-display">1,500</span></div>
+            <div class="stat">😊 <div style="width: 60px;"><div class="satisfaction-bar"><div id="satisfaction-fill"></div></div></div></div>
+            <div class="stat">⭐ <span id="rating-display">1.0</span></div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="inspector">
+        <div class="inspector-title" id="ins-name">Caravan Details</div>
+        <div id="ins-content"></div>
+        <button class="btn-action" id="btn-repair">🔧 Repair Boiler (£40)</button>
+        <button class="btn-action" id="btn-upgrade" style="background: #2980b9;">🔨 Add Veranda (£400)</button>
+        <button class="btn-action" id="btn-skirting" style="background: #8e44ad;">🛡️ Fit Skirting (£150)</button>
+        <button class="btn-action" id="btn-sell" style="background: #7f8c8d; margin-top: 15px;">💰 Sell Unit</button>
+    </div>
+
+    <div id="bottom-toolbar">
+        <div class="tool-btn active" onclick="setTool('select', this)">🔍<br>Select</div>
+        <div class="tool-btn" onclick="setTool('road', this)">🛣️<br>Tarmac (£20)</div>
+        <div class="tool-btn" onclick="setTool('pitch_grass', this)">⛺<br>Grass P. (£100)</div>
+        <div class="tool-btn" onclick="setTool('pitch_gravel', this)">🚛<br>Hardst. (£250)</div>
+        <div class="tool-btn" onclick="setTool('buy_tin', this)">🚐<br>Tin Banger</div>
+        <div class="tool-btn" onclick="setTool('buy_classic', this)">🏠<br>Classic '02</div>
+        <div class="tool-btn" onclick="setTool('build_toilets', this)">🚻<br>Toilets (£800)</div>
+        <div class="tool-btn" onclick="setTool('build_shop', this)">🛒<br>Shop (£1.5k)</div>
+        <div class="tool-btn" onclick="setTool('build_tree', this)">🌳<br>Tree (£30)</div>
+        <div class="tool-btn" onclick="hireHandyman()">🛠️<br>Handyman</div>
+        <div class="tool-btn" onclick="resetGame()" style="color: #e74c3c">☢️<br>Reset</div>
+    </div>
+
+    <div id="toast">Message</div>
+</div>
+
+<script>
+/** AUDIO ENGINE **/
+const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(freq, type, duration) {
+    const osc = AudioCtx.createOscillator();
+    const gain = AudioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, AudioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, AudioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, AudioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(AudioCtx.destination);
+    osc.start();
+    osc.stop(AudioCtx.currentTime + duration);
+}
+
+const TILE_SIZE = 16;
+const GRID_W = 60;
+const GRID_H = 40;
+
+const PALETTE = {
+    grass: ['#556b2f', '#5c7433', '#4d612a'],
+    road: '#34495e',
+    water: '#2980b9',
+    fac_wall: '#bdc3c7',
+    fac_roof: '#c0392b',
+    tree: '#1e8449'
+};
+
+let state = {
+    cash: 2000,
+    rating: 1.0,
+    satisfaction: 60,
+    day: 1, hour: 9, minute: 0,
+    weather: 'Sunny',
+    tiles: [],
+    pitches: [],
+    caravans: [],
+    facilities: [],
+    vehicles: [],
+    handymen: 0,
+    camera: { x: 100, y: 100, zoom: 1.8 },
+    activeTool: 'select',
+    selectedEntity: null
+};
+
+// --- Initialization ---
+function init() {
+    const saved = localStorage.getItem('caravan_tycoon_save');
+    if (saved) {
+        const data = JSON.parse(saved);
+        // Hydrate map and objects
+        state.cash = data.cash;
+        state.tiles = data.tiles;
+        state.pitches = data.pitches;
+        state.handymen = data.handymen || 0;
+        state.facilities = data.facilities || [];
+        state.caravans = data.caravans.map(c => {
+            let car = Object.assign(new Caravan(), c);
+            car.smokeParticles = [];
+            return car;
+        });
+    } else {
+        generateNewMap();
+    }
+}
+
+function generateNewMap() {
+    for (let y = 0; y < GRID_H; y++) {
+        state.tiles[y] = [];
+        for (let x = 0; x < GRID_W; x++) {
+            let type = 'grass';
+            if (y >= 18 && y <= 20 && x < 25) type = 'road';
+            if (Math.hypot(x - 50, y - 10) < 5) type = 'water';
+            state.tiles[y][x] = { type, debris: (type==='grass' && Math.random() > 0.9), occupied: false };
+        }
+    }
+}
+
+function saveGame() {
+    localStorage.setItem('caravan_tycoon_save', JSON.stringify({
+        cash: state.cash,
+        tiles: state.tiles,
+        pitches: state.pitches,
+        caravans: state.caravans,
+        facilities: state.facilities,
+        handymen: state.handymen
+    }));
+}
+
+class Caravan {
+    constructor(pitch, tier) {
+        this.pitch = pitch;
+        this.tier = tier;
+        this.condition = 100;
+        this.isBroken = false;
+        this.hasDecking = false;
+        this.hasSkirting = false;
+        this.smokeParticles = [];
+    }
+    getDailyRent() {
+        let val = this.tier === 1 ? 75 : 190;
+        if (this.hasDecking) val += 40;
+        return val;
+    }
+}
+
+// --- Game Logic ---
+function update(dt) {
+    state.minute += dt * 0.05; 
+    if (state.minute >= 60) {
+        state.minute = 0;
+        state.hour++;
+        onHourly();
+    }
+    if (state.hour >= 24) {
+        state.hour = 0;
+        state.day++;
+        onDaily();
+    }
+
+    // Decay caravans
+    state.caravans.forEach(c => {
+        let decay = state.weather === 'Rain' ? 0.02 : 0.005;
+        c.condition = Math.max(0, c.condition - decay);
+        if (c.condition < 40 && !c.isBroken && Math.random() < 0.001) c.isBroken = true;
+    });
+
+    // Satisfaction calculation
+    const hasToilets = state.facilities.some(f => f.type === 'toilets');
+    const hasShop = state.facilities.some(f => f.type === 'shop');
+    let targetSat = 40;
+    if (hasToilets) targetSat += 30;
+    if (hasShop) targetSat += 20;
+    if (state.caravans.some(c => c.isBroken)) targetSat -= 15;
+    
+    state.satisfaction += (targetSat - state.satisfaction) * 0.01;
+    state.rating = 1.0 + (state.caravans.length * 0.2) + (state.satisfaction / 50);
+
+    updateUI();
+}
+
+function onHourly() {
+    if (state.handymen > 0) {
+        state.cash -= (state.handymen * 2);
+        state.caravans.forEach(c => { if(c.isBroken && state.cash > 50) { c.isBroken = false; state.cash -= 40; }});
+    }
+    // Shop income
+    const shops = state.facilities.filter(f => f.type === 'shop').length;
+    state.cash += (shops * state.caravans.length * 2);
+}
+
+function onDaily() {
+    let income = 0;
+    state.caravans.forEach(c => { if(!c.isBroken) income += c.getDailyRent(); });
+    state.cash += income;
+    if (income > 0) {
+        showToast(`💰 Daily Revenue: £${income}`);
+        playSound(880, 'sine', 0.2);
+    }
+    saveGame();
+}
+
+// --- Build Functions ---
+function handleGridClick(gx, gy) {
+    if (gx < 0 || gy < 0 || gx >= GRID_W || gy >= GRID_H) return;
+    const tile = state.tiles[gy][gx];
+
+    if (state.activeTool === 'select') {
+        const car = state.caravans.find(c => gx >= c.pitch.x && gx < c.pitch.x+c.pitch.w && gy >= c.pitch.y && gy < c.pitch.y+c.pitch.h);
+        state.selectedEntity = car;
+        return;
+    }
+
+    if (state.activeTool === 'road' && spend(20)) tile.type = 'road';
+    if (state.activeTool === 'pitch_grass') createPitch(gx, gy, 4, 6, 'grass', 100);
+    if (state.activeTool === 'pitch_gravel') createPitch(gx, gy, 4, 8, 'gravel', 250);
+    
+    if (state.activeTool.startsWith('buy_')) {
+        const p = state.pitches.find(p => gx >= p.x && gx < p.x+p.w && gy >= p.y && gy < p.y+p.h && !p.occupied);
+        if (p) {
+            const tier = state.activeTool === 'buy_tin' ? 1 : 2;
+            const cost = tier === 1 ? 600 : 2000;
+            if (spend(cost)) {
+                const c = new Caravan(p, tier);
+                p.occupied = true;
+                state.caravans.push(c);
+                playSound(440, 'square', 0.1);
+            }
+        }
+    }
+
+    if (state.activeTool === 'build_toilets' && spend(800)) placeFacility(gx, gy, 3, 3, 'toilets');
+    if (state.activeTool === 'build_shop' && spend(1500)) placeFacility(gx, gy, 4, 3, 'shop');
+    if (state.activeTool === 'build_tree' && spend(30)) placeFacility(gx, gy, 1, 1, 'tree');
+}
+
+function placeFacility(x, y, w, h, type) {
+    state.facilities.push({x, y, w, h, type});
+    playSound(523, 'sine', 0.1);
+}
+
+function createPitch(x, y, w, h, type, cost) {
+    if (spend(cost)) {
+        state.pitches.push({x, y, w, h, type, occupied: false});
+        playSound(659, 'sine', 0.1);
+    }
+}
+
+function spend(amt) {
+    if (state.cash >= amt) { state.cash -= amt; return true; }
+    showToast("❌ Not enough cash!");
+    return false;
+}
+
+// --- Rendering ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function draw() {
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(state.camera.x, state.camera.y);
+    ctx.scale(state.camera.zoom, state.camera.zoom);
+
+    // Draw Tiles
+    for(let y=0; y<GRID_H; y++) {
+        for(let x=0; x<GRID_W; x++) {
+            const t = state.tiles[y][x];
+            ctx.fillStyle = t.type === 'grass' ? PALETTE.grass[(x+y)%3] : (t.type === 'road' ? PALETTE.road : PALETTE.water);
+            ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
+    }
+
+    // Draw Pitches
+    state.pitches.forEach(p => {
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.setLineDash([2, 2]);
+        ctx.strokeRect(p.x*TILE_SIZE, p.y*TILE_SIZE, p.w*TILE_SIZE, p.h*TILE_SIZE);
+        ctx.setLineDash([]);
+    });
+
+    // Draw Facilities
+    state.facilities.forEach(f => {
+        const px = f.x*TILE_SIZE; const py = f.y*TILE_SIZE;
+        if (f.type === 'tree') {
+            ctx.fillStyle = '#2d3b1e'; ctx.fillRect(px+6, py+10, 4, 6);
+            ctx.fillStyle = '#1e8449'; ctx.beginPath(); ctx.arc(px+8, py+6, 6, 0, Math.PI*2); ctx.fill();
+        } else {
+            ctx.fillStyle = PALETTE.fac_wall; ctx.fillRect(px, py, f.w*TILE_SIZE, f.h*TILE_SIZE);
+            ctx.fillStyle = PALETTE.fac_roof; ctx.fillRect(px-2, py, (f.w*TILE_SIZE)+4, 4);
+            ctx.fillStyle = '#2c3e50'; ctx.font = '8px Arial'; ctx.fillText(f.type.toUpperCase(), px+4, py+14);
+        }
+    });
+
+    // Draw Caravans
+    state.caravans.forEach(c => {
+        const px = c.pitch.x*TILE_SIZE + 4; const py = c.pitch.y*TILE_SIZE + 4;
+        const pw = (c.pitch.w*TILE_SIZE)-8; const ph = (c.pitch.h*TILE_SIZE)-8;
+        
+        ctx.fillStyle = c.tier === 1 ? '#d8cfbe' : '#ded495';
+        ctx.fillRect(px, py, pw, ph);
+        ctx.strokeStyle = '#000'; ctx.lineWidth=1; ctx.strokeRect(px, py, pw, ph);
+        // Windows
+        ctx.fillStyle = '#85c1e9'; ctx.fillRect(px+4, py+2, pw-8, 6);
+        if (c.isBroken) { ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(px+pw/2, py+ph/2, 4, 0, Math.PI*2); ctx.fill(); }
+    });
+
+    ctx.restore();
+    requestAnimationFrame(draw);
+}
+
+// --- UI & Controls ---
+function updateUI() {
+    document.getElementById('cash-display').innerText = Math.floor(state.cash).toLocaleString();
+    document.getElementById('clock-display').innerText = `Day ${state.day}, ${String(state.hour).padStart(2, '0')}:00`;
+    document.getElementById('rating-display').innerText = state.rating.toFixed(1);
+    document.getElementById('satisfaction-fill').style.width = state.satisfaction + '%';
+
+    const ins = document.getElementById('inspector');
+    if (state.selectedEntity) {
+        ins.style.display = 'block';
+        const c = state.selectedEntity;
+        document.getElementById('ins-name').innerText = c.tier === 1 ? "Retro Tin Unit" : "Luxury Static";
+        document.getElementById('ins-content').innerHTML = `Condition: ${Math.floor(c.condition)}%<br>Rent: £${c.getDailyRent()}/day<br>Status: ${c.isBroken ? '⚠️ BROKEN' : 'OK'}`;
+    } else {
+        ins.style.display = 'none';
+    }
+}
+
+function setTool(t, btn) {
+    state.activeTool = t;
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function showToast(m) {
+    const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2000);
+}
+
+function hireHandyman() {
+    if (spend(150)) { state.handymen++; showToast("🛠️ Handyman Hired!"); }
+}
+
+function resetGame() {
+    if(confirm("Clear park and start over?")) {
+        localStorage.removeItem('caravan_tycoon_save');
+        location.reload();
+    }
+}
+
+// Input Handlers
+canvas.addEventListener('mousedown', e => { state.isDown = true; state.lastM = {x: e.clientX, y: e.clientY}; });
+window.addEventListener('mouseup', e => {
+    if (state.isDown && Math.hypot(e.clientX - state.lastM.x, e.clientY - state.lastM.y) < 5) {
+        const rect = canvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left - state.camera.x) / state.camera.zoom;
+        const my = (e.clientY - rect.top - state.camera.y) / state.camera.zoom;
+        handleGridClick(Math.floor(mx/TILE_SIZE), Math.floor(my/TILE_SIZE));
+    }
+    state.isDown = false;
+});
+window.addEventListener('mousemove', e => {
+    if (state.isDown) {
+        state.camera.x += e.clientX - state.lastM.x;
+        state.camera.y += e.clientY - state.lastM.y;
+        state.lastM = {x: e.clientX, y: e.clientY};
+    }
+});
+canvas.addEventListener('wheel', e => {
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    state.camera.zoom = Math.min(Math.max(state.camera.zoom * delta, 0.5), 4);
+});
+
+// Start
+window.onload = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - 132;
+    init();
+    draw();
+    setInterval(() => update(1), 100);
+};
+</script>
+</body>
+</html>
