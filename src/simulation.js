@@ -30,15 +30,22 @@
     function advanceSimulationState(state, dt, options = {}) {
         if (!state || !Number.isFinite(dt)) return state;
 
-        if (!state.isPaused) {
-            const clockApi = globalScope.SimulationClock ||
-                (typeof require === 'function' ? require('./simulation-clock.js') : null);
-            if (clockApi && typeof clockApi.advanceSimulation === 'function') {
-                clockApi.advanceSimulation(state, dt, {
-                    onHourly: options.onHourly,
-                    onDaily: options.onDaily
-                });
+        // Pausing freezes all simulation state, not just the game clock.
+        // Keep the post-update callback available so callers can refresh UI if needed.
+        if (state.isPaused) {
+            if (typeof options.onAfterUpdate === 'function') {
+                options.onAfterUpdate(state);
             }
+            return state;
+        }
+
+        const clockApi = globalScope.SimulationClock ||
+            (typeof require === 'function' ? require('./simulation-clock.js') : null);
+        if (clockApi && typeof clockApi.advanceSimulation === 'function') {
+            clockApi.advanceSimulation(state, dt, {
+                onHourly: options.onHourly,
+                onDaily: options.onDaily
+            });
         }
 
         applyCaravanDecay(state);
