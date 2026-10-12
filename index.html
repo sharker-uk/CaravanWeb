@@ -135,45 +135,184 @@ let state = {
 // --- Initialization ---
 function init() {
     const saved = localStorage.getItem('caravan_tycoon_save');
-    if (saved) {
-        const data = JSON.parse(saved);
-        // Hydrate map and objects
-        state.cash = data.cash;
-        state.tiles = data.tiles;
-        state.pitches = data.pitches;
-        state.handymen = data.handymen || 0;
-        state.facilities = data.facilities || [];
-        state.caravans = data.caravans.map(c => {
-            let car = Object.assign(new Caravan(), c);
-            car.smokeParticles = [];
-            return car;
-        });
-    } else {
+    if (!saved) {
         generateNewMap();
+        return;
     }
+
+    let data;
+    try {
+        data = JSON.parse(saved);
+    } catch (error) {
+        console.error('Unable to parse the saved game.', error);
+        showToast('❌ Save data is invalid. A new park has been started.');
+        generateNewMap();
+        return;
+    }
+
+    if (!data || !Array.isArray(data.tiles) || data.tiles.length !== GRID_H ||
+        !data.tiles.every(row => Array.isArray(row) && row.length === GRID_W &&
+            row.every(isValidTileData)) ||
+        !Array.isArray(data.pitches) ||
+        !data.pitches.every(pitch => pitch && ['x', 'y', 'w', 'h'].every(key => Number.isFinite(pitch[key]))) ||
+        !Array.isArray(data.caravans) ||
+        !data.caravans.every(caravan => caravan && typeof caravan === 'object' &&
+            (caravan.tier === 1 || caravan.tier === 2)) ||
+        (data.facilities !== undefined && (!Array.isArray(data.facilities) ||
+            !data.facilities.every(facility => facility &&
+                ['x', 'y', 'w', 'h'].every(key => Number.isFinite(facility[key])))))) {
+        console.error('Saved game data is missing required map or entity data.');
+        showToast('❌ Save data is invalid. A new park has been started.');
+        generateNewMap();
+        return;
+    }
+    const caravansHavePitches = data.caravans.every(caravan => {
+        const index = Number.isInteger(caravan.pitchIndex)
+            ? caravan.pitchIndex
+            : data.pitches.findIndex(pitch => caravan.pitch && pitch.x === caravan.pitch.x &&
+                pitch.y === caravan.pitch?.y && pitch.w === caravan.pitch?.w &&
+                pitch.h === caravan.pitch?.h);
+        return Boolean(data.pitches[index]);
+    });
+    if (!caravansHavePitches) {
+        console.error('Saved caravan refers to a missing pitch.');
+        showToast('❌ Save data is invalid. A new park has been started.');
+        generateNewMap();
+        return;
+    }
+
+    state.cash = Number.isFinite(data.cash) ? data.cash : state.cash;
+    state.tiles = data.tiles.map(row => row.map(normalizeTile));
+    state.pitches = data.pitches.map(pitch => ({...pitch, occupied: false}));
+    state.facilities = Array.isArray(data.facilities) ? data.facilities : [];
+    state.facilities = state.facilities.filter(facility => {
+        if (facility.type !== 'tree') return true;
+        const tile = state.tiles[facility.y]?.[facility.x];
+        if (tile && tile.terrain === 'grass' && tile.nature !== 'tree') {
+            tile.nature = 'tree';
+        }
+        return false;
+    });
+    state.handymen = Number.isFinite(data.handymen) ? data.handymen : 0;
+    state.day = Number.isFinite(data.day) ? data.day : state.day;
+    state.hour = Number.isFinite(data.hour) ? data.hour : state.hour;
+    state.minute = Number.isFinite(data.minute) ? data.minute : state.minute;
+    state.satisfaction = Number.isFinite(data.satisfaction) ? data.satisfaction : state.satisfaction;
+    state.rating = Number.isFinite(data.rating) ? data.rating : state.rating;
+    state.weather = typeof data.weather === 'string' ? data.weather : state.weather;
+    if (data.camera && Number.isFinite(data.camera.x) && Number.isFinite(data.camera.y) &&
+        Number.isFinite(data.camera.zoom)) {
+        state.camera = {...state.camera, ...data.camera};
+    }
+    state.caravans = data.caravans.map(savedCaravan => {
+        const pitchIndex = Number.isInteger(savedCaravan.pitchIndex)
+            ? savedCaravan.pitchIndex
+            : state.pitches.findIndex(pitch => savedCaravan.pitch && pitch.x === savedCaravan.pitch.x &&
+                pitch.y === savedCaravan.pitch?.y && pitch.w === savedCaravan.pitch?.w &&
+                pitch.h === savedCaravan.pitch?.h);
+        const pitch = state.pitches[pitchIndex];
+        pitch.occupied = true;
+        const caravan = Object.assign(new Caravan(pitch, savedCaravan.tier), savedCaravan, {pitch});
+        caravan.smokeParticles = [];
+        return caravan;
+    });
 }
 
 function generateNewMap() {
     for (let y = 0; y < GRID_H; y++) {
         state.tiles[y] = [];
         for (let x = 0; x < GRID_W; x++) {
-            let type = 'grass';
-            if (y >= 18 && y <= 20 && x < 25) type = 'road';
-            if (Math.hypot(x - 50, y - 10) < 5) type = 'water';
-            state.tiles[y][x] = { type, debris: (type==='grass' && Math.random() > 0.9), occupied: false };
+            const terrain = Math.hypot(x - 50, y - 10) < 5 ? 'water' : 'grass';
+            const road = terrain === 'grass' && y >= 18 && y <= 20 && x < 25;
+            state.tiles[y][x] = {
+                terrain,
+                nature: terrain === 'grass' && !road && Math.random() > 0.9 ? 'debris' : null,
+                road
+            };
         }
     }
 }
 
+function normalizeTile(tile) {
+    if (tile.terrain) {
+        return {
+            terrain: tile.terrain,
+            nature: tile.nature || null,
+            road: Boolean(tile.road)
+        };
+    }
+    return {
+        terrain: tile.type === 'water' ? 'water' : 'grass',
+        nature: tile.debris ? 'debris' : null,
+        road: tile.type === 'road'
+    };
+}
+
+function isValidTileData(tile) {
+    if (!tile || typeof tile !== 'object') return false;
+    if (tile.terrain === undefined) {
+        return ['grass', 'road', 'water'].includes(tile.type);
+    }
+    return ['grass', 'water'].includes(tile.terrain) &&
+        (tile.nature === null || tile.nature === undefined ||
+            ['tree', 'debris'].includes(tile.nature)) &&
+        (tile.road === undefined || typeof tile.road === 'boolean');
+}
+
+function getTileProperties(x, y) {
+    const tile = state.tiles[y]?.[x];
+    if (!tile) {
+        return {walkable: false, buildable: false, occupied: true, interactable: false};
+    }
+
+    const pitch = state.pitches.find(item =>
+        x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h);
+    const facility = state.facilities.find(item =>
+        x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h);
+    const caravan = state.caravans.find(item =>
+        x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
+        y >= item.pitch.y && y < item.pitch.y + item.pitch.h);
+    const pitchIsAvailable = Boolean(pitch && !pitch.occupied);
+    const tree = tile.nature === 'tree';
+    const hasObject = Boolean(facility || caravan);
+    const buildable = tile.terrain === 'grass' && !tile.road && !tree &&
+        !pitch && !hasObject;
+
+    return {
+        walkable: tile.terrain === 'grass' && !tree && !hasObject,
+        buildable,
+        occupied: Boolean(tree || pitch || hasObject),
+        interactable: Boolean(pitchIsAvailable || caravan)
+    };
+}
+
 function saveGame() {
-    localStorage.setItem('caravan_tycoon_save', JSON.stringify({
-        cash: state.cash,
-        tiles: state.tiles,
-        pitches: state.pitches,
-        caravans: state.caravans,
-        facilities: state.facilities,
-        handymen: state.handymen
-    }));
+    try {
+        localStorage.setItem('caravan_tycoon_save', JSON.stringify({
+            schemaVersion: 2,
+            cash: state.cash,
+            tiles: state.tiles,
+            pitches: state.pitches,
+            caravans: state.caravans.map(caravan => ({
+                ...caravan,
+                pitchIndex: state.pitches.indexOf(caravan.pitch),
+                pitch: undefined,
+                smokeParticles: undefined
+            })),
+            facilities: state.facilities,
+            handymen: state.handymen,
+            day: state.day,
+            hour: state.hour,
+            minute: state.minute,
+            satisfaction: state.satisfaction,
+            rating: state.rating,
+            weather: state.weather,
+            camera: state.camera
+        }));
+    } catch (error) {
+        console.error('Unable to save the game.', error);
+        showToast('❌ Unable to save the game.');
+    }
 }
 
 class Caravan {
@@ -236,6 +375,7 @@ function onHourly() {
     // Shop income
     const shops = state.facilities.filter(f => f.type === 'shop').length;
     state.cash += (shops * state.caravans.length * 2);
+    saveGame();
 }
 
 function onDaily() {
@@ -255,12 +395,24 @@ function handleGridClick(gx, gy) {
     const tile = state.tiles[gy][gx];
 
     if (state.activeTool === 'select') {
-        const car = state.caravans.find(c => gx >= c.pitch.x && gx < c.pitch.x+c.pitch.w && gy >= c.pitch.y && gy < c.pitch.y+c.pitch.h);
+        const properties = getTileProperties(gx, gy);
+        const car = properties.interactable
+            ? state.caravans.find(c =>
+                gx >= c.pitch.x && gx < c.pitch.x + c.pitch.w &&
+                gy >= c.pitch.y && gy < c.pitch.y + c.pitch.h)
+            : null;
         state.selectedEntity = car;
         return;
     }
 
-    if (state.activeTool === 'road' && spend(20)) tile.type = 'road';
+    if (state.activeTool === 'road') {
+        if (!getTileProperties(gx, gy).buildable) {
+            showToast('❌ Roads can only be built on clear, buildable ground.');
+        } else if (spend(20)) {
+            tile.road = true;
+            saveGame();
+        }
+    }
     if (state.activeTool === 'pitch_grass') createPitch(gx, gy, 4, 6, 'grass', 100);
     if (state.activeTool === 'pitch_gravel') createPitch(gx, gy, 4, 8, 'gravel', 250);
     
@@ -274,25 +426,61 @@ function handleGridClick(gx, gy) {
                 p.occupied = true;
                 state.caravans.push(c);
                 playSound(440, 'square', 0.1);
+                saveGame();
             }
+        } else {
+            showToast('❌ Select an empty pitch first.');
         }
     }
 
-    if (state.activeTool === 'build_toilets' && spend(800)) placeFacility(gx, gy, 3, 3, 'toilets');
-    if (state.activeTool === 'build_shop' && spend(1500)) placeFacility(gx, gy, 4, 3, 'shop');
-    if (state.activeTool === 'build_tree' && spend(30)) placeFacility(gx, gy, 1, 1, 'tree');
+    if (state.activeTool === 'build_toilets') placeFacility(gx, gy, 3, 3, 'toilets', 800);
+    if (state.activeTool === 'build_shop') placeFacility(gx, gy, 4, 3, 'shop', 1500);
+    if (state.activeTool === 'build_tree') plantTree(gx, gy);
 }
 
-function placeFacility(x, y, w, h, type) {
+function isFootprintAvailable(x, y, w, h) {
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 ||
+        x + w > GRID_W || y + h > GRID_H) return false;
+
+    for (let tileY = y; tileY < y + h; tileY++) {
+        for (let tileX = x; tileX < x + w; tileX++) {
+            if (!getTileProperties(tileX, tileY).buildable) return false;
+        }
+    }
+    return true;
+}
+
+function plantTree(x, y) {
+    if (!isFootprintAvailable(x, y, 1, 1)) {
+        showToast('❌ That space is blocked or out of bounds.');
+        return;
+    }
+    if (!spend(30)) return;
+    state.tiles[y][x].nature = 'tree';
+    playSound(523, 'sine', 0.1);
+    saveGame();
+}
+
+function placeFacility(x, y, w, h, type, cost) {
+    if (!isFootprintAvailable(x, y, w, h)) {
+        showToast('❌ That space is blocked or out of bounds.');
+        return;
+    }
+    if (!spend(cost)) return;
     state.facilities.push({x, y, w, h, type});
     playSound(523, 'sine', 0.1);
+    saveGame();
 }
 
 function createPitch(x, y, w, h, type, cost) {
-    if (spend(cost)) {
-        state.pitches.push({x, y, w, h, type, occupied: false});
-        playSound(659, 'sine', 0.1);
+    if (!isFootprintAvailable(x, y, w, h)) {
+        showToast('❌ That space is blocked or out of bounds.');
+        return;
     }
+    if (!spend(cost)) return;
+    state.pitches.push({x, y, w, h, type, occupied: false});
+    playSound(659, 'sine', 0.1);
+    saveGame();
 }
 
 function spend(amt) {
@@ -311,16 +499,41 @@ function draw() {
     ctx.translate(state.camera.x, state.camera.y);
     ctx.scale(state.camera.zoom, state.camera.zoom);
 
-    // Draw Tiles
+    // Terrain layer
     for(let y=0; y<GRID_H; y++) {
         for(let x=0; x<GRID_W; x++) {
             const t = state.tiles[y][x];
-            ctx.fillStyle = t.type === 'grass' ? PALETTE.grass[(x+y)%3] : (t.type === 'road' ? PALETTE.road : PALETTE.water);
+            ctx.fillStyle = t.terrain === 'grass' ? PALETTE.grass[(x+y)%3] : PALETTE.water;
             ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
         }
     }
 
-    // Draw Pitches
+    // Nature layer
+    for(let y=0; y<GRID_H; y++) {
+        for(let x=0; x<GRID_W; x++) {
+            const nature = state.tiles[y][x].nature;
+            const px = x*TILE_SIZE; const py = y*TILE_SIZE;
+            if (nature === 'debris') {
+                ctx.fillStyle = 'rgba(35, 45, 24, 0.35)';
+                ctx.fillRect(px+4, py+5, 2, 2);
+                ctx.fillRect(px+10, py+11, 2, 2);
+            } else if (nature === 'tree') {
+                ctx.fillStyle = '#2d3b1e'; ctx.fillRect(px+6, py+10, 4, 6);
+                ctx.fillStyle = PALETTE.tree; ctx.beginPath(); ctx.arc(px+8, py+6, 6, 0, Math.PI*2); ctx.fill();
+            }
+        }
+    }
+
+    // Road layer
+    for(let y=0; y<GRID_H; y++) {
+        for(let x=0; x<GRID_W; x++) {
+            if (!state.tiles[y][x].road) continue;
+            ctx.fillStyle = PALETTE.road;
+            ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
+    }
+
+    // Pitch layer
     state.pitches.forEach(p => {
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         ctx.setLineDash([2, 2]);
@@ -328,20 +541,15 @@ function draw() {
         ctx.setLineDash([]);
     });
 
-    // Draw Facilities
+    // Placed-object layer
     state.facilities.forEach(f => {
         const px = f.x*TILE_SIZE; const py = f.y*TILE_SIZE;
-        if (f.type === 'tree') {
-            ctx.fillStyle = '#2d3b1e'; ctx.fillRect(px+6, py+10, 4, 6);
-            ctx.fillStyle = '#1e8449'; ctx.beginPath(); ctx.arc(px+8, py+6, 6, 0, Math.PI*2); ctx.fill();
-        } else {
-            ctx.fillStyle = PALETTE.fac_wall; ctx.fillRect(px, py, f.w*TILE_SIZE, f.h*TILE_SIZE);
-            ctx.fillStyle = PALETTE.fac_roof; ctx.fillRect(px-2, py, (f.w*TILE_SIZE)+4, 4);
-            ctx.fillStyle = '#2c3e50'; ctx.font = '8px Arial'; ctx.fillText(f.type.toUpperCase(), px+4, py+14);
-        }
+        ctx.fillStyle = PALETTE.fac_wall; ctx.fillRect(px, py, f.w*TILE_SIZE, f.h*TILE_SIZE);
+        ctx.fillStyle = PALETTE.fac_roof; ctx.fillRect(px-2, py, (f.w*TILE_SIZE)+4, 4);
+        ctx.fillStyle = '#2c3e50'; ctx.font = '8px Arial'; ctx.fillText(f.type.toUpperCase(), px+4, py+14);
     });
 
-    // Draw Caravans
+    // Caravans occupy their pitch footprint and belong to the placed-object layer
     state.caravans.forEach(c => {
         const px = c.pitch.x*TILE_SIZE + 4; const py = c.pitch.y*TILE_SIZE + 4;
         const pw = (c.pitch.w*TILE_SIZE)-8; const ph = (c.pitch.h*TILE_SIZE)-8;
@@ -371,9 +579,51 @@ function updateUI() {
         const c = state.selectedEntity;
         document.getElementById('ins-name').innerText = c.tier === 1 ? "Retro Tin Unit" : "Luxury Static";
         document.getElementById('ins-content').innerHTML = `Condition: ${Math.floor(c.condition)}%<br>Rent: £${c.getDailyRent()}/day<br>Status: ${c.isBroken ? '⚠️ BROKEN' : 'OK'}`;
+        document.getElementById('btn-repair').disabled = !c.isBroken || state.cash < 40;
+        document.getElementById('btn-upgrade').disabled = c.hasDecking || state.cash < 400;
+        document.getElementById('btn-skirting').disabled = c.hasSkirting || state.cash < 150;
+        document.getElementById('btn-sell').disabled = false;
     } else {
         ins.style.display = 'none';
     }
+}
+
+function repairSelectedCaravan() {
+    const caravan = state.selectedEntity;
+    if (!caravan || !caravan.isBroken || !spend(40)) return;
+    caravan.condition = 100;
+    caravan.isBroken = false;
+    saveGame();
+    updateUI();
+}
+
+function upgradeSelectedCaravan() {
+    const caravan = state.selectedEntity;
+    if (!caravan || caravan.hasDecking || !spend(400)) return;
+    caravan.hasDecking = true;
+    saveGame();
+    updateUI();
+}
+
+function fitSelectedSkirting() {
+    const caravan = state.selectedEntity;
+    if (!caravan || caravan.hasSkirting || !spend(150)) return;
+    caravan.hasSkirting = true;
+    saveGame();
+    updateUI();
+}
+
+function sellSelectedCaravan() {
+    const caravan = state.selectedEntity;
+    if (!caravan) return;
+    const salePrice = caravan.tier === 1 ? 300 : 1000;
+    state.cash += salePrice;
+    state.caravans = state.caravans.filter(item => item !== caravan);
+    caravan.pitch.occupied = false;
+    state.selectedEntity = null;
+    saveGame();
+    updateUI();
+    showToast(`💰 Unit sold for £${salePrice}.`);
 }
 
 function setTool(t, btn) {
@@ -388,7 +638,12 @@ function showToast(m) {
 }
 
 function hireHandyman() {
-    if (spend(150)) { state.handymen++; showToast("🛠️ Handyman Hired!"); }
+    if (spend(150)) {
+        state.handymen++;
+        saveGame();
+        updateUI();
+        showToast("🛠️ Handyman Hired!");
+    }
 }
 
 function resetGame() {
@@ -423,6 +678,10 @@ canvas.addEventListener('wheel', e => {
 
 // Start
 window.onload = () => {
+    document.getElementById('btn-repair').addEventListener('click', repairSelectedCaravan);
+    document.getElementById('btn-upgrade').addEventListener('click', upgradeSelectedCaravan);
+    document.getElementById('btn-skirting').addEventListener('click', fitSelectedSkirting);
+    document.getElementById('btn-sell').addEventListener('click', sellSelectedCaravan);
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight - 132;
     init();
