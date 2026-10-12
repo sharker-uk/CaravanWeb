@@ -1,0 +1,42 @@
+:root {
+            --bg-color: #1a252f;
+            --ui-panel: #2c3e50;
+            --ui-border: #141e26;
+            --accent: #d35400;
+            --accent-bright: #e67e22;
+            --text: #ecf0f1;
+            --text-dim: #bdc3c7;
+            --danger: #c0392b;
+            --success: #27ae60;
+        }
+
+        body { margin: 0; padding: 0; background: var(--bg-color); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--text); overflow: hidden; user-select: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+        canvas { background: #4a5d33; cursor: crosshair; image-rendering: pixelated; flex-grow: 1; }
+
+        #top-bar { height: 52px; background: var(--ui-panel); display: flex; align-items: center; padding: 0 16px; border-bottom: 4px solid var(--ui-border); justify-content: space-between; font-weight: bold; z-index: 10; }
+        .stat-group { display: flex; gap: 12px; align-items: center; }
+        .stat { background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 4px; display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,0.05); }
+
+        #bottom-toolbar { height: 80px; background: var(--ui-panel); border-top: 4px solid var(--ui-border); display: flex; justify-content: center; align-items: center; gap: 6px; z-index: 10; padding: 0 10px; overflow-x: auto; }
+        .tool-btn { background: #34495e; border: 2px solid #1a252f; border-radius: 4px; padding: 6px; color: white; cursor: pointer; min-width: 70px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; transition: all 0.1s; }
+        .tool-btn:hover { background: #4a6278; }
+        .tool-btn.active { background: var(--accent-bright); border-color: #fff; transform: translateY(-3px); box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
+        .speed-control { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; color: var(--text); font-size: 11px; min-width: 150px; }
+        .speed-control input { width: 140px; accent-color: var(--accent-bright); cursor: pointer; }
+        .utility-btn { min-width: 62px; }
+
+        #inspector { position: absolute; right: 16px; top: 68px; width: 240px; background: var(--ui-panel); border: 3px solid var(--ui-border); border-radius: 6px; padding: 12px; display: none; z-index: 5; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
+        .inspector-title { font-size: 1.1em; color: var(--accent-bright); margin-bottom: 8px; border-bottom: 1px solid #4a6278; padding-bottom: 4px; }
+        .btn-action { width: 100%; padding: 8px; margin-top: 6px; background: var(--success); border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: bold; font-size: 11px; }
+        .btn-action:hover { filter: brightness(1.1); }
+
+        #toast { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); border: 1px solid #e67e22; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; display: none; z-index: 100; pointer-events: none; }
+        #interaction-hint { position: absolute; left: 16px; top: 68px; background: rgba(0,0,0,0.75); border: 1px solid #4a6278; color: var(--text); padding: 8px 12px; border-radius: 4px; font-size: 12px; z-index: 4; pointer-events: none; }
+        
+        .satisfaction-bar { height: 4px; width: 100%; background: #c0392b; margin-top: 4px; border-radius: 2px; overflow: hidden; }
+        #satisfaction-fill { height: 100%; background: #27ae60; width: 50%; transition: width 0.5s; }
+        .demand-stat { display: grid; grid-template-columns: auto minmax(70px, 100px); gap: 2px 8px; min-width: 180px; }
+        .demand-track { height: 6px; background: #17232d; border-radius: 3px; overflow: hidden; }
+        #demand-fill { height: 100%; width: 0; background: #e67e22; transition: width 0.4s, background-color 0.4s; }
+        #demand-capacity { grid-column: 1 / -1; color: var(--text-dim); font-size: 10px; font-weight: normal; }
