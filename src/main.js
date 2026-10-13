@@ -42,6 +42,7 @@ let state = GameStateApi ? GameStateApi.createGameState() : {
     initialBalance: 2000,
     wood: 0,
     beauty: 50,
+    tools: {axe: true, shovel: false},
     transactions: [],
     rating: 1.0,
     satisfaction: 60,
@@ -140,6 +141,7 @@ function init() {
 
     state.cash = Number.isFinite(data.cash) ? data.cash : state.cash;
     state.wood = Number.isFinite(data.wood) ? Math.max(0, Math.floor(data.wood)) : 0;
+    state.tools = {axe: true, shovel: Boolean(data.tools?.shovel)};
     state.initialBalance = Number.isFinite(data.initialBalance) ? data.initialBalance : state.cash;
     state.transactions = Array.isArray(data.transactions) ? data.transactions : [];
     state.guestArrivalProgress = Number.isFinite(data.guestArrivalProgress)
@@ -558,6 +560,7 @@ function saveGame() {
             cash: state.cash,
             initialBalance: state.initialBalance,
             wood: state.wood,
+            tools: {axe: true, shovel: Boolean(state.tools?.shovel)},
             transactions: state.transactions,
             tiles: state.tiles,
             pitches: state.pitches,
@@ -815,6 +818,14 @@ function onDaily() {
 // --- Build Functions ---
 function handleGridClick(gx, gy) {
     if (gx < 0 || gy < 0 || gx >= GRID_W || gy >= GRID_H) return;
+    if (state.activeTool === 'pitch_gravel' && !state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to prepare hardstanding.');
+        return;
+    }
+    if (state.activeTool.startsWith('utility_') && !state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to dig utility trenches.');
+        return;
+    }
     const tile = state.tiles[gy][gx];
 
     if (state.activeTool === 'select') {
@@ -949,6 +960,10 @@ function createPitch(x, y, w, h, type, cost) {
 }
 
 function createPitchesInBox(start, end, type) {
+    if (type === 'gravel' && !state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to prepare hardstanding.');
+        return false;
+    }
     const plan = GameRulesApi.planPitchBox(start, end, type);
     if (!plan.valid) {
         showToast(`❌ ${plan.reason}`);
@@ -983,6 +998,10 @@ function createPitchesInBox(start, end, type) {
 }
 
 function drawUtilityLine(start, end, utility) {
+    if (!state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to dig utility trenches.');
+        return false;
+    }
     const validation = GameRulesApi.validateUtilityLine(start, end, state.tiles, utility);
     if (!validation.valid) {
         showToast(`❌ ${validation.reason}`);
@@ -1429,14 +1448,41 @@ function toggleBuildMenu(open) {
 }
 
 function setTool(t, btn) {
+    if (t === 'pitch_gravel' && !state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to prepare hardstanding.');
+        showMenuPanel('shop', document.querySelector('[data-panel="shop"]'));
+        return;
+    }
+    if (t.startsWith('utility_') && !state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to dig utility trenches.');
+        showMenuPanel('shop', document.querySelector('[data-panel="shop"]'));
+        return;
+    }
     state.activeTool = t;
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    if (btn) btn.classList.add('active');
 }
 
 function showToast(m) {
     const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block';
     setTimeout(() => t.style.display = 'none', 2000);
+}
+
+function buyTool(tool) {
+    const catalogue = {
+        shovel: {cost: 350, label: 'Shovel', description: 'unlocked hardstanding preparation and utility trenching'}
+    };
+    const item = catalogue[tool];
+    if (!item) return;
+    if (state.tools?.[tool]) {
+        showToast(`You already own the ${item.label}.`);
+        return;
+    }
+    if (!spend(item.cost, 'tools', `Purchased ${item.label}`)) return;
+    state.tools = {...state.tools, axe: true, [tool]: true};
+    saveGame();
+    updateUI();
+    showToast(`🛠️ ${item.label} purchased! You have ${item.description}.`);
 }
 
 function sellTimber() {
