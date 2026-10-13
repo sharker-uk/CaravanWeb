@@ -81,7 +81,7 @@
             walkable: tile.terrain === 'grass' && !tree && !hasObject,
             buildable,
             occupied: Boolean(tree || pitch || hasObject),
-            interactable: Boolean(tree || pitchIsAvailable || caravan || guest || facility)
+            interactable: Boolean(tree || tile.nature === 'debris' || pitchIsAvailable || caravan || guest || facility)
         };
     }
 
@@ -131,7 +131,9 @@
 
     function findInteractableAt(state, x, y) {
         const tile = state.tiles[y]?.[x];
-        if (tile?.nature === 'tree') return { kind: 'tree', entity: tile, x, y, w: 1, h: 1 };
+        if (tile?.nature === 'tree' || tile?.nature === 'debris') {
+            return { kind: tile.nature, entity: tile, x, y, w: 1, h: 1 };
+        }
 
         const caravan = state.caravans.find(item =>
             x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
