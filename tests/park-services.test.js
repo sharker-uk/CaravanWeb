@@ -60,7 +60,8 @@ test('booking service check requires nearby operational facilities with enough c
 test('park-wide entertainment capacity aggregates venues and respects simultaneous occupancy', () => {
   const pub = {...FacilityOperations.getFacilityDefaults('pub'), type: 'pub'};
   const hall = {...FacilityOperations.getFacilityDefaults('entertainment_space'), type: 'entertainment_space'};
-  const state = {facilities: [pub, hall], guests: [
+  const restaurant = {...FacilityOperations.getFacilityDefaults('restaurant'), type: 'restaurant'};
+  const state = {facilities: [pub, hall, restaurant], guests: [
     {activity: 'using facility', activityFacilityType: 'pub', party: {headcount: 10}}
   ]};
   assert.equal(ParkServices.getEntertainmentCapacity(state), 52);
