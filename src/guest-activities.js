@@ -27,6 +27,8 @@
             (!Array.isArray(preferences) || !preferences.length || preferences.includes(facility.type))
         );
         for (const facility of facilities) {
+            if (globalScope.ParkServices?.ENTERTAINMENT_TYPES.includes(facility.type) &&
+                !globalScope.ParkServices.canUseEntertainment(state, guest.party?.headcount || 1).valid) continue;
             for (let x = facility.x; x < facility.x + facility.w; x++) {
                 destinations.push({x, y: facility.y - 1}, {x, y: facility.y + facility.h});
             }
@@ -37,6 +39,10 @@
         const paths = destinations.filter(tile => isWalkable(state, tile.x, tile.y, guest))
             .map(tile => ({
                 tile,
+                facilityType: facilities.find(f =>
+                    (tile.x >= f.x - 1 && tile.x <= f.x + f.w) &&
+                    (tile.y >= f.y - 1 && tile.y <= f.y + f.h)
+                )?.type,
                 path: globalScope.GameRules.findPathToAny(start, [tile],
                     (x, y) => isWalkable(state, x, y, guest))
             })).filter(candidate => candidate.path?.length);
@@ -48,12 +54,14 @@
         const activity = reachableActivity(state, guest);
         if (activity) {
             guest.activity = 'visiting facility';
+            guest.activityFacilityType = activity.facilityType || null;
             guest.destination = activity.tile;
             guest.path = activity.path;
             guest.activityTimer = ACTIVITY_DURATION;
             return;
         }
         guest.activity = 'relaxing at pitch';
+        guest.activityFacilityType = null;
         guest.destination = null;
         guest.path = [];
         guest.activityTimer = ACTIVITY_DURATION;
