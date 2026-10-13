@@ -85,12 +85,12 @@
     function getEntertainmentCapacity(state) {
         return (state?.facilities || []).filter(f =>
             ENTERTAINMENT_TYPES.includes(f.type) && f.isOperational !== false
-        ).reduce((sum, f) => sum + Math.max(0, Number(f.capacity) || 0), 0);
+        ).reduce((sum, f) => sum + Math.max(0, Number(f.entertainmentCapacity ?? f.capacity) || 0), 0);
     }
 
     function getEntertainmentUsage(state) {
         return (state?.guests || []).filter(g =>
-            g.activity === 'visiting entertainment' || g.activity === 'using entertainment'
+            g.activity === 'using facility' && ENTERTAINMENT_TYPES.includes(g.activityFacilityType)
         ).reduce((sum, g) => sum + Math.max(1, Number(g.party?.headcount) || 1), 0);
     }
 
