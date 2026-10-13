@@ -1268,6 +1268,13 @@ function updateUI() {
     if (woodDisplay) woodDisplay.innerText = Math.floor(state.wood).toLocaleString();
     const beautyDisplay = document.getElementById('beauty-display');
     if (beautyDisplay) beautyDisplay.innerText = `${state.beauty}%`;
+    const shovelButton = document.getElementById('buy-shovel-btn');
+    if (shovelButton) {
+        shovelButton.disabled = Boolean(state.tools?.shovel);
+        shovelButton.innerHTML = state.tools?.shovel
+            ? '🪏<span>Shovel · Owned</span>'
+            : '🪏<span>Shovel · £350</span>';
+    }
     document.getElementById('clock-display').innerText =
         `Day ${state.day}, ${String(state.hour).padStart(2, '0')}:${String(Math.floor(state.minute)).padStart(2, '0')}`;
     const lighting = getDayNightLighting();
@@ -1469,6 +1476,7 @@ function showToast(m) {
 }
 
 function buyTool(tool) {
+    if (!state.tools) state.tools = {axe: true, shovel: false};
     const catalogue = {
         shovel: {cost: 350, label: 'Shovel', description: 'unlocked hardstanding preparation and utility trenching'}
     };
