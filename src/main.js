@@ -542,7 +542,7 @@ function saveGame() {
         localStorage.setItem('caravan_tycoon_save', JSON.stringify({
             schemaVersion: SaveMigrations && SaveMigrations.CURRENT_SAVE_SCHEMA
                 ? SaveMigrations.CURRENT_SAVE_SCHEMA
-                : 7,
+                : 8,
             cash: state.cash,
             initialBalance: state.initialBalance,
             wood: state.wood,
