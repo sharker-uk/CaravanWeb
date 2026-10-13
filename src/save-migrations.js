@@ -1,5 +1,5 @@
 (function (globalScope) {
-    const CURRENT_SAVE_SCHEMA = 7;
+    const CURRENT_SAVE_SCHEMA = 8;
     const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
     const facilityApi = globalScope.FacilityOperations ||
         (typeof require === 'function' ? require('./facility-operations.js') : null);
@@ -245,6 +245,7 @@
             ...saveData,
             schemaVersion: CURRENT_SAVE_SCHEMA,
             cash: Number.isFinite(saveData.cash) ? saveData.cash : 2000,
+            wood: Number.isFinite(saveData.wood) ? Math.max(0, Math.floor(saveData.wood)) : 0,
             initialBalance: Number.isFinite(saveData.initialBalance)
                 ? saveData.initialBalance
                 : Number.isFinite(saveData.cash) ? saveData.cash : 2000,
