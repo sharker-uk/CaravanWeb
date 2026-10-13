@@ -20,6 +20,8 @@
         <div class="stat-group">
             <div class="stat" style="color: #2ecc71;">£ <span id="cash-display">1,500</span></div>
             <div class="stat">😊 <div style="width: 60px;"><div class="satisfaction-bar"><div id="satisfaction-fill"></div></div></div></div>
+            <div class="stat" title="Timber in storage">🪵 <span id="wood-display">0</span></div>
+            <div class="stat" title="Landscape appeal; a balance of trees and usable space is best">🌿 Beauty <span id="beauty-display">50%</span></div>
             <div class="stat">⭐ <span id="rating-display">1.0</span></div>
             <div class="stat demand-stat" title="Estimated guest interest based on park rating and satisfaction">
                 <span>📈 Demand</span><span id="demand-level">Low</span>
@@ -69,7 +71,7 @@
         </nav>
         <section class="menu-panel active" id="panel-terrain" aria-label="Ground tools">
             <div class="menu-heading"><strong>Ground & pitches</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
-            <p class="menu-description">WASD moves the player while the camera follows. Drag a box to place one or more pitches; undersized boxes are shown in red.</p>
+            <p class="menu-description">The park starts overgrown. Click a tree, walk up to it, then press E to fell it and collect timber. Drag a box to place pitches; undersized boxes are shown in red.</p>
             <div class="tool-grid">
                 <button class="tool-btn active" onclick="setTool('select', this)">🔍<span>Select</span></button>
                 <button class="tool-btn" onclick="setTool('road', this)">🛣️<span>Tarmac · £20</span></button>
@@ -118,6 +120,7 @@
             <div class="menu-heading"><strong>Park management</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
             <div class="tool-grid">
                 <button class="tool-btn" onclick="setTool('build_tree', this)">🌳<span>Plant tree · £30</span></button>
+                <button class="tool-btn" onclick="sellTimber()">🪵<span>Sell timber · £8 each</span></button>
                 <button class="tool-btn" onclick="hireHandyman()">🛠️<span>Hire handyman</span></button>
                 <button class="tool-btn" onclick="resetGame()" style="color:#ff8a80">☢️<span>Reset park</span></button>
             </div>
@@ -135,6 +138,7 @@
 </div>
 
     <script src="src/game-rules.js"></script>
+    <script src="src/land-management.js"></script>
     <script src="src/game-state.js"></script>
     <script src="src/simulation-clock.js"></script>
     <script src="src/guest-parties.js"></script>
