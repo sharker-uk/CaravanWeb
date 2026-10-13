@@ -38,8 +38,8 @@ const PALETTE = {
 };
 
 let state = GameStateApi ? GameStateApi.createGameState() : {
-    cash: 2000,
-    initialBalance: 2000,
+    cash: 1500,
+    initialBalance: 1500,
     wood: 0,
     beauty: 50,
     tools: {axe: true, shovel: false},
