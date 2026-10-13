@@ -30,19 +30,16 @@
             if (globalScope.ParkServices?.ENTERTAINMENT_TYPES.includes(facility.type) &&
                 !globalScope.ParkServices.canUseEntertainment(state, guest.party?.headcount || 1).valid) continue;
             for (let x = facility.x; x < facility.x + facility.w; x++) {
-                destinations.push({x, y: facility.y - 1}, {x, y: facility.y + facility.h});
+                destinations.push({x, y: facility.y - 1, facilityType: facility.type}, {x, y: facility.y + facility.h, facilityType: facility.type});
             }
             for (let y = facility.y; y < facility.y + facility.h; y++) {
-                destinations.push({x: facility.x - 1, y}, {x: facility.x + facility.w, y});
+                destinations.push({x: facility.x - 1, y, facilityType: facility.type}, {x: facility.x + facility.w, y, facilityType: facility.type});
             }
         }
         const paths = destinations.filter(tile => isWalkable(state, tile.x, tile.y, guest))
             .map(tile => ({
                 tile,
-                facilityType: facilities.find(f =>
-                    (tile.x >= f.x - 1 && tile.x <= f.x + f.w) &&
-                    (tile.y >= f.y - 1 && tile.y <= f.y + f.h)
-                )?.type,
+                facilityType: tile.facilityType,
                 path: globalScope.GameRules.findPathToAny(start, [tile],
                     (x, y) => isWalkable(state, x, y, guest))
             })).filter(candidate => candidate.path?.length);
