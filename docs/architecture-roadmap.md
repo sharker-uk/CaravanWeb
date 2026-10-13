@@ -24,6 +24,9 @@
 - [x] Replace hourly guest spawning with demand- and vacancy-limited arrivals.
 - [x] Record cash movements in a reconciled transaction ledger and seven-day balance.
 - [x] Base satisfaction on guest utilities, accommodation condition and visited facilities.
+- [x] Model guest party composition, booking dates, preferences and seasonal demand.
+- [x] Enforce operational toilet/shower capacity and account for facility operations, shop stock and laundry.
+- [x] Exercise three-week operating costs and revenue through the transaction ledger.
 - [x] Follow the player camera and support drag-to-build pitch areas and utility lines.
 
 ## Phase 4 — Art pipeline

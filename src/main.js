@@ -21,6 +21,8 @@ const GameStateApi = window.GameState;
 const SaveMigrations = window.SaveMigrations;
 const SimulationApi = window.Simulation;
 const Economy = window.Economy;
+const GuestParties = window.GuestParties;
+const FacilityOperations = window.FacilityOperations;
 const GuestActivities = window.GuestActivities;
 const GameRulesApi = window.GameRules;
 
@@ -65,6 +67,8 @@ const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
 const UTILITY_COSTS = {gas: 25, water: 20, electricity: 30, waste: 35};
 const FACILITY_BUILDINGS = {
     toilets: {w: 3, h: 3, cost: 800},
+    showers: {w: 3, h: 3, cost: 1200},
+    laundry: {w: 3, h: 3, cost: 1800},
     shop: {w: 4, h: 3, cost: 1500},
     playground: {w: 3, h: 3, cost: 2200},
     pub: {w: 3, h: 3, cost: 3000},
@@ -406,12 +410,12 @@ function interactWith(target) {
         return;
     }
     if (target.kind === 'facility') {
-        const name = target.entity.type === 'shop' ? 'Shop' : 'Toilets';
-        showToast(`${name}: Park facility`);
+        state.selectedEntity = target.entity;
+        updateUI();
         return;
     }
     if (target.kind === 'guest') {
-        showToast(`Guest: ${target.entity.activity || 'relaxing'} · ${target.entity.experienceScore || 0}% stay score · £${target.entity.totalIncome} paid · ${target.entity.stayDaysRemaining} day${target.entity.stayDaysRemaining === 1 ? '' : 's'} left`);
+        showToast(`${target.entity.party?.type || 'Guest'} party (${target.entity.party?.headcount || 1}) · ${target.entity.activity || 'relaxing'} · £${target.entity.totalIncome} paid · ${target.entity.stayDaysRemaining} day${target.entity.stayDaysRemaining === 1 ? '' : 's'} left`);
         return;
     }
     if (target.kind === 'pitch') {
@@ -500,7 +504,7 @@ function saveGame() {
         localStorage.setItem('caravan_tycoon_save', JSON.stringify({
             schemaVersion: SaveMigrations && SaveMigrations.CURRENT_SAVE_SCHEMA
                 ? SaveMigrations.CURRENT_SAVE_SCHEMA
-                : 6,
+                : 7,
             cash: state.cash,
             initialBalance: state.initialBalance,
             transactions: state.transactions,
@@ -521,7 +525,10 @@ function saveGame() {
                 facilityVisits: guest.facilityVisits,
                 routeFailures: guest.routeFailures,
                 experienceScore: guest.experienceScore,
-                lastUtilityReliability: guest.lastUtilityReliability
+                lastUtilityReliability: guest.lastUtilityReliability,
+                party: guest.party,
+                booking: guest.booking,
+                lastFacilityUpdate: guest.lastFacilityUpdate
             })),
             caravans: state.caravans.map(caravan => ({
                 ...caravan,
@@ -606,28 +613,57 @@ function onHourly() {
             }
         });
     }
-    // Shop income
-    const shops = state.facilities.filter(f => f.type === 'shop').length;
-    const shopRevenue = shops * state.caravans.length * 2;
-    if (shopRevenue) recordTransaction(shopRevenue, 'shop income', 'Hourly shop sales');
-    if (Economy.shouldAcceptGuest(state)) arriveGuest();
+    FacilityOperations.processHourlyFacilities(state, recordTransaction);
+    const candidate = createArrivalCandidate();
+    const demand = GuestParties.getDemandProfile(state.day);
+    if (Economy.shouldAcceptGuest(state, {
+        demandMultiplier: demand.multiplier,
+        eligible: Boolean(candidate && FacilityOperations.canHostParty(
+            state, candidate.accommodation, candidate.party.headcount
+        ).valid)
+    })) arriveGuest(candidate);
     saveGame();
 }
 
-function arriveGuest() {
+function createArrivalCandidate() {
     const pitch = state.pitches.find(item => !item.occupied);
-    if (!pitch) return false;
+    if (!pitch) return null;
 
     const options = pitch.type === 'grass'
         ? ['tent', 'towed']
         : ['towed', ...(isPitchReadyForStatic(pitch) ? ['static'] : [])];
-    const accommodation = options[Math.floor(Math.random() * options.length)];
+    const party = GuestParties.createGuestParty(state.day);
+    const eligibleOptions = options.filter(accommodation =>
+        FacilityOperations.canHostParty(state, accommodation, party.headcount).valid
+    );
+    if (!eligibleOptions.length) return null;
+    const accommodation = eligibleOptions[Math.floor(Math.random() * eligibleOptions.length)];
+    return {pitch, accommodation, party};
+}
+
+function arriveGuest(candidate) {
+    if (!candidate) return false;
+    const {pitch, accommodation, party} = candidate;
+    const facilityCheck = FacilityOperations.canHostParty(state, accommodation, party.headcount);
+    if (!facilityCheck.valid) return false;
     const ratingAtArrival = state.rating;
     const stayDaysRemaining = 1 + Math.floor(Math.random() * 14);
-    const dailyIncome = getGuestDailyIncome(ratingAtArrival);
+    const dailyIncome = getGuestDailyIncome(ratingAtArrival) +
+        Math.max(0, party.adults - 1) * 8 + party.children * 5;
+    const booking = {
+        id: `booking-${state.day}-${state.pitches.indexOf(pitch)}-${state.dailyGuestArrivals}`,
+        bookedDay: state.day,
+        arrivalDay: state.day,
+        departureDay: state.day + stayDaysRemaining,
+        status: 'checked-in',
+        source: 'demand'
+    };
     const guest = {
         pitch,
+        pitchIndex: state.pitches.indexOf(pitch),
         accommodation,
+        party,
+        booking,
         ratingAtArrival,
         dailyIncome,
         stayDaysRemaining,
@@ -637,13 +673,14 @@ function arriveGuest() {
         activity: 'arriving',
         activityTimer: 2,
         facilityVisits: 0,
+        lastFacilityUpdate: -1,
         experienceScore: state.satisfaction,
         lastUtilityReliability: 100
     };
     pitch.occupied = true;
     state.guests.push(guest);
     recordTransaction(guest.totalIncome, 'guest payment', 'Guest stay paid upfront');
-    showToast(`A guest arrived with a ${accommodation} for ${guest.stayDaysRemaining} day${guest.stayDaysRemaining === 1 ? '' : 's'} · £${guest.totalIncome} paid`);
+    showToast(`${party.type} party (${party.headcount}) checked in for ${guest.stayDaysRemaining} day${guest.stayDaysRemaining === 1 ? '' : 's'} · £${guest.totalIncome} paid`);
     playSound(660, 'sine', 0.12);
     return true;
 }
@@ -702,9 +739,11 @@ function onDaily() {
     });
     departingGuests.forEach(guest => {
         if (Number.isFinite(guest.experienceScore)) {
+            const partySatisfaction = Number(guest.party?.needs?.satisfaction) || 75;
             state.satisfaction = Math.max(0, Math.min(100,
-                state.satisfaction * 0.8 + guest.experienceScore * 0.2));
+                state.satisfaction * 0.7 + guest.experienceScore * 0.2 + partySatisfaction * 0.1));
         }
+        if (guest.booking) guest.booking.status = 'checked-out';
         guest.pitch.occupied = false;
         state.guests.splice(state.guests.indexOf(guest), 1);
     });
@@ -840,7 +879,7 @@ function placeFacility(x, y, w, h, type, cost) {
         return;
     }
     if (!spend(cost, 'construction', `Built ${type} facility`)) return;
-    state.facilities.push({x, y, w, h, type});
+    state.facilities.push({...FacilityOperations.getFacilityDefaults(type), x, y, w, h, type});
     playSound(523, 'sine', 0.1);
     saveGame();
 }
@@ -1069,7 +1108,8 @@ function draw(timestamp = 0) {
     state.facilities.forEach(f => {
         const px = f.x*TILE_SIZE; const py = f.y*TILE_SIZE;
         const facilityColors = {
-            toilets: ['#bdc3c7', '#2980b9'], shop: ['#f5cba7', '#d35400'],
+                toilets: ['#bdc3c7', '#2980b9'], showers: ['#aed6f1', '#2874a6'],
+                laundry: ['#d5f5e3', '#239b56'], shop: ['#f5cba7', '#d35400'],
             playground: ['#82e0aa', '#27ae60'], pub: ['#d7bde2', '#6c3483'],
             restaurant: ['#f9e79f', '#b7950b'], arcade: ['#85c1e9', '#2471a3'],
             entertainment_space: ['#f5b7b1', '#c0392b'], pool: ['#76d7c4', '#148f77'],
@@ -1191,9 +1231,30 @@ function updateUI() {
         document.getElementById('btn-skirting'),
         document.getElementById('btn-sell')
     ];
+    const facilityToggle = document.getElementById('btn-facility-toggle');
     if (state.selectedEntity) {
         ins.style.display = 'block';
         const c = state.selectedEntity;
+        if (typeof c.tier !== 'number' && typeof c.type === 'string') {
+            document.getElementById('ins-name').innerText =
+                `${c.type.replaceAll('_', ' ')} facility`;
+            document.getElementById('ins-content').innerHTML =
+                `Status: ${c.isOperational === false ? 'Closed' : 'Operational'}<br>` +
+                `Capacity: ${c.capacity} guests/hour<br>` +
+                `Hourly operating cost: £${c.hourlyCost}<br>` +
+                `Current usage: ${c.hourlyUsage || 0}/${c.capacity}`;
+            actionButtons.forEach(button => {
+                button.style.display = 'none';
+                button.disabled = true;
+            });
+            facilityToggle.style.display = 'block';
+            facilityToggle.textContent = c.isOperational === false
+                ? '▶️ Reopen facility'
+                : '⏸️ Close facility';
+            facilityToggle.disabled = false;
+            return;
+        }
+        facilityToggle.style.display = 'none';
         const hookups = getPitchHookups(c.pitch);
         const hookupStatus = UTILITY_TYPES.map(type =>
             `${type}: ${hookups[type] ? 'connected' : 'not connected'}`).join('<br>');
@@ -1207,6 +1268,7 @@ function updateUI() {
         document.getElementById('btn-skirting').disabled = c.hasSkirting || state.cash < 150;
         document.getElementById('btn-sell').disabled = false;
     } else {
+        facilityToggle.style.display = 'none';
         ins.style.display = 'block';
         document.getElementById('ins-name').innerText = 'Park Overview';
         const occupied = state.pitches.filter(pitch => pitch.occupied).length;
@@ -1215,7 +1277,9 @@ function updateUI() {
         const recentTransactions = state.transactions.slice(-5).reverse().map(transaction =>
             `${transaction.description}: ${transaction.amount < 0 ? '−' : '+'}£${Math.abs(transaction.amount).toLocaleString()}`
         );
-        document.getElementById('ins-content').innerHTML = `Cash: £${Math.floor(state.cash).toLocaleString()}<br>Occupancy: ${occupied}/${state.pitches.length || 0}<br>Rating: ${state.rating.toFixed(1)} / 5<br>Demand: ${demand.level} (${demand.score}%)<br>7-day income: £${balance.income.toLocaleString()} · expenses: £${balance.expenses.toLocaleString()} · net: £${balance.net.toLocaleString()}<br>Ledger: ${balance.isValid ? '✓ reconciled' : '⚠ balance mismatch'}<br><strong>Recent transactions</strong><br>${recentTransactions.length ? recentTransactions.join('<br>') : 'No transactions yet.'}`;
+        const parties = state.guests.reduce((sum, guest) =>
+            sum + (guest.party?.headcount || 1), 0);
+        document.getElementById('ins-content').innerHTML = `Cash: £${Math.floor(state.cash).toLocaleString()}<br>Occupancy: ${occupied}/${state.pitches.length || 0}<br>Guests: ${parties} people in ${state.guests.length} parties<br>Rating: ${state.rating.toFixed(1)} / 5<br>Demand: ${demand.level} (${demand.score}%)<br>7-day income: £${balance.income.toLocaleString()} · expenses: £${balance.expenses.toLocaleString()} · net: £${balance.net.toLocaleString()}<br>Ledger: ${balance.isValid ? '✓ reconciled' : '⚠ balance mismatch'}<br><strong>Recent transactions</strong><br>${recentTransactions.length ? recentTransactions.join('<br>') : 'No transactions yet.'}`;
         actionButtons.forEach(button => {
             button.style.display = 'none';
             button.disabled = true;
@@ -1285,6 +1349,15 @@ function sellSelectedCaravan() {
     saveGame();
     updateUI();
     showToast(`💰 Unit sold for £${salePrice}.`);
+}
+
+function toggleSelectedFacility() {
+    const facility = state.selectedEntity;
+    if (!facility || typeof facility.tier === 'number' || typeof facility.type !== 'string') return;
+    facility.isOperational = facility.isOperational === false;
+    saveGame();
+    updateUI();
+    showToast(`${facility.type.replaceAll('_', ' ')} ${facility.isOperational ? 'reopened' : 'closed'}.`);
 }
 
 function showMenuPanel(panel, btn) {
@@ -1392,6 +1465,7 @@ window.onload = () => {
     document.getElementById('btn-upgrade').addEventListener('click', upgradeSelectedCaravan);
     document.getElementById('btn-skirting').addEventListener('click', fitSelectedSkirting);
     document.getElementById('btn-sell').addEventListener('click', sellSelectedCaravan);
+    document.getElementById('btn-facility-toggle').addEventListener('click', toggleSelectedFacility);
     document.getElementById('pause-toggle').addEventListener('click', togglePauseState);
     document.querySelectorAll('.speed-btn').forEach(button => button.addEventListener('click', () => {
         setSimulationSpeed(Number(button.dataset.speed));

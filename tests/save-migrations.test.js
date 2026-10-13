@@ -41,6 +41,11 @@ test('migrateSave upgrades legacy save payloads to the current schema', () => {
   assert.equal(migrated.initialBalance, 1500);
   assert.deepEqual(migrated.transactions, []);
   assert.equal(migrated.guestArrivalProgress, 0);
+  assert.equal(migrated.guests[0].party.type, 'solo');
+  assert.equal(migrated.guests[0].party.headcount, 1);
+  assert.equal(migrated.guests[0].booking.status, 'checked-in');
+  assert.equal(migrated.facilities[0].isOperational, true);
+  assert.equal(migrated.facilities[0].capacity, 10);
 });
 
 test('migrateSave preserves guest world state and transaction history', () => {
@@ -59,6 +64,51 @@ test('migrateSave preserves guest world state and transaction history', () => {
   assert.deepEqual(migrated.guests[0].path, [{x: 8.5, y: 8.5}]);
   assert.equal(migrated.guests[0].activity, 'visiting facility');
   assert.equal(migrated.guests[0].facilityVisits, 2);
+  assert.equal(migrated.guests[0].party.needs.satisfaction, 75);
+  assert.equal(migrated.guests[0].booking.departureDay, 7);
+});
+
+test('migrateSave retains party details and facility operating state', () => {
+  const save = buildLegacySave();
+  save.guests[0].party = {
+    type: 'family',
+    adults: 2,
+    children: 2,
+    preferences: {preferredFacilities: ['playground']},
+    needs: {satisfaction: 48, missedToiletVisits: 2}
+  };
+  save.guests[0].booking = {
+    id: 'booking-1',
+    bookedDay: 2,
+    arrivalDay: 3,
+    departureDay: 6,
+    status: 'checked-in',
+    source: 'demand'
+  };
+  save.facilities[0] = {
+    ...save.facilities[0],
+    isOperational: false,
+    capacity: 24,
+    hourlyCost: 3
+  };
+
+  const migrated = migrateSave(save);
+  assert.equal(migrated.guests[0].party.headcount, 4);
+  assert.equal(migrated.guests[0].party.needs.satisfaction, 48);
+  assert.equal(migrated.guests[0].booking.id, 'booking-1');
+  assert.equal(migrated.facilities[0].isOperational, false);
+  assert.equal(migrated.facilities[0].capacity, 24);
+  assert.equal(migrated.facilities[0].hourlyCost, 3);
+});
+
+test('migrateSave applies current defaults to newly modeled facilities', () => {
+  const save = buildLegacySave();
+  save.facilities = [{x: 1, y: 1, w: 3, h: 3, type: 'showers'}];
+  const migrated = migrateSave(save);
+
+  assert.equal(migrated.facilities[0].capacity, 12);
+  assert.equal(migrated.facilities[0].hourlyCost, 1);
+  assert.equal(migrated.facilities[0].costPerUse, 0.25);
 });
 
 test('migrateSave keeps already migrated saves stable', () => {

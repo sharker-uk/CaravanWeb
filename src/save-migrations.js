@@ -1,6 +1,8 @@
 (function (globalScope) {
-    const CURRENT_SAVE_SCHEMA = 6;
+    const CURRENT_SAVE_SCHEMA = 7;
     const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
+    const facilityApi = globalScope.FacilityOperations ||
+        (typeof require === 'function' ? require('./facility-operations.js') : null);
 
     function createEmptyUtilities() {
         return {gas: false, water: false, electricity: false, waste: false};
@@ -56,12 +58,85 @@
         }).filter(Boolean);
     }
 
-    function normalizeGuests(guests) {
+    function normalizeGuests(guests, currentDay = 1) {
         if (!Array.isArray(guests)) return [];
         return guests.map(guest => {
             if (!guest || typeof guest !== 'object') return null;
+            const stayDaysRemaining = Number.isInteger(guest.stayDaysRemaining) &&
+                guest.stayDaysRemaining > 0 ? guest.stayDaysRemaining : 1;
+            const adults = Number.isInteger(guest.party?.adults) && guest.party.adults > 0
+                ? guest.party.adults
+                : 1;
+            const children = Number.isInteger(guest.party?.children) && guest.party.children >= 0
+                ? guest.party.children
+                : 0;
+            const partyType = ['solo', 'couple', 'family', 'friends'].includes(guest.party?.type)
+                ? guest.party.type
+                : 'solo';
+            const bookedDay = Number.isInteger(guest.booking?.bookedDay)
+                ? guest.booking.bookedDay
+                : currentDay;
+            const arrivalDay = Number.isInteger(guest.booking?.arrivalDay)
+                ? guest.booking.arrivalDay
+                : currentDay;
+            const party = {
+                ...guest.party,
+                type: partyType,
+                adults,
+                children,
+                headcount: adults + children,
+                preferences: {
+                    preferredFacilities: Array.isArray(guest.party?.preferences?.preferredFacilities)
+                        ? guest.party.preferences.preferredFacilities.filter(type => typeof type === 'string')
+                        : partyType === 'family' ? ['playground', 'shop', 'toilets', 'showers'] : ['shop', 'toilets', 'showers'],
+                    toiletIntervalHours: Number.isInteger(guest.party?.preferences?.toiletIntervalHours)
+                        ? guest.party.preferences.toiletIntervalHours
+                        : partyType === 'family' ? 3 : 4,
+                    showerDaily: guest.party?.preferences?.showerDaily !== false,
+                    shopIntervalHours: Number.isInteger(guest.party?.preferences?.shopIntervalHours)
+                        ? guest.party.preferences.shopIntervalHours
+                        : 8,
+                    laundryEveryDays: Number.isInteger(guest.party?.preferences?.laundryEveryDays)
+                        ? guest.party.preferences.laundryEveryDays
+                        : 5
+                },
+                needs: {
+                    toiletVisits: Number.isInteger(guest.party?.needs?.toiletVisits)
+                        ? Math.max(0, guest.party.needs.toiletVisits) : 0,
+                    showerVisits: Number.isInteger(guest.party?.needs?.showerVisits)
+                        ? Math.max(0, guest.party.needs.showerVisits) : 0,
+                    missedToiletVisits: Number.isInteger(guest.party?.needs?.missedToiletVisits)
+                        ? Math.max(0, guest.party.needs.missedToiletVisits) : 0,
+                    missedShowerVisits: Number.isInteger(guest.party?.needs?.missedShowerVisits)
+                        ? Math.max(0, guest.party.needs.missedShowerVisits) : 0,
+                    shoppingTrips: Number.isInteger(guest.party?.needs?.shoppingTrips)
+                        ? Math.max(0, guest.party.needs.shoppingTrips) : 0,
+                    laundryTrips: Number.isInteger(guest.party?.needs?.laundryTrips)
+                        ? Math.max(0, guest.party.needs.laundryTrips) : 0,
+                    satisfaction: Number.isFinite(guest.party?.needs?.satisfaction)
+                        ? Math.min(100, Math.max(0, guest.party.needs.satisfaction)) : 75
+                }
+            };
             return {
                 ...guest,
+                party,
+                booking: {
+                    ...guest.booking,
+                    id: typeof guest.booking?.id === 'string'
+                        ? guest.booking.id
+                        : `legacy-${bookedDay}-${guest.pitchIndex ?? 0}`,
+                    bookedDay,
+                    arrivalDay,
+                    departureDay: Number.isInteger(guest.booking?.departureDay)
+                        ? guest.booking.departureDay
+                        : arrivalDay + stayDaysRemaining,
+                    status: typeof guest.booking?.status === 'string'
+                        ? guest.booking.status
+                        : 'checked-in',
+                    source: typeof guest.booking?.source === 'string'
+                        ? guest.booking.source
+                        : 'legacy-save'
+                },
                 pitchIndex: Number.isInteger(guest.pitchIndex) ? guest.pitchIndex : 0,
                 accommodation: typeof guest.accommodation === 'string' ? guest.accommodation : 'tent',
                 ratingAtArrival: Number.isFinite(guest.ratingAtArrival) ? guest.ratingAtArrival : 1,
@@ -84,6 +159,9 @@
                 routeFailures: Number.isInteger(guest.routeFailures)
                     ? Math.max(0, guest.routeFailures)
                     : 0,
+                lastFacilityUpdate: Number.isInteger(guest.lastFacilityUpdate)
+                    ? guest.lastFacilityUpdate
+                    : -1,
                 experienceScore: Number.isFinite(guest.experienceScore) ? guest.experienceScore : 60,
                 lastUtilityReliability: Number.isFinite(guest.lastUtilityReliability)
                     ? guest.lastUtilityReliability
@@ -121,12 +199,30 @@
         if (!Array.isArray(facilities)) return [];
         return facilities.map(facility => {
             if (!facility || typeof facility !== 'object') return null;
+            const defaults = facilityApi?.getFacilityDefaults(facility.type) ||
+                {capacity: facility.type === 'toilets' ? 16 : 10, hourlyCost: 1};
             return {
+                ...facility,
                 x: Number(facility.x),
                 y: Number(facility.y),
                 w: Number(facility.w),
                 h: Number(facility.h),
-                type: typeof facility.type === 'string' ? facility.type : 'shop'
+                type: typeof facility.type === 'string' ? facility.type : 'shop',
+                capacity: Number.isFinite(facility.capacity) && facility.capacity >= 0
+                    ? facility.capacity
+                    : defaults.capacity,
+                hourlyCost: Number.isFinite(facility.hourlyCost) && facility.hourlyCost >= 0
+                    ? facility.hourlyCost
+                    : defaults.hourlyCost,
+                costPerUse: Number.isFinite(facility.costPerUse) && facility.costPerUse >= 0
+                    ? facility.costPerUse
+                    : defaults.costPerUse || 0,
+                isOperational: facility.isOperational !== false,
+                hourlyUsage: Number.isFinite(facility.hourlyUsage) && facility.hourlyUsage >= 0
+                    ? facility.hourlyUsage
+                    : 0,
+                usageDay: Number.isInteger(facility.usageDay) ? facility.usageDay : null,
+                usageHour: Number.isInteger(facility.usageHour) ? facility.usageHour : null
             };
         }).filter(facility => facility && Number.isFinite(facility.x) && Number.isFinite(facility.y) &&
             Number.isFinite(facility.w) && Number.isFinite(facility.h));
@@ -155,7 +251,7 @@
                 : 0,
             tiles: normalizedTiles,
             pitches: normalizePitches(saveData.pitches),
-            guests: normalizeGuests(saveData.guests),
+            guests: normalizeGuests(saveData.guests, Number.isFinite(saveData.day) ? saveData.day : 1),
             caravans: normalizeCaravans(saveData.caravans),
             facilities: normalizeFacilities(saveData.facilities),
             handymen: Number.isFinite(saveData.handymen) ? saveData.handymen : 0,

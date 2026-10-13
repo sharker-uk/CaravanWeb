@@ -32,4 +32,5 @@ Do not perform this split as one large rewrite. Move one cohesive responsibility
 - Preserve the existing `caravan_tycoon_save` localStorage key and existing save fields.
 - Add explicit save migrations before changing persisted structures.
 - Keep upfront guest payment and daily rental income as separate mechanics.
+- Preserve the existing localStorage save envelope and migrate guest/facility structures when adding party bookings, facility capacity, or operating state.
 - Keep the current Pages deployment until a server-side requirement justifies Workers.

@@ -8,10 +8,17 @@ test('browser loads the simulation clock before the simulation module', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const clockIndex = html.indexOf('src="src/simulation-clock.js"');
   const simulationIndex = html.indexOf('src="src/simulation.js"');
+  const partyIndex = html.indexOf('src="src/guest-parties.js"');
+  const facilityIndex = html.indexOf('src="src/facility-operations.js"');
+  const migrationIndex = html.indexOf('src="src/save-migrations.js"');
+  const mainIndex = html.indexOf('src="src/main.js"');
 
   assert.notEqual(clockIndex, -1, 'simulation-clock.js must be included');
   assert.notEqual(simulationIndex, -1, 'simulation.js must be included');
   assert.ok(clockIndex < simulationIndex, 'simulation clock must load first');
+  assert.ok(partyIndex < mainIndex, 'guest party logic must load before the game');
+  assert.ok(facilityIndex < migrationIndex, 'facility defaults must load before save migrations');
+  assert.ok(migrationIndex < mainIndex, 'save migrations must load before the game');
 });
 
 test('paused simulation freezes time, caravan condition, satisfaction and rating', () => {

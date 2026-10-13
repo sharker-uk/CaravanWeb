@@ -21,7 +21,12 @@
     function reachableActivity(state, guest) {
         const start = guest.position || {x: guest.pitch.x + guest.pitch.w / 2, y: guest.pitch.y + guest.pitch.h / 2};
         const destinations = [];
-        for (const facility of state.facilities || []) {
+        const preferences = guest.party?.preferences?.preferredFacilities;
+        const facilities = (state.facilities || []).filter(facility =>
+            facility.isOperational !== false &&
+            (!Array.isArray(preferences) || !preferences.length || preferences.includes(facility.type))
+        );
+        for (const facility of facilities) {
             for (let x = facility.x; x < facility.x + facility.w; x++) {
                 destinations.push({x, y: facility.y - 1}, {x, y: facility.y + facility.h});
             }
@@ -115,7 +120,11 @@
             : accommodationQuality[guest.accommodation] || 65;
         if (state.weather === 'Rain' && guest.accommodation === 'tent') accommodationScore -= 20;
         accommodationScore = Math.max(0, accommodationScore - (guest.routeFailures || 0) * 5);
-        const score = Math.round(utilityScore * 0.45 + facilityScore * 0.25 + accommodationScore * 0.3);
+        const partyScore = Number.isFinite(guest.party?.needs?.satisfaction)
+            ? guest.party.needs.satisfaction
+            : 75;
+        const score = Math.round(utilityScore * 0.4 + facilityScore * 0.2 +
+            accommodationScore * 0.3 + partyScore * 0.1);
         guest.experienceScore = score;
         guest.lastUtilityReliability = utilityScore;
         return score;

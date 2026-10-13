@@ -9,8 +9,9 @@
 - Drag a pitch-sized rectangle to fill it with grass or hardstanding pitches. A red outline indicates a box below the minimum pitch size.
 - Draw utility lines along roads or paths. Each line is validated and charged as one operation.
 - Click an empty pitch with an accommodation tool to place a caravan. Static units require a gravel pitch and all four hookups.
-- Guests book when demand and vacancy capacity allow, pay for their stay upfront, and move between their pitch and reachable facilities.
+- Guest parties book when demand, pitch vacancy, essential washroom capacity and operational status allow. Each booking tracks party composition, dates, preferences, needs and upfront payment.
+- Toilets are required for all overnight bookings; shared showers are required for tent and towed stays. Facilities have finite hourly capacity, operational switches and running costs.
 
-The park overview shows recent ledger entries, the rolling seven-day income/expense balance, and a reconciliation check against current cash. Guest satisfaction reflects utility access, accommodation condition, and facilities guests actually visit.
+Guest mix and arrival pressure shift between summer school holidays, weekends and quieter weekdays. Party preferences and unmet toilet/shower needs affect satisfaction; shop and laundry usage creates guest revenue alongside facility operating expenses. The park overview shows guest headcount, recent ledger entries, the rolling seven-day income/expense balance, and a reconciliation check against current cash. Save schema migrations preserve existing `caravan_tycoon_save` payloads while upgrading old one-guest bookings to solo parties.
 
 Run `npm test` for the gameplay rules, simulation, save-migration, guest activity, and economy tests.

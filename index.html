@@ -55,6 +55,7 @@
             <button class="btn-action" id="btn-upgrade" style="background: #2980b9;">🔨 Add Veranda (£400)</button>
             <button class="btn-action" id="btn-skirting" style="background: #8e44ad;">🛡️ Fit Skirting (£150)</button>
             <button class="btn-action" id="btn-sell" style="background: #7f8c8d; margin-top: 15px;">💰 Sell Unit</button>
+            <button class="btn-action" id="btn-facility-toggle" style="display:none; background:#2980b9;">⏸️ Close facility</button>
         </div>
     </aside>
 
@@ -87,8 +88,11 @@
         </section>
         <section class="menu-panel" id="panel-facilities" aria-label="Facility tools">
             <div class="menu-heading"><strong>Park facilities</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <p class="menu-description">Toilets are essential for every booking; tent and towed guests also require operational shared showers. Click a facility to inspect capacity and running costs.</p>
             <div class="tool-grid">
                 <button class="tool-btn" onclick="setTool('build_toilets', this)">🚻<span>Toilets · £800</span></button>
+                <button class="tool-btn" onclick="setTool('build_showers', this)">🚿<span>Shared showers · £1.2k</span></button>
+                <button class="tool-btn" onclick="setTool('build_laundry', this)">🧺<span>Laundry · £1.8k</span></button>
                 <button class="tool-btn" onclick="setTool('build_shop', this)">🛒<span>Shop · £1.5k</span></button>
                 <button class="tool-btn" onclick="setTool('build_playground', this)">🛝<span>Play park · £2.2k</span></button>
                 <button class="tool-btn" onclick="setTool('build_pub', this)">🍺<span>Pub · £3k</span></button>
@@ -133,6 +137,8 @@
     <script src="src/game-rules.js"></script>
     <script src="src/game-state.js"></script>
     <script src="src/simulation-clock.js"></script>
+    <script src="src/guest-parties.js"></script>
+    <script src="src/facility-operations.js"></script>
     <script src="src/save-migrations.js"></script>
     <script src="src/economy.js"></script>
     <script src="src/guest-activities.js"></script>

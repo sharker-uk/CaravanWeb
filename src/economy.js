@@ -62,14 +62,17 @@
         };
     }
 
-    function shouldAcceptGuest(state) {
+    function shouldAcceptGuest(state, options = {}) {
+        if (options.eligible === false) return false;
         const pitches = state?.pitches || [];
         const vacancies = pitches.filter(pitch => !pitch.occupied).length;
         const demand = getGuestDemand(state).score;
         const dailyCapacity = Math.min(pitches.length, 24);
         if (!vacancies || !demand || (state.dailyGuestArrivals || 0) >= dailyCapacity) return false;
         state.guestArrivalProgress = (state.guestArrivalProgress || 0) +
-            dailyCapacity * demand / 2400;
+            dailyCapacity * demand * (Number.isFinite(options.demandMultiplier)
+                ? Math.max(0, options.demandMultiplier)
+                : 1) / 2400;
         if (state.guestArrivalProgress < 1) return false;
         state.guestArrivalProgress -= 1;
         state.dailyGuestArrivals = (state.dailyGuestArrivals || 0) + 1;
