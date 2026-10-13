@@ -28,6 +28,8 @@
 - [x] Enforce operational toilet/shower capacity and account for facility operations, shop stock and laundry.
 - [x] Exercise three-week operating costs and revenue through the transaction ledger.
 - [x] Follow the player camera and support drag-to-build pitch areas and utility lines.
+- [x] Start new parks as overgrown land with individually harvestable trees and debris.
+- [x] Add timber inventory, timber sales and a landscape-beauty score that influences guest demand.
 
 ## Phase 4 — Art pipeline
 
