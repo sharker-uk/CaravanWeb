@@ -1121,8 +1121,13 @@ function draw(timestamp = 0) {
             ctx.fillStyle = 'rgba(52, 152, 219, 0.12)';
             ctx.strokeStyle = 'rgba(52, 152, 219, 0.75)';
             ctx.lineWidth = 1.5 / state.camera.zoom;
+            const radius = ParkServices.LOCAL_SERVICE_RADIUS * TILE_SIZE;
             ctx.beginPath();
-            ctx.arc(cx, cy, ParkServices.LOCAL_SERVICE_RADIUS * TILE_SIZE, 0, Math.PI * 2);
+            ctx.moveTo(cx, cy - radius);
+            ctx.lineTo(cx + radius, cy);
+            ctx.lineTo(cx, cy + radius);
+            ctx.lineTo(cx - radius, cy);
+            ctx.closePath();
             ctx.fill(); ctx.stroke();
         });
         state.pitches.forEach(p => {
