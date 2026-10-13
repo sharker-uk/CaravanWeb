@@ -4,7 +4,8 @@ const { createGameState, canOccupyPlayer, findPathToAny, getTileProperties, find
 
 test('game state exposes a minimal explicit structure and default player state', () => {
   const state = createGameState();
-  assert.equal(state.cash, 2000);
+  assert.equal(state.cash, 1500);
+  assert.equal(state.initialBalance, 1500);
   assert.equal(state.player.x, 5.5);
   assert.equal(state.player.y, 10.5);
   assert.equal(Array.isArray(state.tiles), true);
