@@ -2,6 +2,7 @@
     const GRID_W = 60;
     const GRID_H = 40;
     const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
+    const parkServicesApi = globalScope.ParkServices || (typeof require === 'function' ? require('./park-services.js') : null);
 
     function createEmptyUtilities() {
         return {gas: false, water: false, electricity: false, waste: false};
@@ -55,28 +56,9 @@
     }
 
     function getPitchHookups(pitch, tileMap = []) {
+        if (parkServicesApi?.getPitchHookups) return parkServicesApi.getPitchHookups(pitch, tileMap);
         const hookups = createEmptyUtilities();
-        if (!pitch || !Number.isFinite(pitch.x) || !Number.isFinite(pitch.y) ||
-            !Number.isFinite(pitch.w) || !Number.isFinite(pitch.h)) {
-            return hookups;
-        }
-
-        for (let x = pitch.x; x < pitch.x + pitch.w; x++) {
-            for (const y of [pitch.y - 1, pitch.y + pitch.h]) {
-                const tile = tileMap[y]?.[x];
-                if (tile && (tile.road || tile.path)) {
-                    UTILITY_TYPES.forEach(type => { hookups[type] ||= Boolean(tile.utilities?.[type]); });
-                }
-            }
-        }
-        for (let y = pitch.y; y < pitch.y + pitch.h; y++) {
-            for (const x of [pitch.x - 1, pitch.x + pitch.w]) {
-                const tile = tileMap[y]?.[x];
-                if (tile && (tile.road || tile.path)) {
-                    UTILITY_TYPES.forEach(type => { hookups[type] ||= Boolean(tile.utilities?.[type]); });
-                }
-            }
-        }
+        if (!pitch) return hookups;
         return hookups;
     }
 
