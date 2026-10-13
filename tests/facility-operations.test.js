@@ -4,6 +4,7 @@ const {createGuestParty} = require('../src/guest-parties.js');
 const {
   canHostParty,
   getFacilityDefaults,
+  getRequiredFacilities,
   processHourlyFacilities
 } = require('../src/facility-operations.js');
 const {getSevenDayBalance, recordTransaction} = require('../src/economy.js');
@@ -25,6 +26,30 @@ test('overnight party eligibility requires operational capacity for essential fa
     valid: false,
     missing: ['showers']
   });
+});
+
+test('essential capacity matches single-facility service allocation', () => {
+  const state = {
+    facilities: [
+      facility('toilets', 10),
+      facility('toilets', 10),
+      facility('showers', 20)
+    ]
+  };
+  assert.deepEqual(canHostParty(state, 'tent', 18), {
+    valid: false,
+    missing: ['toilets']
+  });
+  assert.deepEqual(canHostParty(state, 'tent', 10), {valid: true, missing: []});
+});
+
+test('essential shower access is separate from a party shower-use preference', () => {
+  const solo = createGuestParty(100, () => 0.55);
+  const state = {facilities: [facility('toilets', 16), facility('showers', 12)]};
+  assert.equal(solo.type, 'solo');
+  assert.equal(solo.preferences.showerVisitIntervalDays, 0);
+  assert.deepEqual(getRequiredFacilities('tent'), ['toilets', 'showers']);
+  assert.deepEqual(canHostParty(state, 'tent', solo.headcount), {valid: true, missing: []});
 });
 
 test('facility service capacity, party needs and transactions affect operating results', () => {

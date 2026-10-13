@@ -626,19 +626,16 @@ function onHourly() {
 }
 
 function createArrivalCandidate() {
-    const pitch = state.pitches.find(item => !item.occupied);
-    if (!pitch) return null;
-
-    const options = pitch.type === 'grass'
-        ? ['tent', 'towed']
-        : ['towed', ...(isPitchReadyForStatic(pitch) ? ['static'] : [])];
     const party = GuestParties.createGuestParty(state.day);
-    const eligibleOptions = options.filter(accommodation =>
-        FacilityOperations.canHostParty(state, accommodation, party.headcount).valid
+    return GuestParties.selectEligibleBooking(
+        state.pitches,
+        party,
+        pitch => pitch.type === 'grass'
+            ? ['tent', 'towed']
+            : ['towed', ...(isPitchReadyForStatic(pitch) ? ['static'] : [])],
+        (accommodation, headcount) =>
+            FacilityOperations.canHostParty(state, accommodation, headcount).valid
     );
-    if (!eligibleOptions.length) return null;
-    const accommodation = eligibleOptions[Math.floor(Math.random() * eligibleOptions.length)];
-    return {pitch, accommodation, party};
 }
 
 function arriveGuest(candidate) {
@@ -656,7 +653,8 @@ function arriveGuest(candidate) {
         arrivalDay: state.day,
         departureDay: state.day + stayDaysRemaining,
         status: 'checked-in',
-        source: 'demand'
+        source: 'demand',
+        requiredFacilities: FacilityOperations.getRequiredFacilities(accommodation)
     };
     const guest = {
         pitch,

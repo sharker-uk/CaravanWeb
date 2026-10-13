@@ -19,16 +19,21 @@
         return {...defaults, isOperational: true, hourlyUsage: 0, usageDay: null, usageHour: null};
     }
 
-    function getFacilityCapacity(state, type) {
+    function getLargestOperationalFacilityCapacity(state, type) {
         return (state.facilities || []).filter(facility =>
             facility.type === type && facility.isOperational !== false
-        ).reduce((total, facility) => total + Math.max(0, Number(facility.capacity) || 0), 0);
+        ).reduce((largest, facility) =>
+            Math.max(largest, Math.max(0, Number(facility.capacity) || 0)), 0);
+    }
+
+    function getRequiredFacilities(accommodation) {
+        return accommodation === 'static' ? ['toilets'] : ['toilets', 'showers'];
     }
 
     function canHostParty(state, accommodation, headcount) {
-        const required = ['toilets'];
-        if (accommodation !== 'static') required.push('showers');
-        const missing = required.filter(type => getFacilityCapacity(state, type) < headcount);
+        const missing = getRequiredFacilities(accommodation).filter(type =>
+            getLargestOperationalFacilityCapacity(state, type) < headcount
+        );
         return {valid: missing.length === 0, missing};
     }
 
@@ -111,7 +116,9 @@
                 party.needs.missedToiletVisits++;
                 adjustPartySatisfaction(party, -8);
             }
-            if (preferences.showerDaily && guest.accommodation !== 'static' &&
+            if (preferences.showerVisitIntervalDays > 0 && guest.accommodation !== 'static' &&
+                (state.day - (guest.booking?.arrivalDay ?? state.day)) %
+                    preferences.showerVisitIntervalDays === 0 &&
                 state.hour === 8 + offset % 8 &&
                 !serveParty(state, party, 'showers', transaction)) {
                 party.needs.missedShowerVisits++;
@@ -132,7 +139,8 @@
     const api = {
         FACILITY_DEFAULTS,
         getFacilityDefaults,
-        getFacilityCapacity,
+        getLargestOperationalFacilityCapacity,
+        getRequiredFacilities,
         canHostParty,
         processHourlyFacilities
     };

@@ -92,7 +92,10 @@
                     toiletIntervalHours: Number.isInteger(guest.party?.preferences?.toiletIntervalHours)
                         ? guest.party.preferences.toiletIntervalHours
                         : partyType === 'family' ? 3 : 4,
-                    showerDaily: guest.party?.preferences?.showerDaily !== false,
+                    showerVisitIntervalDays: Number.isInteger(
+                        guest.party?.preferences?.showerVisitIntervalDays
+                    ) ? Math.max(0, guest.party.preferences.showerVisitIntervalDays)
+                        : guest.party?.preferences?.showerDaily === false || partyType === 'solo' ? 0 : 1,
                     shopIntervalHours: Number.isInteger(guest.party?.preferences?.shopIntervalHours)
                         ? guest.party.preferences.shopIntervalHours
                         : 8,
@@ -130,6 +133,9 @@
                     departureDay: Number.isInteger(guest.booking?.departureDay)
                         ? guest.booking.departureDay
                         : arrivalDay + stayDaysRemaining,
+                    requiredFacilities: Array.isArray(guest.booking?.requiredFacilities)
+                        ? guest.booking.requiredFacilities.filter(type => typeof type === 'string')
+                        : guest.accommodation === 'static' ? ['toilets'] : ['toilets', 'showers'],
                     status: typeof guest.booking?.status === 'string'
                         ? guest.booking.status
                         : 'checked-in',

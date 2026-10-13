@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {createGuestParty, getDemandProfile, getDemandPeriod} =
   require('../src/guest-parties.js');
+const {selectEligibleBooking} = require('../src/guest-parties.js');
 
 test('party composition and booking demand vary across seasons and weekdays', () => {
   assert.equal(getDemandPeriod(6), 'weekend');
@@ -18,4 +19,32 @@ test('party composition and booking demand vary across seasons and weekdays', ()
   assert.equal(quietSolo.type, 'solo');
   assert.equal(quietSolo.adults, 1);
   assert.equal(quietSolo.headcount, 1);
+});
+
+test('booking candidate selection skips unsuitable vacant pitches', () => {
+  const pitches = [
+    {type: 'grass', occupied: false, id: 'no-service'},
+    {type: 'gravel', occupied: false, id: 'suitable'}
+  ];
+  const party = {type: 'solo', adults: 1, children: 0, headcount: 1};
+  const candidate = selectEligibleBooking(
+    pitches,
+    party,
+    pitch => pitch.type === 'grass' ? ['tent'] : ['towed', 'static'],
+    (accommodation) => accommodation === 'static',
+    () => 0
+  );
+
+  assert.equal(candidate.pitch.id, 'suitable');
+  assert.equal(candidate.accommodation, 'static');
+});
+
+test('booking candidate selection does not choose occupied pitches', () => {
+  const candidate = selectEligibleBooking(
+    [{type: 'gravel', occupied: true}],
+    {headcount: 1},
+    () => ['static'],
+    () => true
+  );
+  assert.equal(candidate, null);
 });

@@ -64,7 +64,7 @@
             preferences: {
                 preferredFacilities: partyPreferences[choice.type],
                 toiletIntervalHours: choice.type === 'family' ? 3 : 4,
-                showerDaily: choice.type !== 'solo',
+                showerVisitIntervalDays: choice.type === 'solo' ? 0 : 1,
                 shopIntervalHours: choice.type === 'solo' ? 12 : 8,
                 laundryEveryDays: choice.type === 'family' ? 3 : 5
             },
@@ -80,7 +80,21 @@
         };
     }
 
-    const api = {getDemandPeriod, getDemandProfile, createGuestParty};
+    function selectEligibleBooking(pitches, party, getAccommodations, canHost, random = Math.random) {
+        const candidates = [];
+        (pitches || []).filter(pitch => !pitch.occupied).forEach(pitch => {
+            getAccommodations(pitch).forEach(accommodation => {
+                if (canHost(accommodation, party.headcount)) {
+                    candidates.push({pitch, accommodation, party});
+                }
+            });
+        });
+        return candidates.length
+            ? candidates[Math.floor(random() * candidates.length)]
+            : null;
+    }
+
+    const api = {getDemandPeriod, getDemandProfile, createGuestParty, selectEligibleBooking};
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     globalScope.GuestParties = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
