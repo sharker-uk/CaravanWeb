@@ -109,7 +109,14 @@
         </section>
         <section class="menu-panel" id="panel-utilities" aria-label="Utility tools">
             <div class="menu-heading"><strong>Utility connections</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
-            <p class="menu-description">Requires the shovel. Drag to dig utility trenches beneath connected roads and paths.</p>
+            <p class="menu-description">Requires the shovel. Utility lines only work when they connect continuously to the incoming mains at the park boundary.</p>
+            <p class="menu-description"><strong>Management overlays</strong></p>
+            <div class="tool-grid">
+                <button class="tool-btn" data-overlay="services" onclick="setOverlayMode('services')">🧻<span>Service zones</span></button>
+                <button class="tool-btn" data-overlay="utilities" onclick="setOverlayMode('utilities')">🔗<span>Utility links</span></button>
+                <button class="tool-btn" data-overlay="entertainment" onclick="setOverlayMode('entertainment')">🎟️<span>Entertainment load</span></button>
+                <button class="tool-btn" data-overlay="none" onclick="setOverlayMode('none')">✖<span>Hide overlay</span></button>
+            </div>
             <div class="tool-grid">
                 <button class="tool-btn utility-btn" onclick="setTool('utility_gas', this)">🔥<span>Gas · £25</span></button>
                 <button class="tool-btn utility-btn" onclick="setTool('utility_water', this)">🚰<span>Water · £20</span></button>
@@ -148,6 +155,7 @@
     <div id="toast">Message</div>
 </div>
 
+    <script src="src/park-services.js"></script>
     <script src="src/game-rules.js"></script>
     <script src="src/land-management.js"></script>
     <script src="src/game-state.js"></script>
