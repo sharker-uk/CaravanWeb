@@ -4,6 +4,8 @@ const {
   createEmptyUtilities,
   validateSaveData,
   isGuestAccommodationValid,
+  validateAccommodationPlacement,
+  validateUtilityLine,
   getGuestDailyIncome,
   findPathToAny
 } = require('../src/game-rules.js');
@@ -76,6 +78,29 @@ test('guest accommodation and income rules match the park logic', () => {
 
   assert.equal(getGuestDailyIncome(1.25), 31);
   assert.equal(getGuestDailyIncome(0), 0);
+});
+
+test('accommodation placement reports occupancy, pitch type, and missing hookups', () => {
+  const grassPitch = {type: 'grass'};
+  assert.match(validateAccommodationPlacement(grassPitch, 'static').reason, /cannot be placed/);
+  assert.match(validateAccommodationPlacement(grassPitch, 'towed', [], true).reason, /occupied/);
+  const gravelPitch = {x: 2, y: 2, w: 4, h: 4, type: 'gravel'};
+  const tileMap = Array.from({length: 8}, () => Array(8).fill(null));
+  const result = validateAccommodationPlacement(gravelPitch, 'static', tileMap);
+  assert.equal(result.valid, false);
+  assert.match(result.reason, /Missing: gas, water, electricity, waste/);
+});
+
+test('utility line validation requires a continuous route and rejects duplicate or invalid tiles', () => {
+  const tiles = Array.from({length: 3}, () =>
+    Array.from({length: 4}, () => ({road: true, path: false, utilities: createEmptyUtilities()}))
+  );
+  assert.equal(validateUtilityLine({x: 0, y: 1}, {x: 3, y: 1}, tiles, 'water').tiles.length, 4);
+  tiles[1][2].utilities.water = true;
+  assert.match(validateUtilityLine({x: 0, y: 1}, {x: 3, y: 1}, tiles, 'water').reason, /already laid/);
+  tiles[1][2].road = false;
+  assert.match(validateUtilityLine({x: 0, y: 1}, {x: 3, y: 1}, tiles, 'gas').reason, /road or path/);
+  assert.match(validateUtilityLine({x: -1, y: 1}, {x: 0, y: 1}, tiles, 'gas').reason, /inside the park/);
 });
 
 test('findPathToAny can route through walkable tiles and avoid blocked ones', () => {

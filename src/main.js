@@ -18,7 +18,11 @@ const GRID_W = 60;
 const GRID_H = 40;
 const SimulationClock = window.SimulationClock;
 const GameStateApi = window.GameState;
+const SaveMigrations = window.SaveMigrations;
 const SimulationApi = window.Simulation;
+const Economy = window.Economy;
+const GuestActivities = window.GuestActivities;
+const GameRulesApi = window.GameRules;
 
 const PALETTE = {
     grass: ['#556b2f', '#5c7433', '#4d612a'],
@@ -32,6 +36,8 @@ const PALETTE = {
 
 let state = GameStateApi ? GameStateApi.createGameState() : {
     cash: 2000,
+    initialBalance: 2000,
+    transactions: [],
     rating: 1.0,
     satisfaction: 60,
     day: 1, hour: 9, minute: 0,
@@ -43,10 +49,12 @@ let state = GameStateApi ? GameStateApi.createGameState() : {
     pitches: [],
     caravans: [],
     guests: [],
+    guestArrivalProgress: 0,
+    dailyGuestArrivals: 0,
     facilities: [],
     vehicles: [],
     handymen: 0,
-    camera: { x: 100, y: 100, zoom: 1.8 },
+    camera: { x: 100, y: 100, zoom: 3 },
     activeTool: 'select',
     selectedEntity: null,
     player: {x: 5.5, y: 10.5},
@@ -88,6 +96,10 @@ function init() {
         return;
     }
 
+    data = SaveMigrations && typeof SaveMigrations.migrateSave === 'function'
+        ? SaveMigrations.migrateSave(data)
+        : data;
+
     if (!data || !Array.isArray(data.tiles) || data.tiles.length !== GRID_H ||
         !data.tiles.every(row => Array.isArray(row) && row.length === GRID_W &&
             row.every(isValidTileData)) ||
@@ -120,6 +132,14 @@ function init() {
     }
 
     state.cash = Number.isFinite(data.cash) ? data.cash : state.cash;
+    state.initialBalance = Number.isFinite(data.initialBalance) ? data.initialBalance : state.cash;
+    state.transactions = Array.isArray(data.transactions) ? data.transactions : [];
+    state.guestArrivalProgress = Number.isFinite(data.guestArrivalProgress)
+        ? data.guestArrivalProgress
+        : 0;
+    state.dailyGuestArrivals = Number.isInteger(data.dailyGuestArrivals)
+        ? data.dailyGuestArrivals
+        : 0;
     state.tiles = data.tiles.map(row => row.map(normalizeTile));
     state.pitches = data.pitches.map(pitch => ({...pitch, occupied: false}));
     state.facilities = Array.isArray(data.facilities) ? data.facilities : [];
@@ -176,6 +196,8 @@ function init() {
         const restoredGuest = {
             ...guest,
             pitch,
+            position: guest.position || {x: pitch.x + pitch.w / 2, y: pitch.y + pitch.h / 2},
+            path: Array.isArray(guest.path) ? guest.path : [],
             ratingAtArrival,
             stayDaysRemaining,
             totalIncome: Number.isFinite(guest.totalIncome) ? guest.totalIncome : 0,
@@ -257,12 +279,7 @@ function isValidTileData(tile) {
 }
 
 function isGuestAccommodationValid(pitch, accommodation) {
-    if (pitch.type === 'grass') return accommodation === 'tent' || accommodation === 'towed';
-    if (pitch.type === 'gravel') {
-        return accommodation === 'towed' ||
-            (accommodation === 'static' && isPitchReadyForStatic(pitch));
-    }
-    return false;
+    return GameRulesApi.isGuestAccommodationValid(pitch, accommodation, state.tiles);
 }
 
 function getPitchHookups(pitch) {
@@ -394,7 +411,7 @@ function interactWith(target) {
         return;
     }
     if (target.kind === 'guest') {
-        showToast(`Guest staying in ${target.entity.accommodation} · £${target.entity.totalIncome} paid · ${target.entity.stayDaysRemaining} day${target.entity.stayDaysRemaining === 1 ? '' : 's'} left`);
+        showToast(`Guest: ${target.entity.activity || 'relaxing'} · ${target.entity.experienceScore || 0}% stay score · £${target.entity.totalIncome} paid · ${target.entity.stayDaysRemaining} day${target.entity.stayDaysRemaining === 1 ? '' : 's'} left`);
         return;
     }
     if (target.kind === 'pitch') {
@@ -435,6 +452,7 @@ function updateInteractionHint() {
 }
 
 function updatePlayerMovement(deltaSeconds) {
+    if (state.buildingDrag) return;
     const horizontal = Number(pressedKeys.has('d') || pressedKeys.has('arrowright')) -
         Number(pressedKeys.has('a') || pressedKeys.has('arrowleft'));
     const vertical = Number(pressedKeys.has('s') || pressedKeys.has('arrowdown')) -
@@ -470,11 +488,22 @@ function updatePlayerMovement(deltaSeconds) {
     updateInteractionHint();
 }
 
+function updateCamera() {
+    const zoom = Math.max(2.6, state.camera.zoom);
+    state.camera.zoom = Math.min(zoom, 4);
+    state.camera.x = canvas.width / 2 - state.player.x * TILE_SIZE * state.camera.zoom;
+    state.camera.y = canvas.height / 2 - state.player.y * TILE_SIZE * state.camera.zoom;
+}
+
 function saveGame() {
     try {
         localStorage.setItem('caravan_tycoon_save', JSON.stringify({
-            schemaVersion: 5,
+            schemaVersion: SaveMigrations && SaveMigrations.CURRENT_SAVE_SCHEMA
+                ? SaveMigrations.CURRENT_SAVE_SCHEMA
+                : 6,
             cash: state.cash,
+            initialBalance: state.initialBalance,
+            transactions: state.transactions,
             tiles: state.tiles,
             pitches: state.pitches,
             guests: state.guests.map(guest => ({
@@ -483,7 +512,16 @@ function saveGame() {
                 ratingAtArrival: guest.ratingAtArrival,
                 dailyIncome: guest.dailyIncome,
                 totalIncome: guest.totalIncome,
-                stayDaysRemaining: guest.stayDaysRemaining
+                stayDaysRemaining: guest.stayDaysRemaining,
+                position: guest.position,
+                path: guest.path,
+                destination: guest.destination,
+                activity: guest.activity,
+                activityTimer: guest.activityTimer,
+                facilityVisits: guest.facilityVisits,
+                routeFailures: guest.routeFailures,
+                experienceScore: guest.experienceScore,
+                lastUtilityReliability: guest.lastUtilityReliability
             })),
             caravans: state.caravans.map(caravan => ({
                 ...caravan,
@@ -503,7 +541,9 @@ function saveGame() {
             simulationSpeed: state.simulationSpeed,
             isPaused: state.isPaused,
             camera: state.camera,
-            player: state.player
+            player: state.player,
+            guestArrivalProgress: state.guestArrivalProgress,
+            dailyGuestArrivals: state.dailyGuestArrivals
         }));
     } catch (error) {
         console.error('Unable to save the game.', error);
@@ -549,17 +589,8 @@ function update(dt) {
             if (c.condition < 40 && !c.isBroken && Math.random() < 0.001) c.isBroken = true;
         });
 
-        const facilityBenefits = {
-            toilets: 30, shop: 20, playground: 10, pub: 12, restaurant: 14,
-            arcade: 12, entertainment_space: 18, pool: 15, activity_centre: 18,
-            entertainment_hub: 25
-        };
-        let targetSat = 40 + state.facilities.reduce((total, facility) =>
-            total + (facilityBenefits[facility.type] || 0), 0);
-        if (state.caravans.some(c => c.isBroken)) targetSat -= 15;
-        targetSat = Math.min(Math.max(targetSat, 0), 100);
-        state.satisfaction += (targetSat - state.satisfaction) * 0.01;
-        state.rating = 1.0 + (state.caravans.length * 0.2) + (state.satisfaction / 50);
+        if (!state.isPaused) GuestActivities.updateGuestActivities(state, dt / 10);
+        GuestActivities.updateGuestSatisfaction(state);
     }
 
     updateUI();
@@ -567,13 +598,19 @@ function update(dt) {
 
 function onHourly() {
     if (state.handymen > 0) {
-        state.cash -= (state.handymen * 2);
-        state.caravans.forEach(c => { if(c.isBroken && state.cash > 50) { c.isBroken = false; state.cash -= 40; }});
+        recordTransaction(-(state.handymen * 2), 'wages', 'Handyman hourly wages');
+        state.caravans.forEach(c => {
+            if (c.isBroken && state.cash > 50) {
+                recordTransaction(-40, 'repairs', 'Handyman caravan repair');
+                c.isBroken = false;
+            }
+        });
     }
     // Shop income
     const shops = state.facilities.filter(f => f.type === 'shop').length;
-    state.cash += (shops * state.caravans.length * 2);
-    arriveGuest();
+    const shopRevenue = shops * state.caravans.length * 2;
+    if (shopRevenue) recordTransaction(shopRevenue, 'shop income', 'Hourly shop sales');
+    if (Economy.shouldAcceptGuest(state)) arriveGuest();
     saveGame();
 }
 
@@ -594,14 +631,63 @@ function arriveGuest() {
         ratingAtArrival,
         dailyIncome,
         stayDaysRemaining,
-        totalIncome: dailyIncome * stayDaysRemaining
+        totalIncome: dailyIncome * stayDaysRemaining,
+        position: findGuestArrivalPosition(pitch),
+        path: [],
+        activity: 'arriving',
+        activityTimer: 2,
+        facilityVisits: 0,
+        experienceScore: state.satisfaction,
+        lastUtilityReliability: 100
     };
     pitch.occupied = true;
     state.guests.push(guest);
-    state.cash += guest.totalIncome;
+    recordTransaction(guest.totalIncome, 'guest payment', 'Guest stay paid upfront');
     showToast(`A guest arrived with a ${accommodation} for ${guest.stayDaysRemaining} day${guest.stayDaysRemaining === 1 ? '' : 's'} · £${guest.totalIncome} paid`);
     playSound(660, 'sine', 0.12);
     return true;
+}
+
+function findGuestArrivalPosition(pitch) {
+    const candidates = [];
+    for (let x = pitch.x; x < pitch.x + pitch.w; x++) {
+        candidates.push({x, y: pitch.y - 1}, {x, y: pitch.y + pitch.h});
+    }
+    for (let y = pitch.y; y < pitch.y + pitch.h; y++) {
+        candidates.push({x: pitch.x - 1, y}, {x: pitch.x + pitch.w, y});
+    }
+    const isFree = ({x, y}) => !state.guests.some(guest =>
+        Math.floor(guest.position?.x ?? Number.NaN) === x &&
+        Math.floor(guest.position?.y ?? Number.NaN) === y
+    );
+    const isArrivalWalkable = ({x, y}) => {
+        const tile = state.tiles[y]?.[x];
+        return tile?.terrain === 'grass' && tile.nature !== 'tree' && isFree({x, y}) &&
+            !state.facilities.some(facility =>
+                x >= facility.x && x < facility.x + facility.w &&
+                y >= facility.y && y < facility.y + facility.h
+            ) &&
+            !state.caravans.some(caravan =>
+                x >= caravan.pitch.x && x < caravan.pitch.x + caravan.pitch.w &&
+                y >= caravan.pitch.y && y < caravan.pitch.y + caravan.pitch.h
+            );
+    };
+    const route = candidates.find(({x, y}) => {
+        const tile = state.tiles[y]?.[x];
+        return tile && (tile.road || tile.path) && isArrivalWalkable({x, y});
+    });
+    if (route) return {x: route.x + 0.5, y: route.y + 0.5};
+    const nearby = candidates.find(isArrivalWalkable);
+    if (nearby) return {x: nearby.x + 0.5, y: nearby.y + 0.5};
+    for (let y = 0; y < GRID_H; y++) {
+        for (let x = 0; x < GRID_W; x++) {
+            const tile = state.tiles[y][x];
+            if (tile.terrain === 'grass' && (tile.road || tile.path) && isFree({x, y})) {
+                return {x: x + 0.5, y: y + 0.5};
+            }
+        }
+    }
+    return {x: pitch.x + pitch.w / 2, y: pitch.y + pitch.h / 2};
 }
 
 function onDaily() {
@@ -615,10 +701,15 @@ function onDaily() {
         if (guest.stayDaysRemaining <= 0) departingGuests.push(guest);
     });
     departingGuests.forEach(guest => {
+        if (Number.isFinite(guest.experienceScore)) {
+            state.satisfaction = Math.max(0, Math.min(100,
+                state.satisfaction * 0.8 + guest.experienceScore * 0.2));
+        }
         guest.pitch.occupied = false;
         state.guests.splice(state.guests.indexOf(guest), 1);
     });
-    state.cash += income;
+    if (income) recordTransaction(income, 'caravan rental', 'Daily caravan rental income');
+    state.dailyGuestArrivals = 0;
     if (income > 0 || departingGuests.length) {
         const notices = [];
         if (income > 0) notices.push(`💰 Daily Revenue: £${income}`);
@@ -656,7 +747,7 @@ function handleGridClick(gx, gy) {
     if (state.activeTool === 'road') {
         if (!getTileProperties(gx, gy).buildable) {
             showToast('❌ Roads can only be built on clear, buildable ground.');
-        } else if (spend(20)) {
+        } else if (spend(20, 'construction', 'Built road tile')) {
             tile.road = true;
             saveGame();
         }
@@ -664,7 +755,7 @@ function handleGridClick(gx, gy) {
     if (state.activeTool === 'path') {
         if (!getTileProperties(gx, gy).buildable) {
             showToast('❌ Paths can only be built on clear, buildable ground.');
-        } else if (spend(10)) {
+        } else if (spend(10, 'construction', 'Built path tile')) {
             tile.path = true;
             saveGame();
         }
@@ -675,7 +766,7 @@ function handleGridClick(gx, gy) {
             showToast('❌ Utility lines can only be laid under a road or path.');
         } else if (tile.utilities[utility]) {
             showToast('That tile already has this utility line.');
-        } else if (spend(UTILITY_COSTS[utility])) {
+        } else if (spend(UTILITY_COSTS[utility], 'construction', `Laid ${utility} utility line`)) {
             tile.utilities[utility] = true;
             saveGame();
             const connectedPitchCount = state.pitches.filter(pitch =>
@@ -689,15 +780,16 @@ function handleGridClick(gx, gy) {
     if (state.activeTool === 'pitch_gravel') createPitch(gx, gy, 4, 8, 'gravel', 250);
     
     if (state.activeTool.startsWith('buy_')) {
-        const p = state.pitches.find(p => gx >= p.x && gx < p.x+p.w && gy >= p.y && gy < p.y+p.h && !p.occupied);
+        const p = state.pitches.find(p => gx >= p.x && gx < p.x+p.w && gy >= p.y && gy < p.y+p.h);
         if (p) {
             const tier = state.activeTool === 'buy_tin' ? 1 : 2;
             const cost = tier === 1 ? 600 : 2000;
-            if (tier === 2 && p.type !== 'gravel') {
-                showToast('❌ Static caravans need a hardstanding pitch.');
-            } else if (tier === 2 && !isPitchReadyForStatic(p)) {
-                showToast('❌ Static caravans need gas, water, electricity and waste hookups.');
-            } else if (spend(cost)) {
+            const placement = GameRulesApi.validateAccommodationPlacement(
+                p, tier === 1 ? 'towed' : 'static', state.tiles, p.occupied
+            );
+            if (!placement.valid) {
+                showToast(`❌ ${placement.reason}`);
+            } else if (spend(cost, 'accommodation', `Purchased tier ${tier} caravan`)) {
                 const c = new Caravan(p, tier);
                 p.occupied = true;
                 state.caravans.push(c);
@@ -705,7 +797,7 @@ function handleGridClick(gx, gy) {
                 saveGame();
             }
         } else {
-            showToast('❌ Select an empty pitch first.');
+            showToast('❌ There is no pitch under the selected tile.');
         }
     }
 
@@ -736,7 +828,7 @@ function plantTree(x, y) {
         showToast('❌ That space is blocked or out of bounds.');
         return;
     }
-    if (!spend(30)) return;
+    if (!spend(30, 'construction', 'Planted park tree')) return;
     state.tiles[y][x].nature = 'tree';
     playSound(523, 'sine', 0.1);
     saveGame();
@@ -747,35 +839,88 @@ function placeFacility(x, y, w, h, type, cost) {
         showToast('❌ That space is blocked or out of bounds.');
         return;
     }
-    if (!spend(cost)) return;
+    if (!spend(cost, 'construction', `Built ${type} facility`)) return;
     state.facilities.push({x, y, w, h, type});
     playSound(523, 'sine', 0.1);
     saveGame();
 }
 
 function createPitch(x, y, w, h, type, cost) {
-    const origin = findPitchPlacement(x, y, w, h);
-    if (!origin) {
-        showToast('❌ That space is blocked or out of bounds.');
+    const pitch = {x, y, w, h, type, occupied: false};
+    const result = GameRulesApi.validatePitchPlacement(
+        pitch, state.tiles, state.pitches, state.facilities
+    );
+    if (!result.valid) {
+        showToast(`❌ ${result.reason}`);
         return;
     }
-    if (!spend(cost)) return;
-    state.pitches.push({...origin, w, h, type, occupied: false});
+    if (!spend(cost, 'construction', `Built ${type} pitch`)) return;
+    state.pitches.push(pitch);
     playSound(659, 'sine', 0.1);
     saveGame();
 }
 
-function findPitchPlacement(x, y, w, h) {
-    if (isFootprintAvailable(x, y, w, h)) return {x, y};
+function createPitchesInBox(start, end, type) {
+    const plan = GameRulesApi.planPitchBox(start, end, type);
+    if (!plan.valid) {
+        showToast(`❌ ${plan.reason}`);
+        return false;
+    }
+    if (!hasAdjacentRoute(plan.box.x, plan.box.y, plan.box.w, plan.box.h)) {
+        showToast('❌ Connect the pitch area to an adjacent road or path.');
+        return false;
+    }
 
-    const flippedOrigins = [
-        {x: x - w + 1, y},
-        {x, y: y - h + 1},
-        {x: x - w + 1, y: y - h + 1}
-    ];
-    return flippedOrigins.find(origin =>
-        isFootprintAvailable(origin.x, origin.y, w, h) &&
-        hasAdjacentRoute(origin.x, origin.y, w, h)) || null;
+    const added = [];
+    for (const pitch of plan.pitches) {
+        const result = GameRulesApi.validatePitchPlacement(
+            pitch, state.tiles, [...state.pitches, ...added], state.facilities,
+            {requireAdjacentRoute: false}
+        );
+        if (!result.valid) {
+            showToast(`❌ ${result.reason}`);
+            return false;
+        }
+        added.push(pitch);
+    }
+    const unitCost = type === 'grass' ? 100 : 250;
+    if (!spend(unitCost * added.length, 'construction', `Built ${added.length} ${type} pitch${added.length === 1 ? '' : 'es'}`)) {
+        return false;
+    }
+    state.pitches.push(...added);
+    playSound(659, 'sine', 0.1);
+    saveGame();
+    showToast(`${added.length} ${type} pitch${added.length === 1 ? '' : 'es'} built.`);
+    return true;
+}
+
+function drawUtilityLine(start, end, utility) {
+    const validation = GameRulesApi.validateUtilityLine(start, end, state.tiles, utility);
+    if (!validation.valid) {
+        showToast(`❌ ${validation.reason}`);
+        return false;
+    }
+    const points = validation.tiles;
+    if (!spend(points.length * UTILITY_COSTS[utility], 'construction',
+        `Laid ${utility} utility line (${points.length} tiles)`)) return false;
+    points.forEach(({x, y}) => { state.tiles[y][x].utilities[utility] = true; });
+    saveGame();
+    const connectedPitchCount = state.pitches.filter(pitch =>
+        getPitchHookups(pitch)[utility]).length;
+    showToast(`${utility[0].toUpperCase()}${utility.slice(1)} line laid · ${connectedPitchCount} pitch${connectedPitchCount === 1 ? '' : 'es'} connected.`);
+    return true;
+}
+
+function handleBuildDrag(start, end) {
+    if (state.activeTool === 'pitch_grass' || state.activeTool === 'pitch_gravel') {
+        const type = state.activeTool === 'pitch_grass' ? 'grass' : 'gravel';
+        return createPitchesInBox(start, end, type);
+    }
+    if (state.activeTool.startsWith('utility_')) {
+        return drawUtilityLine(start, end, state.activeTool.slice('utility_'.length));
+    }
+    handleGridClick(start.x, start.y);
+    return true;
 }
 
 function hasAdjacentRoute(x, y, w, h) {
@@ -792,8 +937,19 @@ function hasAdjacentRoute(x, y, w, h) {
     return false;
 }
 
-function spend(amt) {
-    if (state.cash >= amt) { state.cash -= amt; return true; }
+function recordTransaction(amount, category, description) {
+    if (!Economy.recordTransaction(state, amount, category, description)) {
+        console.error('Unable to record a game transaction.', {amount, category, description});
+        showToast('❌ Transaction could not be recorded.');
+        return false;
+    }
+    return true;
+}
+
+function spend(amt, category = 'construction', description = 'Park construction') {
+    if (state.cash >= amt) {
+        return recordTransaction(-amt, category, description);
+    }
     showToast("❌ Not enough cash!");
     return false;
 }
@@ -814,6 +970,7 @@ function draw(timestamp = 0) {
     const deltaSeconds = lastFrameTime ? Math.min((timestamp - lastFrameTime) / 1000, 0.05) : 0;
     lastFrameTime = timestamp;
     updatePlayerMovement(deltaSeconds);
+    updateCamera();
     ctx.clearRect(0,0,canvas.width, canvas.height);
     ctx.save();
     ctx.translate(state.camera.x, state.camera.y);
@@ -886,6 +1043,28 @@ function draw(timestamp = 0) {
         ctx.setLineDash([]);
     });
 
+    if (state.isDown && state.dragStart && state.pointerTile &&
+        (state.activeTool === 'pitch_grass' || state.activeTool === 'pitch_gravel')) {
+        const x = Math.min(state.dragStart.x, state.pointerTile.x);
+        const y = Math.min(state.dragStart.y, state.pointerTile.y);
+        const width = Math.abs(state.pointerTile.x - state.dragStart.x) + 1;
+        const height = Math.abs(state.pointerTile.y - state.dragStart.y) + 1;
+        const minimum = state.activeTool === 'pitch_grass' ? {w: 4, h: 6} : {w: 4, h: 8};
+        const validSize = ((width >= minimum.w && height >= minimum.h) ||
+            (width >= minimum.h && height >= minimum.w)) &&
+            hasAdjacentRoute(x, y, width, height) &&
+            Array.from({length: height}, (_, row) =>
+                Array.from({length: width}, (_, column) =>
+                    getTileProperties(x + column, y + row).buildable
+                ).every(Boolean)
+            ).every(Boolean);
+        ctx.fillStyle = validSize ? 'rgba(46, 204, 113, 0.2)' : 'rgba(231, 76, 60, 0.24)';
+        ctx.strokeStyle = validSize ? '#2ecc71' : '#e74c3c';
+        ctx.lineWidth = 2 / state.camera.zoom;
+        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, width * TILE_SIZE, height * TILE_SIZE);
+        ctx.strokeRect(x * TILE_SIZE, y * TILE_SIZE, width * TILE_SIZE, height * TILE_SIZE);
+    }
+
     // Placed-object layer
     state.facilities.forEach(f => {
         const px = f.x*TILE_SIZE; const py = f.y*TILE_SIZE;
@@ -941,12 +1120,12 @@ function draw(timestamp = 0) {
             ctx.fillStyle = '#85c1e9';
             ctx.fillRect(px + width * 0.26, py + height * 0.3, width * 0.16, height * 0.1);
         }
-        const residentX = px + width * 0.5;
-        const residentY = py + height * 0.8;
+        const residentX = (guest.position?.x ?? (pitch.x + pitch.w / 2)) * TILE_SIZE;
+        const residentY = (guest.position?.y ?? (pitch.y + pitch.h / 2)) * TILE_SIZE;
         ctx.fillStyle = '#f5cba7';
-        ctx.beginPath(); ctx.arc(residentX, residentY, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(residentX, residentY, 3.5, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(residentX - 2, residentY + 2, 4, 5);
+        ctx.fillRect(residentX - 2, residentY + 3, 4, 5);
     });
 
     // Player
@@ -1032,7 +1211,11 @@ function updateUI() {
         document.getElementById('ins-name').innerText = 'Park Overview';
         const occupied = state.pitches.filter(pitch => pitch.occupied).length;
         const demand = getGuestDemand();
-        document.getElementById('ins-content').innerHTML = `Cash: £${Math.floor(state.cash).toLocaleString()}<br>Occupancy: ${occupied}/${state.pitches.length || 0}<br>Rating: ${state.rating.toFixed(1)} / 5<br>Demand: ${demand.level} (${demand.score}%)`;
+        const balance = Economy.getSevenDayBalance(state);
+        const recentTransactions = state.transactions.slice(-5).reverse().map(transaction =>
+            `${transaction.description}: ${transaction.amount < 0 ? '−' : '+'}£${Math.abs(transaction.amount).toLocaleString()}`
+        );
+        document.getElementById('ins-content').innerHTML = `Cash: £${Math.floor(state.cash).toLocaleString()}<br>Occupancy: ${occupied}/${state.pitches.length || 0}<br>Rating: ${state.rating.toFixed(1)} / 5<br>Demand: ${demand.level} (${demand.score}%)<br>7-day income: £${balance.income.toLocaleString()} · expenses: £${balance.expenses.toLocaleString()} · net: £${balance.net.toLocaleString()}<br>Ledger: ${balance.isValid ? '✓ reconciled' : '⚠ balance mismatch'}<br><strong>Recent transactions</strong><br>${recentTransactions.length ? recentTransactions.join('<br>') : 'No transactions yet.'}`;
         actionButtons.forEach(button => {
             button.style.display = 'none';
             button.disabled = true;
@@ -1062,18 +1245,12 @@ function togglePauseState() {
 }
 
 function getGuestDemand() {
-    const ratingInterest = Math.min(Math.max(state.rating, 0), 5) / 5;
-    const satisfactionInterest = Math.min(Math.max(state.satisfaction, 0), 100) / 100;
-    const score = Math.round((ratingInterest * 50 + satisfactionInterest * 50));
-    return {
-        score,
-        level: score >= 67 ? 'High' : score >= 34 ? 'Moderate' : 'Low'
-    };
+    return Economy.getGuestDemand(state);
 }
 
 function repairSelectedCaravan() {
     const caravan = state.selectedEntity;
-    if (!caravan || !caravan.isBroken || !spend(40)) return;
+    if (!caravan || !caravan.isBroken || !spend(40, 'repairs', 'Repaired caravan')) return;
     caravan.condition = 100;
     caravan.isBroken = false;
     saveGame();
@@ -1082,7 +1259,7 @@ function repairSelectedCaravan() {
 
 function upgradeSelectedCaravan() {
     const caravan = state.selectedEntity;
-    if (!caravan || caravan.hasDecking || !spend(400)) return;
+    if (!caravan || caravan.hasDecking || !spend(400, 'upgrades', 'Added caravan decking')) return;
     caravan.hasDecking = true;
     saveGame();
     updateUI();
@@ -1090,7 +1267,7 @@ function upgradeSelectedCaravan() {
 
 function fitSelectedSkirting() {
     const caravan = state.selectedEntity;
-    if (!caravan || caravan.hasSkirting || !spend(150)) return;
+    if (!caravan || caravan.hasSkirting || !spend(150, 'upgrades', 'Added caravan skirting')) return;
     caravan.hasSkirting = true;
     saveGame();
     updateUI();
@@ -1100,7 +1277,7 @@ function sellSelectedCaravan() {
     const caravan = state.selectedEntity;
     if (!caravan) return;
     const salePrice = caravan.tier === 1 ? 300 : 1000;
-    state.cash += salePrice;
+    recordTransaction(salePrice, 'asset sale', 'Sold caravan');
     state.caravans = state.caravans.filter(item => item !== caravan);
     caravan.pitch.occupied = false;
     state.selectedEntity = null;
@@ -1136,7 +1313,7 @@ function showToast(m) {
 }
 
 function hireHandyman() {
-    if (spend(150)) {
+    if (spend(150, 'staff', 'Hired handyman')) {
         state.handymen++;
         saveGame();
         updateUI();
@@ -1152,7 +1329,21 @@ function resetGame() {
 }
 
 // Input Handlers
-canvas.addEventListener('mousedown', e => { state.isDown = true; state.lastM = {x: e.clientX, y: e.clientY}; });
+function gridFromPointer(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const worldX = (clientX - rect.left - state.camera.x) / state.camera.zoom;
+    const worldY = (clientY - rect.top - state.camera.y) / state.camera.zoom;
+    return {x: Math.floor(worldX / TILE_SIZE), y: Math.floor(worldY / TILE_SIZE)};
+}
+
+canvas.addEventListener('mousedown', event => {
+    if (event.button !== 0) return;
+    state.isDown = true;
+    state.buildingDrag = state.activeTool !== 'select';
+    state.lastM = {x: event.clientX, y: event.clientY};
+    state.dragStart = gridFromPointer(event.clientX, event.clientY);
+    state.pointerTile = state.dragStart;
+});
 window.addEventListener('keydown', e => {
     const key = e.key.toLowerCase();
     if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) e.preventDefault();
@@ -1165,27 +1356,34 @@ window.addEventListener('keydown', e => {
     }
 });
 window.addEventListener('keyup', e => pressedKeys.delete(e.key.toLowerCase()));
-window.addEventListener('blur', () => pressedKeys.clear());
+window.addEventListener('blur', () => {
+    pressedKeys.clear();
+    state.isDown = false;
+    state.buildingDrag = false;
+    state.dragStart = null;
+});
 window.addEventListener('beforeunload', saveGame);
 window.addEventListener('mouseup', e => {
-    if (state.isDown && Math.hypot(e.clientX - state.lastM.x, e.clientY - state.lastM.y) < 5) {
-        const rect = canvas.getBoundingClientRect();
-        const mx = (e.clientX - rect.left - state.camera.x) / state.camera.zoom;
-        const my = (e.clientY - rect.top - state.camera.y) / state.camera.zoom;
-        handleGridClick(Math.floor(mx/TILE_SIZE), Math.floor(my/TILE_SIZE));
+    if (state.isDown) {
+        const end = gridFromPointer(e.clientX, e.clientY);
+        state.pointerTile = end;
+        if (state.buildingDrag) {
+            handleBuildDrag(state.dragStart, end);
+        } else if (Math.hypot(e.clientX - state.lastM.x, e.clientY - state.lastM.y) < 5) {
+            handleGridClick(end.x, end.y);
+        }
     }
     state.isDown = false;
+    state.buildingDrag = false;
+    state.dragStart = null;
 });
 window.addEventListener('mousemove', e => {
-    if (state.isDown) {
-        state.camera.x += e.clientX - state.lastM.x;
-        state.camera.y += e.clientY - state.lastM.y;
-        state.lastM = {x: e.clientX, y: e.clientY};
-    }
+    state.pointerTile = gridFromPointer(e.clientX, e.clientY);
 });
 canvas.addEventListener('wheel', e => {
+    e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    state.camera.zoom = Math.min(Math.max(state.camera.zoom * delta, 0.5), 4);
+    state.camera.zoom = Math.min(Math.max(state.camera.zoom * delta, 2.6), 4);
 });
 
 // Start

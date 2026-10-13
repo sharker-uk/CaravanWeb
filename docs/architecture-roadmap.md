@@ -9,18 +9,22 @@
 
 ## Phase 2 — Separate simulation from presentation
 
-- [ ] Define a small, explicit game-state interface.
-- [ ] Move pathfinding and walkability into a testable module.
-- [ ] Separate simulation updates from canvas drawing and UI refresh.
-- [ ] Add save-version migrations without invalidating existing local saves.
+- [x] Define a small, explicit game-state interface.
+- [x] Move pathfinding and walkability into a testable module.
+- [x] Separate simulation updates from canvas drawing and UI refresh.
+- [x] Add save-version migrations without invalidating existing local saves.
 
 ## Phase 3 — Gameplay systems
 
-- [ ] Give guests independent world positions and simple activity state machines.
-- [ ] Keep guest pitch occupancy independent from where the guest is walking.
-- [ ] Add collision-aware, route-aware NPC movement and fallback destinations.
-- [ ] Separate utility connection availability, accommodation requirements and price premiums.
-- [ ] Keep guest stay payment upfront; keep daily rental income distinct.
+- [x] Give guests independent world positions and simple activity state machines.
+- [x] Keep guest pitch occupancy independent from where the guest is walking.
+- [x] Add collision-aware, route-aware NPC movement and fallback destinations.
+- [x] Separate utility connection availability from accommodation requirements and placement feedback.
+- [x] Keep guest stay payment upfront; keep daily rental income distinct.
+- [x] Replace hourly guest spawning with demand- and vacancy-limited arrivals.
+- [x] Record cash movements in a reconciled transaction ledger and seven-day balance.
+- [x] Base satisfaction on guest utilities, accommodation condition and visited facilities.
+- [x] Follow the player camera and support drag-to-build pitch areas and utility lines.
 
 ## Phase 4 — Art pipeline
 

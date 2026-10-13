@@ -68,6 +68,7 @@
         </nav>
         <section class="menu-panel active" id="panel-terrain" aria-label="Ground tools">
             <div class="menu-heading"><strong>Ground & pitches</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <p class="menu-description">WASD moves the player while the camera follows. Drag a box to place one or more pitches; undersized boxes are shown in red.</p>
             <div class="tool-grid">
                 <button class="tool-btn active" onclick="setTool('select', this)">🔍<span>Select</span></button>
                 <button class="tool-btn" onclick="setTool('road', this)">🛣️<span>Tarmac · £20</span></button>
@@ -101,7 +102,7 @@
         </section>
         <section class="menu-panel" id="panel-utilities" aria-label="Utility tools">
             <div class="menu-heading"><strong>Utility connections</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
-            <p class="menu-description">Utility lines can only be laid beneath roads and paths.</p>
+            <p class="menu-description">Drag to draw utility lines beneath connected roads and paths.</p>
             <div class="tool-grid">
                 <button class="tool-btn utility-btn" onclick="setTool('utility_gas', this)">🔥<span>Gas · £25</span></button>
                 <button class="tool-btn utility-btn" onclick="setTool('utility_water', this)">🚰<span>Water · £20</span></button>
@@ -132,6 +133,9 @@
     <script src="src/game-rules.js"></script>
     <script src="src/game-state.js"></script>
     <script src="src/simulation-clock.js"></script>
+    <script src="src/save-migrations.js"></script>
+    <script src="src/economy.js"></script>
+    <script src="src/guest-activities.js"></script>
     <script src="src/simulation.js"></script>
     <script src="src/main.js"></script>
 </body>

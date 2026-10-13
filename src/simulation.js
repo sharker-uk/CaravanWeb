@@ -13,17 +13,11 @@
 
     function applySatisfactionAndRating(state) {
         if (!state) return state;
-        const facilityBenefits = {
-            toilets: 30, shop: 20, playground: 10, pub: 12, restaurant: 14,
-            arcade: 12, entertainment_space: 18, pool: 15, activity_centre: 18,
-            entertainment_hub: 25
-        };
-        let targetSat = 40 + (state.facilities || []).reduce((total, facility) =>
-            total + (facilityBenefits[facility.type] || 0), 0);
-        if ((state.caravans || []).some(caravan => caravan.isBroken)) targetSat -= 15;
-        targetSat = Math.min(Math.max(targetSat, 0), 100);
-        state.satisfaction += (targetSat - state.satisfaction) * 0.01;
-        state.rating = 1.0 + ((state.caravans || []).length * 0.2) + (state.satisfaction / 50);
+        const guestApi = globalScope.GuestActivities ||
+            (typeof require === 'function' ? require('./guest-activities.js') : null);
+        if (guestApi && typeof guestApi.updateGuestSatisfaction === 'function') {
+            guestApi.updateGuestSatisfaction(state);
+        }
         return state;
     }
 
@@ -49,6 +43,11 @@
         }
 
         applyCaravanDecay(state);
+        const guestApi = globalScope.GuestActivities ||
+            (typeof require === 'function' ? require('./guest-activities.js') : null);
+        if (!state.isPaused && guestApi && typeof guestApi.updateGuestActivities === 'function') {
+            guestApi.updateGuestActivities(state, dt / 10);
+        }
         applySatisfactionAndRating(state);
 
         if (typeof options.onAfterUpdate === 'function') {

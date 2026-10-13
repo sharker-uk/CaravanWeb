@@ -1,6 +1,8 @@
 (function (globalScope) {
     const DEFAULT_STATE = {
         cash: 2000,
+        initialBalance: 2000,
+        transactions: [],
         rating: 1.0,
         satisfaction: 60,
         day: 1,
@@ -14,10 +16,12 @@
         pitches: [],
         caravans: [],
         guests: [],
+        guestArrivalProgress: 0,
+        dailyGuestArrivals: 0,
         facilities: [],
         vehicles: [],
         handymen: 0,
-        camera: { x: 100, y: 100, zoom: 1.8 },
+        camera: { x: 100, y: 100, zoom: 3 },
         activeTool: 'select',
         selectedEntity: null,
         player: { x: 5.5, y: 10.5 },
