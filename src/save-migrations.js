@@ -244,7 +244,7 @@
         const migrated = {
             ...saveData,
             schemaVersion: CURRENT_SAVE_SCHEMA,
-            cash: Number.isFinite(saveData.cash) ? saveData.cash : 2000,
+            cash: Number.isFinite(saveData.cash) ? saveData.cash : 1500,
             wood: Number.isFinite(saveData.wood) ? Math.max(0, Math.floor(saveData.wood)) : 0,
             tools: {
                 axe: true,
@@ -252,7 +252,7 @@
             },
             initialBalance: Number.isFinite(saveData.initialBalance)
                 ? saveData.initialBalance
-                : Number.isFinite(saveData.cash) ? saveData.cash : 2000,
+                : Number.isFinite(saveData.cash) ? saveData.cash : 1500,
             transactions: normalizeTransactions(saveData.transactions),
             guestArrivalProgress: Number.isFinite(saveData.guestArrivalProgress)
                 ? Math.max(0, saveData.guestArrivalProgress)
