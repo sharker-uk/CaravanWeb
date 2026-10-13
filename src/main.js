@@ -422,21 +422,28 @@ function distanceToTarget(target) {
 }
 
 function interactWith(target) {
-    if (target.kind === 'tree') {
+    if (target.kind === 'tree' || target.kind === 'debris') {
         const tile = state.tiles[target.y]?.[target.x];
-        if (!tile || tile.nature !== 'tree') {
-            showToast('That tree has already been cleared.');
+        if (!tile || tile.nature !== target.kind) {
+            showToast('That overgrowth has already been cleared.');
             return;
         }
-        const timber = LandManagement.harvestYield(target.x, target.y);
         tile.nature = null;
-        state.wood += timber;
         state.interactionTarget = null;
         state.playerPath = [];
-        playSound(180, 'triangle', 0.18);
-        saveGame();
-        updateUI();
-        showToast(`🪓 Tree felled · collected ${timber} timber. Sell timber from Park Management.`);
+        if (target.kind === 'tree') {
+            const timber = LandManagement.harvestYield(target.x, target.y);
+            state.wood += timber;
+            playSound(180, 'triangle', 0.18);
+            saveGame();
+            updateUI();
+            showToast(`🪓 Tree felled · collected ${timber} timber. Sell timber from Park Management.`);
+        } else {
+            playSound(280, 'triangle', 0.1);
+            saveGame();
+            updateUI();
+            showToast('🌿 Brush and debris cleared.');
+        }
         return;
     }
     if (target.kind === 'caravan') {
@@ -465,9 +472,10 @@ function interactNearby() {
         : [...state.caravans.map(entity => ({kind: 'caravan', entity, ...entity.pitch})),
             ...state.guests.map(entity => ({kind: 'guest', entity, ...entity.pitch})),
             ...state.facilities.map(entity => ({kind: 'facility', entity, ...entity})),
-            ...state.tiles.flatMap((row, y) => row.map((tile, x) => tile.nature === 'tree'
-                ? {kind: 'tree', entity: tile, x, y, w: 1, h: 1}
-                : null).filter(Boolean)),
+            ...state.tiles.flatMap((row, y) => row.map((tile, x) =>
+                tile.nature === 'tree' || tile.nature === 'debris'
+                    ? {kind: tile.nature, entity: tile, x, y, w: 1, h: 1}
+                    : null).filter(Boolean)),
             ...state.pitches.filter(entity => !entity.occupied)
                 .map(entity => ({kind: 'pitch', entity, ...entity}))]
             .filter(item => distanceToTarget(item) <= 1.25)
@@ -484,11 +492,15 @@ function updateInteractionHint() {
     const hint = document.getElementById('interaction-hint');
     if (!hint) return;
     const target = state.interactionTarget;
-    let message = 'WASD / Arrows: Move · Click ground: Walk · Click tree, approach, then E to fell it';
+    let message = 'WASD / Arrows: Move · Click ground: Walk · Click overgrowth, approach, then E to clear';
     if (target && distanceToTarget(target) <= 1.25) {
-        message = target.kind === 'tree' ? 'Press E to fell tree and collect timber' : 'Press E to interact';
+        message = target.kind === 'tree' ? 'Press E to fell tree and collect timber'
+            : target.kind === 'debris' ? 'Press E to clear brush and debris'
+            : 'Press E to interact';
     } else if (target) {
-        message = target.kind === 'tree' ? 'Approaching tree... · E: Fell when nearby' : 'Approaching object... · E: Interact when nearby';
+        message = target.kind === 'tree' ? 'Approaching tree... · E: Fell when nearby'
+            : target.kind === 'debris' ? 'Approaching debris... · E: Clear when nearby'
+            : 'Approaching object... · E: Interact when nearby';
     }
     if (hint.innerText !== message) hint.innerText = message;
 }
