@@ -54,6 +54,13 @@ test('arrival demand is capacity-based and arrives only as demand accrues', () =
   assert.equal(shouldAcceptGuest(state), false);
 });
 
+test('landscape beauty improves guest demand without replacing satisfaction and rating', () => {
+  const poorLandscape = getGuestDemand({rating: 3, satisfaction: 70, beauty: 0});
+  const attractiveLandscape = getGuestDemand({rating: 3, satisfaction: 70, beauty: 100});
+  assert.ok(attractiveLandscape.score > poorLandscape.score);
+  assert.equal(attractiveLandscape.score - poorLandscape.score, 20);
+});
+
 test('lower demand reduces arrivals and the target remains below physical capacity', () => {
   const state = {
     rating: 0,
