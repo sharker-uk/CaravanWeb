@@ -28,6 +28,15 @@ function buildLegacySave() {
   };
 }
 
+test('migrateSave defaults missing starting cash to £1,500', () => {
+  const save = buildLegacySave();
+  delete save.cash;
+  delete save.initialBalance;
+  const migrated = migrateSave(save);
+  assert.equal(migrated.cash, 1500);
+  assert.equal(migrated.initialBalance, 1500);
+});
+
 test('migrateSave upgrades legacy save payloads to the current schema', () => {
   const migrated = migrateSave(buildLegacySave());
   assert.equal(migrated.schemaVersion, CURRENT_SAVE_SCHEMA);
