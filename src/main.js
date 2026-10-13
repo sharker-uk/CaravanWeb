@@ -1131,14 +1131,19 @@ function draw(timestamp = 0) {
             ctx.fillRect(p.x*TILE_SIZE, p.y*TILE_SIZE, p.w*TILE_SIZE, p.h*TILE_SIZE);
         });
     } else if (state.overlayMode === 'utilities') {
+        const overlayColors = {gas: '#e67e22', water: '#5dade2', electricity: '#f4d03f', waste: '#d5d8dc'};
         UTILITY_TYPES.forEach(type => {
             const connected = ParkServices.getConnectedUtilityTiles(state.tiles, type);
+            const utilityIndex = UTILITY_TYPES.indexOf(type);
             for (let y = 0; y < GRID_H; y++) for (let x = 0; x < GRID_W; x++) {
                 const tile = state.tiles[y][x];
                 if (!tile.utilities?.[type] || (!tile.road && !tile.path)) continue;
-                ctx.fillStyle = connected.has(`${x},${y}`)
-                    ? 'rgba(46, 204, 113, 0.65)' : 'rgba(231, 76, 60, 0.7)';
-                ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = connected.has(`${x},${y}`) ? overlayColors[type] : '#e74c3c';
+                ctx.lineWidth = 2 / state.camera.zoom;
+                ctx.beginPath();
+                ctx.moveTo(x*TILE_SIZE + 2, y*TILE_SIZE + 3 + utilityIndex * 3);
+                ctx.lineTo(x*TILE_SIZE + TILE_SIZE - 2, y*TILE_SIZE + 3 + utilityIndex * 3);
+                ctx.stroke();
             }
         });
     } else if (state.overlayMode === 'entertainment') {
