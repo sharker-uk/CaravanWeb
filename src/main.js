@@ -484,11 +484,11 @@ function updateInteractionHint() {
     const hint = document.getElementById('interaction-hint');
     if (!hint) return;
     const target = state.interactionTarget;
-    let message = 'WASD / Arrows: Move · Click ground: Walk · Click object, then E: Interact';
+    let message = 'WASD / Arrows: Move · Click ground: Walk · Click tree, approach, then E to fell it';
     if (target && distanceToTarget(target) <= 1.25) {
-        message = 'Press E to interact';
+        message = target.kind === 'tree' ? 'Press E to fell tree and collect timber' : 'Press E to interact';
     } else if (target) {
-        message = 'Approaching object... · E: Interact when nearby';
+        message = target.kind === 'tree' ? 'Approaching tree... · E: Fell when nearby' : 'Approaching object... · E: Interact when nearby';
     }
     if (hint.innerText !== message) hint.innerText = message;
 }
