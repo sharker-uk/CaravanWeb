@@ -137,6 +137,16 @@ test('migrateSave keeps already migrated saves stable', () => {
   assert.equal(migrated.schemaVersion, CURRENT_SAVE_SCHEMA);
   assert.equal(migrated.cash, 2000);
   assert.equal(migrated.wood, 0);
+  assert.deepEqual(migrated.tools, {axe: true, shovel: false});
+});
+
+test('migrateSave preserves tool unlocks and always grants the starting axe', () => {
+  const save = buildLegacySave();
+  save.tools = {axe: false, shovel: true};
+  const migrated = migrateSave(save);
+  assert.deepEqual(migrated.tools, {axe: true, shovel: true});
+  delete save.tools;
+  assert.deepEqual(migrateSave(save).tools, {axe: true, shovel: false});
 });
 
 test('migrateSave preserves timber inventory and clamps invalid inventory values', () => {
