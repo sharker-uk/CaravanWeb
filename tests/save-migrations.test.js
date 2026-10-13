@@ -136,4 +136,15 @@ test('migrateSave keeps already migrated saves stable', () => {
 
   assert.equal(migrated.schemaVersion, CURRENT_SAVE_SCHEMA);
   assert.equal(migrated.cash, 2000);
+  assert.equal(migrated.wood, 0);
+});
+
+test('migrateSave preserves timber inventory and clamps invalid inventory values', () => {
+  const save = buildLegacySave();
+  save.wood = 17;
+  assert.equal(migrateSave(save).wood, 17);
+  save.wood = -4;
+  assert.equal(migrateSave(save).wood, 0);
+  save.wood = 'lots';
+  assert.equal(migrateSave(save).wood, 0);
 });
