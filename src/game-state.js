@@ -4,6 +4,7 @@
         initialBalance: 2000,
         wood: 0,
         beauty: 50,
+        tools: {axe: true, shovel: false},
         transactions: [],
         rating: 1.0,
         satisfaction: 60,
