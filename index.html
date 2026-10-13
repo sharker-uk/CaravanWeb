@@ -67,7 +67,8 @@
             <button class="menu-tab" data-panel="accommodation" onclick="showMenuPanel('accommodation', this)" title="Buy accommodation">🚐<span>Units</span></button>
             <button class="menu-tab" data-panel="facilities" onclick="showMenuPanel('facilities', this)" title="Build park facilities">🏪<span>Build</span></button>
             <button class="menu-tab" data-panel="utilities" onclick="showMenuPanel('utilities', this)" title="Lay utility connections">🔌<span>Services</span></button>
-            <button class="menu-tab" data-panel="park" onclick="showMenuPanel('park', this)" title="Park tools and settings">⚙️<span>Park</span></button>
+            <button class="menu-tab" data-panel="shop" onclick="showMenuPanel('shop', this)" title="Buy tools and unlock abilities">🛠️<span>Tool Shop</span></button>
+            <button class="menu-tab" data-panel="park" onclick="showMenuPanel('park', this)" title="Park settings and management">⚙️<span>Park</span></button>
         </nav>
         <section class="menu-panel active" id="panel-terrain" aria-label="Ground tools">
             <div class="menu-heading"><strong>Ground & pitches</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
@@ -108,13 +109,23 @@
         </section>
         <section class="menu-panel" id="panel-utilities" aria-label="Utility tools">
             <div class="menu-heading"><strong>Utility connections</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
-            <p class="menu-description">Drag to draw utility lines beneath connected roads and paths.</p>
+            <p class="menu-description">Requires the shovel. Drag to dig utility trenches beneath connected roads and paths.</p>
             <div class="tool-grid">
                 <button class="tool-btn utility-btn" onclick="setTool('utility_gas', this)">🔥<span>Gas · £25</span></button>
                 <button class="tool-btn utility-btn" onclick="setTool('utility_water', this)">🚰<span>Water · £20</span></button>
                 <button class="tool-btn utility-btn" onclick="setTool('utility_electricity', this)">⚡<span>Electric · £30</span></button>
                 <button class="tool-btn utility-btn" onclick="setTool('utility_waste', this)">♻️<span>Waste · £35</span></button>
             </div>
+        </section>
+        <section class="menu-panel" id="panel-shop" aria-label="Tool shop">
+            <div class="menu-heading"><strong>Tool Shop</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <p class="menu-description">Buy tools to unlock work abilities. In this prototype, tools unlock actions; you do not need to equip them or manage durability.</p>
+            <div class="tool-grid">
+                <button class="tool-btn" type="button" disabled>🪓<span>Axe · Owned</span></button>
+                <button class="tool-btn" id="buy-shovel-btn" type="button" onclick="buyTool('shovel')">🪏<span>Shovel · £350</span></button>
+            </div>
+            <p class="menu-description"><strong>Shovel unlocks:</strong> gravel hardstanding pitches and utility trenching for water, gas, electricity and waste lines.</p>
+            <p class="menu-description">More tools can be added later for advanced landscaping, construction and maintenance.</p>
         </section>
         <section class="menu-panel" id="panel-park" aria-label="Park management tools">
             <div class="menu-heading"><strong>Park management</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
