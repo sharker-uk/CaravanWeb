@@ -562,6 +562,7 @@ function saveGame() {
                 activity: guest.activity,
                 activityTimer: guest.activityTimer,
                 facilityVisits: guest.facilityVisits,
+                activityFacilityType: guest.activityFacilityType,
                 routeFailures: guest.routeFailures,
                 experienceScore: guest.experienceScore,
                 lastUtilityReliability: guest.lastUtilityReliability,
