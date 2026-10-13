@@ -167,3 +167,18 @@ test('migrateSave preserves timber inventory and clamps invalid inventory values
   save.wood = 'lots';
   assert.equal(migrateSave(save).wood, 0);
 });
+
+
+test('migrateSave defaults overlays and park-wide entertainment capacity for legacy facilities', () => {
+  const save = buildLegacySave();
+  save.facilities = [
+    {x: 1, y: 1, w: 3, h: 3, type: 'pub'},
+    {x: 6, y: 1, w: 5, h: 4, type: 'entertainment_space'}
+  ];
+  const migrated = migrateSave(save);
+  assert.equal(migrated.overlayMode, 'none');
+  assert.equal(migrated.facilities[0].entertainmentCapacity, 12);
+  assert.equal(migrated.facilities[1].entertainmentCapacity, 40);
+  save.overlayMode = 'utilities';
+  assert.equal(migrateSave(save).overlayMode, 'utilities');
+});
