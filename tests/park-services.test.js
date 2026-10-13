@@ -49,7 +49,7 @@ test('local toilet and shower service coverage is limited by radius and operatin
 test('booking service check requires nearby operational facilities with enough capacity', () => {
   const pitch = {x: 10, y: 10, w: 4, h: 6};
   const state = {facilities: [
-    {...FacilityOperations.getFacilityDefaults('toilets'), x: 5, y: 10, w: 3, h: 3},
+    {...FacilityOperations.getFacilityDefaults('toilets'), type: 'toilets', x: 5, y: 10, w: 3, h: 3},
     {...FacilityOperations.getFacilityDefaults('showers'), type: 'showers', x: 5, y: 13, w: 3, h: 3}
   ]};
   assert.deepEqual(ParkServices.getPitchServiceCheck(state, pitch, 'tent', 4), {valid: true, missing: []});
