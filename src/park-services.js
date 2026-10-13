@@ -90,7 +90,7 @@
 
     function getEntertainmentUsage(state) {
         return (state?.guests || []).filter(g =>
-            g.activity === 'using facility' && ENTERTAINMENT_TYPES.includes(g.activityFacilityType)
+            ['visiting facility', 'using facility'].includes(g.activity) && ENTERTAINMENT_TYPES.includes(g.activityFacilityType)
         ).reduce((sum, g) => sum + Math.max(1, Number(g.party?.headcount) || 1), 0);
     }
 
