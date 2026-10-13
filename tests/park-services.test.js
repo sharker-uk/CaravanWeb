@@ -40,7 +40,7 @@ test('pitch hookups require utility on an adjacent road/path and a connected fee
 
 test('local toilet and shower service coverage is limited by radius and operating state', () => {
   const pitch = {x: 10, y: 10, w: 4, h: 6};
-  const toilets = {...FacilityOperations.getFacilityDefaults('toilets'), x: 5, y: 10, w: 3, h: 3};
+  const toilets = {...FacilityOperations.getFacilityDefaults('toilets'), type: 'toilets', x: 5, y: 10, w: 3, h: 3};
   assert.equal(ParkServices.getServiceCoverage(toilets, pitch), true);
   assert.equal(ParkServices.getServiceCoverage({...toilets, x: 0}, pitch), false);
   assert.equal(ParkServices.getServiceCoverage({...toilets, isOperational: false}, pitch), false);
@@ -50,7 +50,7 @@ test('booking service check requires nearby operational facilities with enough c
   const pitch = {x: 10, y: 10, w: 4, h: 6};
   const state = {facilities: [
     {...FacilityOperations.getFacilityDefaults('toilets'), x: 5, y: 10, w: 3, h: 3},
-    {...FacilityOperations.getFacilityDefaults('showers'), x: 5, y: 13, w: 3, h: 3}
+    {...FacilityOperations.getFacilityDefaults('showers'), type: 'showers', x: 5, y: 13, w: 3, h: 3}
   ]};
   assert.deepEqual(ParkServices.getPitchServiceCheck(state, pitch, 'tent', 4), {valid: true, missing: []});
   state.facilities[1].isOperational = false;
