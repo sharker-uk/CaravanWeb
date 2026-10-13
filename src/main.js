@@ -25,6 +25,7 @@ const GuestParties = window.GuestParties;
 const FacilityOperations = window.FacilityOperations;
 const GuestActivities = window.GuestActivities;
 const GameRulesApi = window.GameRules;
+const LandManagement = window.LandManagement;
 
 const PALETTE = {
     grass: ['#556b2f', '#5c7433', '#4d612a'],
@@ -39,6 +40,8 @@ const PALETTE = {
 let state = GameStateApi ? GameStateApi.createGameState() : {
     cash: 2000,
     initialBalance: 2000,
+    wood: 0,
+    beauty: 50,
     transactions: [],
     rating: 1.0,
     satisfaction: 60,
@@ -136,6 +139,7 @@ function init() {
     }
 
     state.cash = Number.isFinite(data.cash) ? data.cash : state.cash;
+    state.wood = Number.isFinite(data.wood) ? Math.max(0, Math.floor(data.wood)) : 0;
     state.initialBalance = Number.isFinite(data.initialBalance) ? data.initialBalance : state.cash;
     state.transactions = Array.isArray(data.transactions) ? data.transactions : [];
     state.guestArrivalProgress = Number.isFinite(data.guestArrivalProgress)
@@ -222,14 +226,28 @@ function init() {
 }
 
 function generateNewMap() {
+    state.wood = 0;
+    state.pitches = [];
+    state.caravans = [];
+    state.guests = [];
+    state.facilities = [];
+    state.player = {x: 5.5, y: 10.5};
     for (let y = 0; y < GRID_H; y++) {
         state.tiles[y] = [];
         for (let x = 0; x < GRID_W; x++) {
             const terrain = Math.hypot(x - 50, y - 10) < 5 ? 'water' : 'grass';
             const road = terrain === 'grass' && y >= 18 && y <= 20 && x < 25;
+            const roll = Math.abs((x * 73 + y * 37 + x * y * 11 + 19) % 100);
+            const safeStart = x >= 3 && x <= 9 && y >= 7 && y <= 13;
+            const overgrownCore = x >= 10 && x <= 43 && y >= 5 && y <= 35;
+            let nature = null;
+            if (terrain === 'grass' && !road && !safeStart) {
+                if (roll < (overgrownCore ? 29 : 15)) nature = 'tree';
+                else if (roll < (overgrownCore ? 42 : 26)) nature = 'debris';
+            }
             state.tiles[y][x] = {
                 terrain,
-                nature: terrain === 'grass' && !road && Math.random() > 0.9 ? 'debris' : null,
+                nature,
                 road,
                 path: false,
                 utilities: createEmptyUtilities()
@@ -404,6 +422,23 @@ function distanceToTarget(target) {
 }
 
 function interactWith(target) {
+    if (target.kind === 'tree') {
+        const tile = state.tiles[target.y]?.[target.x];
+        if (!tile || tile.nature !== 'tree') {
+            showToast('That tree has already been cleared.');
+            return;
+        }
+        const timber = LandManagement.harvestYield(target.x, target.y);
+        tile.nature = null;
+        state.wood += timber;
+        state.interactionTarget = null;
+        state.playerPath = [];
+        playSound(180, 'triangle', 0.18);
+        saveGame();
+        updateUI();
+        showToast(`🪓 Tree felled · collected ${timber} timber. Sell timber from Park Management.`);
+        return;
+    }
     if (target.kind === 'caravan') {
         state.selectedEntity = target.entity;
         updateUI();
@@ -430,6 +465,9 @@ function interactNearby() {
         : [...state.caravans.map(entity => ({kind: 'caravan', entity, ...entity.pitch})),
             ...state.guests.map(entity => ({kind: 'guest', entity, ...entity.pitch})),
             ...state.facilities.map(entity => ({kind: 'facility', entity, ...entity})),
+            ...state.tiles.flatMap((row, y) => row.map((tile, x) => tile.nature === 'tree'
+                ? {kind: 'tree', entity: tile, x, y, w: 1, h: 1}
+                : null).filter(Boolean)),
             ...state.pitches.filter(entity => !entity.occupied)
                 .map(entity => ({kind: 'pitch', entity, ...entity}))]
             .filter(item => distanceToTarget(item) <= 1.25)
@@ -507,6 +545,7 @@ function saveGame() {
                 : 7,
             cash: state.cash,
             initialBalance: state.initialBalance,
+            wood: state.wood,
             transactions: state.transactions,
             tiles: state.tiles,
             pitches: state.pitches,
@@ -1192,7 +1231,12 @@ function draw(timestamp = 0) {
 
 // --- UI & Controls ---
 function updateUI() {
+    state.beauty = LandManagement.calculateBeauty(state.tiles, state.pitches, state.facilities);
     document.getElementById('cash-display').innerText = Math.floor(state.cash).toLocaleString();
+    const woodDisplay = document.getElementById('wood-display');
+    if (woodDisplay) woodDisplay.innerText = Math.floor(state.wood).toLocaleString();
+    const beautyDisplay = document.getElementById('beauty-display');
+    if (beautyDisplay) beautyDisplay.innerText = `${state.beauty}%`;
     document.getElementById('clock-display').innerText =
         `Day ${state.day}, ${String(state.hour).padStart(2, '0')}:${String(Math.floor(state.minute)).padStart(2, '0')}`;
     const lighting = getDayNightLighting();
@@ -1381,6 +1425,20 @@ function setTool(t, btn) {
 function showToast(m) {
     const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block';
     setTimeout(() => t.style.display = 'none', 2000);
+}
+
+function sellTimber() {
+    const units = Math.floor(state.wood || 0);
+    if (units <= 0) {
+        showToast('No timber to sell. Fell a few trees first.');
+        return;
+    }
+    const value = LandManagement.getTimberSaleValue(units);
+    if (!recordTransaction(value, 'timber sale', `Sold ${units} timber`)) return;
+    state.wood -= units;
+    saveGame();
+    updateUI();
+    showToast(`💰 Sold ${units} timber for £${value}.`);
 }
 
 function hireHandyman() {
