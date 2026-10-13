@@ -1,7 +1,7 @@
 (function (globalScope) {
     const LOCAL_SERVICE_RADIUS = 8;
     const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
-    const ENTERTAINMENT_TYPES = ['pub', 'restaurant', 'arcade', 'entertainment_space', 'pool', 'activity_centre', 'entertainment_hub'];
+    const ENTERTAINMENT_TYPES = ['pub', 'arcade', 'entertainment_space', 'pool', 'activity_centre', 'entertainment_hub'];
 
     function isRoute(tile) { return Boolean(tile && (tile.road || tile.path)); }
 
