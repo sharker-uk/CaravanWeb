@@ -1,6 +1,6 @@
 (function (globalScope) {
     const FACILITY_DEFAULTS = {
-        toilets: {capacity: 16, hourlyCost: 0.5, costPerUse: 0},
+        toilets: {capacity: 16, hourlyCost: 0, costPerUse: 0},
         showers: {capacity: 12, hourlyCost: 1, costPerUse: 0.25},
         laundry: {capacity: 6, hourlyCost: 1, costPerUse: 2},
         shop: {capacity: 10, hourlyCost: 0.5, costPerUse: 0},
@@ -16,12 +16,30 @@
 
     function getFacilityDefaults(type) {
         const defaults = FACILITY_DEFAULTS[type] || FACILITY_DEFAULTS.shop;
-        return {...defaults, isOperational: true, hourlyUsage: 0, usageDay: null, usageHour: null};
+        return {...defaults, isOperational: true, hourlyUsage: 0, usageDay: null, usageHour: null, cleanliness: 100, wear: 100, maintenanceClosed: false};
+    }
+
+    function isFacilityOperational(facility) {
+        return Boolean(facility && facility.isOperational !== false &&
+            !(facility.type === 'toilets' &&
+                (Number(facility.cleanliness ?? 100) <= 0 || Number(facility.wear ?? 100) <= 0)));
+    }
+
+    function refreshFacilityOperationalStatus(facility) {
+        if (!facility || facility.type !== 'toilets') return isFacilityOperational(facility);
+        if (Number(facility.cleanliness ?? 100) <= 0 || Number(facility.wear ?? 100) <= 0) {
+            facility.maintenanceClosed = true;
+            facility.isOperational = false;
+        } else if (facility.maintenanceClosed) {
+            facility.maintenanceClosed = false;
+            facility.isOperational = true;
+        }
+        return facility.isOperational !== false;
     }
 
     function getLargestOperationalFacilityCapacity(state, type) {
         return (state.facilities || []).filter(facility =>
-            facility.type === type && facility.isOperational !== false
+            facility.type === type && isFacilityOperational(facility)
         ).reduce((largest, facility) =>
             Math.max(largest, Math.max(0, Number(facility.capacity) || 0)), 0);
     }
@@ -57,6 +75,11 @@
 
         const preferred = party.preferences?.preferredFacilities?.includes(serviceType);
         adjustPartySatisfaction(party, preferred ? 3 : 1);
+        if (serviceType === 'toilets') {
+            const cleanliness = Math.max(0, Math.min(100, Number(facility.cleanliness ?? 100)));
+            if (cleanliness < 25) adjustPartySatisfaction(party, -5);
+            else if (cleanliness < 50) adjustPartySatisfaction(party, -2);
+        }
         if (facility.costPerUse > 0) {
             const amount = serviceType === 'showers'
                 ? party.headcount * facility.costPerUse
@@ -79,11 +102,16 @@
 
     function serveParty(state, party, type, transaction) {
         const facility = (state.facilities || []).find(item =>
-            item.type === type && item.isOperational !== false &&
+            item.type === type && isFacilityOperational(item) &&
             (Number(item.hourlyUsage) || 0) + party.headcount <= item.capacity
         );
         if (!facility) return false;
         facility.hourlyUsage = (Number(facility.hourlyUsage) || 0) + party.headcount;
+        if (type === 'toilets') {
+            facility.cleanliness = Math.max(0, Number(facility.cleanliness ?? 100) - party.headcount * 0.25);
+            facility.wear = Math.max(0, Number(facility.wear ?? 100) - party.headcount * 0.02);
+            refreshFacilityOperationalStatus(facility);
+        }
         recordService(party, facility, type, transaction);
         return true;
     }
@@ -139,6 +167,8 @@
     const api = {
         FACILITY_DEFAULTS,
         getFacilityDefaults,
+        isFacilityOperational,
+        refreshFacilityOperationalStatus,
         getLargestOperationalFacilityCapacity,
         getRequiredFacilities,
         canHostParty,
