@@ -98,7 +98,8 @@ test('facility service capacity, party needs and transactions affect operating r
 test('toilet use gradually reduces cleanliness and wear and dirty toilets lower satisfaction', () => {
   const party = createGuestParty(181, () => 0);
   party.headcount = 4;
-  party.preferences = {...party.preferences, toiletIntervalHours: 1, showerVisitIntervalDays: 0, shopIntervalHours: 0, laundryEveryDays: 0};
+  party.needs.satisfaction = 75;
+  party.preferences = {...party.preferences, preferredFacilities: [], toiletIntervalHours: 1, showerVisitIntervalDays: 0, shopIntervalHours: 0, laundryEveryDays: 0};
   const toilets = facility('toilets', 16);
   toilets.cleanliness = 40;
   const state = {day: 1, hour: 0, facilities: [toilets], guests: [{
