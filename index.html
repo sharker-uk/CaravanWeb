@@ -26,6 +26,18 @@
             <button id="start-game" class="start-button" type="button">OK — Start the game</button>
         </div>
     </section>
+    <section id="sleep-prompt" class="start-screen" role="dialog" aria-modal="true" aria-labelledby="sleep-title" hidden>
+        <div class="start-card">
+            <p class="start-kicker">OLD FARM HOUSE</p>
+            <h1 id="sleep-title">Sleep through the night?</h1>
+            <p>Rest here and wake up at 8:00am.</p>
+            <div class="sleep-actions">
+                <button id="sleep-confirm" class="start-button" type="button">Sleep through the night</button>
+                <button id="sleep-cancel" class="sleep-cancel" type="button">Not now</button>
+            </div>
+        </div>
+    </section>
+    <div id="sleep-transition" class="sleep-transition" aria-hidden="true"></div>
 
     <div id="top-bar">
         <div class="stat-group">

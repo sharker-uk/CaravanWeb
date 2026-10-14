@@ -22,6 +22,8 @@ test('browser loads the simulation clock before the simulation module', () => {
   assert.ok(migrationIndex < mainIndex, 'save migrations must load before the game');
   assert.ok(constructionIndex < mainIndex, 'construction queue must load before the game');
   assert.match(html, /id="start-screen"/, 'new players must see a controls screen');
+  assert.match(html, /id="sleep-prompt"/, 'the farmhouse sleep prompt must be available');
+  assert.match(html, /id="sleep-transition"/, 'sleep must have a black-screen transition');
 });
 
 test('paused simulation freezes time, caravan condition, satisfaction and rating', () => {

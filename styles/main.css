@@ -99,6 +99,10 @@ canvas { display: block; width: 100%; flex: 1 1 auto; min-height: 0; }
 .start-tip { padding-left: 10px; border-left: 3px solid var(--accent-bright); font-size: 12px; }
 .start-button { width: 100%; min-height: 46px; margin-top: 8px; border: 0; border-radius: 6px; background: var(--accent-bright); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; }
 .start-button:hover { filter: brightness(1.1); }
+.sleep-actions { display: flex; gap: 8px; }
+.sleep-cancel { min-height: 46px; margin-top: 8px; padding: 0 18px; border: 1px solid rgba(255,255,255,.2); border-radius: 6px; background: #34495e; color: var(--text); font-weight: 700; cursor: pointer; }
+.sleep-transition { position: absolute; inset: 0; z-index: 250; background: #000; opacity: 0; pointer-events: none; transition: opacity .6s ease; }
+.sleep-transition.active { opacity: 1; pointer-events: auto; }
 @media (max-width: 900px) {
   #top-bar { align-items: flex-start; }
   #top-bar .stat-group { gap: 4px; }

@@ -525,6 +525,14 @@ function interactWith(target) {
         return;
     }
     if (target.kind === 'landmark') {
+        if (target.entity.type === 'farmhouse') {
+            if (SimulationClock.canSleep(state)) {
+                showSleepPrompt();
+            } else {
+                showToast('The farmhouse is available for sleep between 8pm and 5am.');
+            }
+            return;
+        }
         const panel = {
             rusty_resales: 'accommodation',
             fiddl_shop: 'facilities',
@@ -550,6 +558,51 @@ function interactWith(target) {
     if (target.kind === 'pitch') {
         showToast(`Empty ${target.entity.type} pitch`);
     }
+}
+
+function showSleepPrompt() {
+    const prompt = document.getElementById('sleep-prompt');
+    if (state.sleeping || !prompt.hidden || !SimulationClock.canSleep(state)) return;
+    state.playerPath = [];
+    state.interactionTarget = null;
+    prompt.hidden = false;
+    document.getElementById('sleep-confirm').focus();
+}
+
+function dismissSleepPrompt() {
+    document.getElementById('sleep-prompt').hidden = true;
+    state.sleepPromptDismissed = true;
+}
+
+async function sleepThroughNight() {
+    if (state.sleeping) return;
+    if (!SimulationClock.canSleep(state)) {
+        document.getElementById('sleep-prompt').hidden = true;
+        showToast('The farmhouse is available for sleep between 8pm and 5am.');
+        return;
+    }
+
+    state.sleeping = true;
+    state.playerPath = [];
+    state.interactionTarget = null;
+    state.isDown = false;
+    state.buildingDrag = false;
+    pressedKeys.clear();
+    document.getElementById('sleep-prompt').hidden = true;
+    const transition = document.getElementById('sleep-transition');
+    transition.classList.add('active');
+    await new Promise(resolve => window.setTimeout(resolve, 600));
+
+    SimulationClock.advanceToHour(state, 8, {onHourly, onDaily});
+    updateConstructions();
+    saveGame();
+    updateUI();
+    transition.classList.remove('active');
+    await new Promise(resolve => window.setTimeout(resolve, 600));
+
+    state.sleeping = false;
+    state.sleepPromptDismissed = false;
+    updateInteractionHint();
 }
 
 function interactNearby() {
@@ -585,6 +638,8 @@ function updateInteractionHint() {
     if (target && distanceToTarget(target) <= 1.25) {
         message = target.kind === 'tree' ? 'Press E to fell tree and collect timber'
             : target.kind === 'debris' ? 'Press E to clear brush and debris'
+            : target.kind === 'landmark' && target.entity.type === 'farmhouse'
+                ? 'Old Farm House · sleep available from 8pm to 5am'
             : 'Press E to interact';
     } else if (target) {
         message = target.kind === 'tree' ? 'Approaching tree... · E: Fell when nearby'
@@ -595,7 +650,8 @@ function updateInteractionHint() {
 }
 
 function updatePlayerMovement(deltaSeconds) {
-    if (state.buildingDrag) return;
+    if (!document.getElementById('start-screen').hidden || state.sleeping ||
+        !document.getElementById('sleep-prompt').hidden || state.buildingDrag) return;
     const horizontal = Number(pressedKeys.has('d') || pressedKeys.has('arrowright')) -
         Number(pressedKeys.has('a') || pressedKeys.has('arrowleft'));
     const vertical = Number(pressedKeys.has('s') || pressedKeys.has('arrowdown')) -
@@ -626,6 +682,15 @@ function updatePlayerMovement(deltaSeconds) {
                 state.player.y += dy / distance * remaining;
                 remaining = 0;
             }
+        }
+    }
+    const farmhouse = state.landmarks.find(landmark => landmark.type === 'farmhouse');
+    if (farmhouse) {
+        const distance = distanceToTarget(farmhouse);
+        if (distance > 1.25) {
+            state.sleepPromptDismissed = false;
+        } else if (SimulationClock.canSleep(state) && !state.sleepPromptDismissed) {
+            showSleepPrompt();
         }
     }
     updateInteractionHint();
@@ -725,6 +790,7 @@ class Caravan {
 
 // --- Game Logic ---
 function update(dt) {
+    if (state.sleeping) return;
     if (SimulationApi && typeof SimulationApi.advanceSimulationState === 'function') {
         SimulationApi.advanceSimulationState(state, dt, { onHourly, onDaily });
     } else {
@@ -1842,7 +1908,8 @@ function gridFromPointer(clientX, clientY) {
 
 canvas.addEventListener('mousedown', event => {
     if (event.button !== 0) return;
-    if (!document.getElementById('start-screen').hidden) return;
+    if (!document.getElementById('start-screen').hidden ||
+        !document.getElementById('sleep-prompt').hidden || state.sleeping) return;
     state.isDown = true;
     state.buildingDrag = state.activeTool !== 'select';
     state.lastM = {x: event.clientX, y: event.clientY};
@@ -1852,6 +1919,11 @@ canvas.addEventListener('mousedown', event => {
 window.addEventListener('keydown', e => {
     if (!document.getElementById('start-screen').hidden) return;
     const key = e.key.toLowerCase();
+    if (!document.getElementById('sleep-prompt').hidden) {
+        if (key === 'escape') dismissSleepPrompt();
+        return;
+    }
+    if (state.sleeping) return;
     if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) e.preventDefault();
     if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
         pressedKeys.add(key);
@@ -1870,6 +1942,10 @@ window.addEventListener('blur', () => {
 });
 window.addEventListener('beforeunload', saveGame);
 window.addEventListener('mouseup', e => {
+    if (!document.getElementById('sleep-prompt').hidden || state.sleeping) {
+        state.isDown = false;
+        return;
+    }
     if (state.isDown) {
         const end = gridFromPointer(e.clientX, e.clientY);
         state.pointerTile = end;
@@ -1895,6 +1971,8 @@ canvas.addEventListener('wheel', e => {
 // Start
 window.onload = () => {
     document.getElementById('start-game').addEventListener('click', startNewGame);
+    document.getElementById('sleep-confirm').addEventListener('click', sleepThroughNight);
+    document.getElementById('sleep-cancel').addEventListener('click', dismissSleepPrompt);
     document.getElementById('btn-repair').addEventListener('click', repairSelectedCaravan);
     document.getElementById('btn-upgrade').addEventListener('click', upgradeSelectedCaravan);
     document.getElementById('btn-skirting').addEventListener('click', fitSelectedSkirting);
