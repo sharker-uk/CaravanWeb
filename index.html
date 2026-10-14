@@ -10,64 +10,80 @@
 
 <div id="game-container">
     <section id="start-screen" class="start-screen" role="dialog" aria-modal="true" aria-labelledby="start-title" hidden>
-        <div class="start-card">
-            <p class="start-kicker">WELCOME TO THE PARK</p>
-            <h1 id="start-title">Caister Coast Caravan Park</h1>
-            <p>Your new life starts in a run-down farmhouse by the sea. Give your park manager a look, meet the first visitors, then get to work.</p>
-            <div class="avatar-creator">
-                <div class="avatar-preview-panel">
-                    <canvas id="avatar-preview" width="96" height="112" aria-label="Your park manager preview"></canvas>
-                    <label for="player-name">Your name</label>
-                    <input id="player-name" type="text" maxlength="24" value="Park Manager" autocomplete="off">
-                    <button id="randomize-avatar" class="secondary-button" type="button">🎲 Randomise me</button>
+        <div class="start-card start-card-compact">
+            <h1 id="start-title">Caravan Park Tycoon</h1>
+            <div class="start-menu-buttons">
+                <button id="start-game" class="start-button" type="button">Start game</button>
+                <button id="randomize-npcs" class="menu-button" type="button">🎲 Generate guest roster</button>
+                <button id="open-avatar-creator" class="menu-button" type="button" aria-expanded="false" aria-controls="avatar-panel">👤 Create your avatar</button>
+                <button id="open-controls" class="menu-button" type="button" aria-expanded="false" aria-controls="controls-panel">🎮 Game controls</button>
+            </div>
+            <p id="visitor-count" class="start-status" aria-live="polite">Your guests will appear when their bookings are accepted.</p>
+
+            <section id="avatar-panel" class="start-options-panel" aria-labelledby="avatar-panel-title" hidden>
+                <div class="panel-heading">
+                    <h2 id="avatar-panel-title">Your park manager</h2>
+                    <button class="panel-close" type="button" data-close-panel="avatar-panel" aria-label="Close avatar creator">✕</button>
                 </div>
-                <div class="avatar-options">
-                    <label for="avatar-skin">Skin tone
-                        <select id="avatar-skin">
-                            <option value="#f7d2b0">Fair</option><option value="#d9a078">Warm</option><option value="#b87550">Tan</option><option value="#87543b">Brown</option><option value="#603b2b">Deep brown</option>
-                        </select>
-                    </label>
-                    <label for="avatar-hair-style">Hair style
-                        <select id="avatar-hair-style">
-                            <option value="short">Short</option><option value="messy">Messy</option><option value="bob">Bob</option><option value="long">Long</option><option value="bald">Bald</option>
-                        </select>
-                    </label>
-                    <label for="avatar-hair-colour">Hair colour
-                        <select id="avatar-hair-colour">
-                            <option value="#33251f">Dark brown</option><option value="#68452f">Brown</option><option value="#b97835">Ginger</option><option value="#d5b66b">Blonde</option><option value="#b94b35">Red</option><option value="#aeb4b8">Grey</option>
-                        </select>
-                    </label>
-                    <label for="avatar-top">Top
-                        <select id="avatar-top">
-                            <option value="#397c9d">Coastal blue</option><option value="#b84d3f">Rusty red</option><option value="#65824c">Park green</option><option value="#d7ad55">Seaside yellow</option><option value="#795d91">Dusky purple</option><option value="#e2d8c6">Cream</option>
-                        </select>
-                    </label>
-                    <label for="avatar-bottom">Trousers
-                        <select id="avatar-bottom">
-                            <option value="#34495e">Navy</option><option value="#5b493b">Brown</option><option value="#536b45">Olive</option><option value="#8d8e8f">Grey</option><option value="#263c54">Dark denim</option>
-                        </select>
-                    </label>
-                    <label for="avatar-accessory">Accessory
-                        <select id="avatar-accessory">
-                            <option value="none">Nothing</option><option value="flatcap">Flat cap</option><option value="bucket-hat">Bucket hat</option><option value="glasses">Glasses</option>
-                        </select>
-                    </label>
+                <div class="avatar-creator">
+                    <div class="avatar-preview-panel">
+                        <canvas id="avatar-preview" width="96" height="112" aria-label="Your park manager preview"></canvas>
+                        <label for="player-name">Your name</label>
+                        <input id="player-name" type="text" maxlength="24" value="Park Manager" autocomplete="off">
+                        <button id="randomize-avatar" class="secondary-button" type="button">🎲 Randomise me</button>
+                    </div>
+                    <div class="avatar-options">
+                        <label for="avatar-skin">Skin tone
+                            <select id="avatar-skin">
+                                <option value="#f7d2b0">Fair</option><option value="#d9a078">Warm</option><option value="#b87550">Tan</option><option value="#87543b">Brown</option><option value="#603b2b">Deep brown</option>
+                            </select>
+                        </label>
+                        <label for="avatar-hair-style">Hair style
+                            <select id="avatar-hair-style">
+                                <option value="short">Short</option><option value="messy">Messy</option><option value="bob">Bob</option><option value="long">Long</option><option value="bald">Bald</option>
+                            </select>
+                        </label>
+                        <label for="avatar-hair-colour">Hair colour
+                            <select id="avatar-hair-colour">
+                                <option value="#33251f">Dark brown</option><option value="#68452f">Brown</option><option value="#b97835">Ginger</option><option value="#d5b66b">Blonde</option><option value="#b94b35">Red</option><option value="#aeb4b8">Grey</option>
+                            </select>
+                        </label>
+                        <label for="avatar-top">Top
+                            <select id="avatar-top">
+                                <option value="#397c9d">Coastal blue</option><option value="#b84d3f">Rusty red</option><option value="#65824c">Park green</option><option value="#d7ad55">Seaside yellow</option><option value="#795d91">Dusky purple</option><option value="#e2d8c6">Cream</option>
+                            </select>
+                        </label>
+                        <label for="avatar-bottom">Trousers
+                            <select id="avatar-bottom">
+                                <option value="#34495e">Navy</option><option value="#5b493b">Brown</option><option value="#536b45">Olive</option><option value="#8d8e8e">Grey</option><option value="#263c54">Dark denim</option>
+                            </select>
+                        </label>
+                        <label for="avatar-accessory">Accessory
+                            <select id="avatar-accessory">
+                                <option value="none">Nothing</option><option value="flatcap">Flat cap</option><option value="bucket-hat">Bucket hat</option><option value="glasses">Glasses</option>
+                            </select>
+                        </label>
+                    </div>
                 </div>
-            </div>
-            <div class="visitor-randomiser">
-                <div><strong>First day visitors</strong><span id="visitor-count">A few local characters are ready to wander in.</span></div>
-                <button id="randomize-npcs" class="secondary-button" type="button">🎲 Mix up the visitors</button>
-            </div>
-            <div class="controls-grid">
-                <div><strong>WASD / Arrow keys</strong><span>Move around the park</span></div>
-                <div><strong>Click the ground</strong><span>Walk to that spot</span></div>
-                <div><strong>Click an object, then E</strong><span>Walk over and interact</span></div>
-                <div><strong>Choose a tool, then drag</strong><span>Lay roads, paths and pitches</span></div>
-                <div><strong>Mouse wheel</strong><span>Zoom the view in or out</span></div>
-                <div><strong>Space</strong><span>Pause or resume time</span></div>
-            </div>
-            <p class="start-tip">New construction takes two in-game hours. You can change the simulation speed or pause at any time.</p>
-            <button id="start-game" class="start-button" type="button">OK — Start the game</button>
+                <button class="panel-done" type="button" data-close-panel="avatar-panel">Done</button>
+            </section>
+
+            <section id="controls-panel" class="start-options-panel" aria-labelledby="controls-panel-title" hidden>
+                <div class="panel-heading">
+                    <h2 id="controls-panel-title">How to play</h2>
+                    <button class="panel-close" type="button" data-close-panel="controls-panel" aria-label="Close controls">✕</button>
+                </div>
+                <div class="controls-grid">
+                    <div><strong>WASD / Arrow keys</strong><span>Move around the park</span></div>
+                    <div><strong>Click the ground</strong><span>Walk to that spot</span></div>
+                    <div><strong>Click an object, then E</strong><span>Walk over and interact</span></div>
+                    <div><strong>Choose a tool, then drag</strong><span>Lay roads, paths and pitches</span></div>
+                    <div><strong>Mouse wheel</strong><span>Zoom the view in or out</span></div>
+                    <div><strong>Space</strong><span>Pause or resume time</span></div>
+                </div>
+                <p class="start-tip">New construction takes two in-game hours. You can change the simulation speed or pause at any time.</p>
+                <button class="panel-done" type="button" data-close-panel="controls-panel">Got it</button>
+            </section>
         </div>
     </section>
     <section id="sleep-prompt" class="start-screen" role="dialog" aria-modal="true" aria-labelledby="sleep-title" hidden>
