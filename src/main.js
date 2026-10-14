@@ -894,7 +894,10 @@ function arriveGuest(candidate) {
     const serviceCheck = ParkServices.getPitchServiceCheck(state, pitch, accommodation, party.headcount);
     if (!facilityCheck.valid || !serviceCheck.valid) return false;
     const ratingAtArrival = state.rating;
-    const stayDaysRemaining = 1 + Math.floor(Math.random() * 14);
+    const maximumStayDays = accommodation === 'static'
+        ? 14
+        : ParkServices.getMaximumStayDays(state, pitch, accommodation, party.headcount);
+    const stayDaysRemaining = 1 + Math.floor(Math.random() * maximumStayDays);
     const dailyIncome = getGuestDailyIncome(ratingAtArrival) +
         Math.max(0, party.adults - 1) * 8 + party.children * 5;
     const booking = {
