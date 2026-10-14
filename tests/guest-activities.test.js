@@ -34,7 +34,14 @@ function createState() {
 test('guests select a reachable facility and move through world coordinates', () => {
   const state = createState();
   const startX = state.guests[0].position.x;
-  updateGuestActivities(state, 4);
+  const originalRandom = Math.random;
+  try {
+    // Force the facility branch so this test does not intermittently choose a stroll.
+    Math.random = () => 0.9;
+    updateGuestActivities(state, 4);
+  } finally {
+    Math.random = originalRandom;
+  }
 
   assert.ok(state.guests[0].position.x > startX);
   assert.equal(state.guests[0].activity, 'visiting facility');
