@@ -69,7 +69,8 @@
     }
 
     function getRequiredFacilities(accommodation) {
-        return accommodation === 'static' ? ['toilets'] : ['toilets', 'showers'];
+        // Toilets are essential for every stay; showers improve the stay but are optional.
+        return ['toilets'];
     }
 
     function getPitchServiceCheck(state, pitch, accommodation, headcount = 1) {
@@ -80,6 +81,18 @@
             return !candidates.some(f => Math.max(0, Number(f.capacity) || 0) >= headcount);
         });
         return {valid: missing.length === 0, missing};
+    }
+
+    function getMaximumStayDays(state, pitch, accommodation, headcount = 1) {
+        if (accommodation !== 'tent' && accommodation !== 'towed') return 14;
+        const hasShowers = (state?.facilities || []).some(facility =>
+            facility.type === 'showers' && getServiceCoverage(facility, pitch) &&
+            Math.max(0, Number(facility.capacity) || 0) >= headcount
+        );
+        if (!hasShowers) return 5;
+        if (accommodation === 'tent') return 14;
+        const hookups = getPitchHookups(pitch, state?.tiles || []);
+        return hookups.water && hookups.electricity ? 14 : 7;
     }
 
     function getEntertainmentCapacity(state) {
@@ -109,7 +122,7 @@
     const api = {
         LOCAL_SERVICE_RADIUS, UTILITY_TYPES, ENTERTAINMENT_TYPES,
         getConnectedUtilityTiles, getPitchHookups, getServiceCoverage,
-        getPitchServiceCheck, getEntertainmentCapacity, getEntertainmentUsage,
+        getPitchServiceCheck, getMaximumStayDays, getEntertainmentCapacity, getEntertainmentUsage,
         canUseEntertainment, getUtilityOverlay
     };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
