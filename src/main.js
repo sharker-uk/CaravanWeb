@@ -302,6 +302,8 @@ function init() {
     updateVisitorCount();
     state.playerPath = [];
     state.interactionTarget = null;
+    // Upgrade older local saves once so their first generated visitors persist across reloads.
+    if (!Array.isArray(data.parkNpcs) || !data.playerAvatar) saveGame();
 }
 
 function generateNewMap() {
