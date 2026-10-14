@@ -19,13 +19,10 @@ function facility(type, capacity) {
 
 test('overnight party eligibility requires operational capacity for essential facilities', () => {
   const state = {facilities: [facility('toilets', 4), facility('showers', 3)]};
-  assert.deepEqual(canHostParty(state, 'tent', 4), {valid: false, missing: ['showers']});
+  assert.deepEqual(canHostParty(state, 'tent', 4), {valid: true, missing: []});
   assert.deepEqual(canHostParty(state, 'static', 4), {valid: true, missing: []});
   state.facilities[1].isOperational = false;
-  assert.deepEqual(canHostParty(state, 'towed', 2), {
-    valid: false,
-    missing: ['showers']
-  });
+  assert.deepEqual(canHostParty(state, 'towed', 2), {valid: true, missing: []});
 });
 
 test('essential capacity matches single-facility service allocation', () => {
@@ -48,7 +45,7 @@ test('essential shower access is separate from a party shower-use preference', (
   const state = {facilities: [facility('toilets', 16), facility('showers', 12)]};
   assert.equal(solo.type, 'solo');
   assert.equal(solo.preferences.showerVisitIntervalDays, 0);
-  assert.deepEqual(getRequiredFacilities('tent'), ['toilets', 'showers']);
+  assert.deepEqual(getRequiredFacilities('tent'), ['toilets']);
   assert.deepEqual(canHostParty(state, 'tent', solo.headcount), {valid: true, missing: []});
 });
 
@@ -135,4 +132,13 @@ test('three-week managed-park operations remain ledger-reconciled and profitable
   assert.equal(balance.isValid, true);
   assert.ok(state.transactions.some(entry => entry.category === 'shop income'));
   assert.ok(state.transactions.some(entry => entry.category === 'facility operations'));
+});
+
+test('toilets remain essential while showers are optional for tent and touring stays', () => {
+  assert.deepEqual(canHostParty({facilities: [facility('toilets', 4)]}, 'tent', 2), {
+    valid: true, missing: []
+  });
+  assert.deepEqual(canHostParty({facilities: [facility('showers', 12)]}, 'towed', 2), {
+    valid: false, missing: ['toilets']
+  });
 });
