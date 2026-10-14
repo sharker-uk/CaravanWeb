@@ -139,6 +139,43 @@
         ctx.restore();
     }
 
+    function createGuestRoster(count = 12) {
+        const roster = [];
+        const usedNames = new Set();
+        for (let index = 0; index < Math.max(1, Math.min(30, count)); index++) {
+            let name = pick(NAMES);
+            let tries = 0;
+            while (usedNames.has(name) && tries++ < 30) name = pick(NAMES);
+            usedNames.add(name);
+            const appearance = randomizeAvatar(defaultAvatar());
+            appearance.name = name;
+            roster.push({
+                id: 'guest-profile-' + (index + 1),
+                name,
+                appearance
+            });
+        }
+        return roster;
+    }
+
+    function createPartyMembers(party, roster = []) {
+        const requestedCount = Math.max(1, Math.min(8, Number.isInteger(party?.headcount) ? party.headcount : 1));
+        const available = Array.isArray(roster) ? roster.slice() : [];
+        while (available.length < requestedCount) {
+            available.push(...createGuestRoster(Math.max(4, requestedCount - available.length)));
+        }
+        const members = available.splice(0, requestedCount).map((profile, index) => {
+            const name = typeof profile.name === 'string' ? profile.name : 'Visitor ' + (index + 1);
+            const appearance = normalizeAvatar({...profile.appearance, name});
+            return {
+                id: typeof profile.id === 'string' ? profile.id : 'guest-' + (index + 1),
+                name,
+                appearance
+            };
+        });
+        return {members, roster: available};
+    }
+
     function createNpcs(state, canOccupy) {
         const count = 5 + Math.floor(Math.random() * 3);
         const usedNames = new Set();
@@ -245,6 +282,8 @@
         normalizeAvatar,
         randomizeAvatar,
         drawCharacter,
+        createGuestRoster,
+        createPartyMembers,
         createNpcs,
         normalizeNpcs,
         updateNpcs
