@@ -117,6 +117,9 @@ let state = GameStateApi ? GameStateApi.createGameState() : {
     constructions: [],
     vehicles: [],
     handymen: 0,
+    groundsStaff: 0,
+    handymanContractHoursRemaining: 0,
+    maintenanceTask: null,
     camera: { x: 100, y: 100, zoom: 3 },
     activeTool: 'select',
     overlayMode: 'none',
@@ -225,6 +228,10 @@ function init() {
         return false;
     });
     state.handymen = Number.isFinite(data.handymen) ? data.handymen : 0;
+    state.groundsStaff = Number.isFinite(data.groundsStaff) ? data.groundsStaff : 0;
+    state.handymanContractHoursRemaining = Number.isFinite(data.handymanContractHoursRemaining)
+        ? Math.max(0, Math.min(24, data.handymanContractHoursRemaining)) : 0;
+    state.maintenanceTask = data.maintenanceTask || null;
     state.day = Number.isFinite(data.day) ? data.day : state.day;
     state.hour = Number.isFinite(data.hour) ? data.hour : state.hour;
     state.minute = Number.isFinite(data.minute) ? data.minute : state.minute;
@@ -730,7 +737,7 @@ function saveGame() {
         localStorage.setItem('caravan_tycoon_save', JSON.stringify({
             schemaVersion: SaveMigrations && SaveMigrations.CURRENT_SAVE_SCHEMA
                 ? SaveMigrations.CURRENT_SAVE_SCHEMA
-                : 10,
+                : 11,
             cash: state.cash,
             initialBalance: state.initialBalance,
             wood: state.wood,
@@ -770,6 +777,9 @@ function saveGame() {
             landmarks: state.landmarks,
             constructions: state.constructions,
             handymen: state.handymen,
+            groundsStaff: state.groundsStaff || 0,
+            handymanContractHoursRemaining: state.handymanContractHoursRemaining || 0,
+            maintenanceTask: state.maintenanceTask || null,
             day: state.day,
             hour: state.hour,
             minute: state.minute,
@@ -840,6 +850,23 @@ function update(dt) {
 }
 
 function onHourly() {
+    advanceMaintenanceTask();
+    if (state.handymanContractHoursRemaining > 0) {
+        state.handymanContractHoursRemaining--;
+        maintainToiletBlocks(1, 2);
+        state.caravans.forEach(caravan => {
+            if (caravan.isBroken && state.cash >= 40) {
+                recordTransaction(-40, 'repairs', 'Day handyman caravan repair');
+                caravan.condition = 100;
+                caravan.isBroken = false;
+            }
+        });
+        if (state.handymanContractHoursRemaining === 0) showToast('The booked handyman has finished the day’s work.');
+    }
+    if (state.groundsStaff > 0) {
+        recordTransaction(-(state.groundsStaff * 1), 'wages', 'Grounds staff hourly wages');
+        maintainToiletBlocks(state.groundsStaff * 1.5, state.groundsStaff * 0.25);
+    }
     if (state.handymen > 0) {
         recordTransaction(-(state.handymen * 2), 'wages', 'Handyman hourly wages');
         state.caravans.forEach(c => {
@@ -1712,17 +1739,54 @@ function updateUI() {
         document.getElementById('btn-sell')
     ];
     const facilityToggle = document.getElementById('btn-facility-toggle');
+    const toiletCleanButton = document.getElementById('btn-clean-toilets');
+    const toiletRepairButton = document.getElementById('btn-repair-facility');
+    [toiletCleanButton, toiletRepairButton].forEach(button => {
+        if (button) { button.style.display = 'none'; button.disabled = true; }
+    });
+    const groundsStaffButton = document.getElementById('hire-grounds-staff-btn');
+    if (groundsStaffButton) {
+        const unlocked = state.facilities.length >= 4 && state.pitches.length >= 6;
+        groundsStaffButton.disabled = state.groundsStaff > 0 ? false : (!unlocked || state.cash < 250);
+        groundsStaffButton.innerHTML = state.groundsStaff > 0
+            ? '🌿<span>Dismiss grounds staff</span>'
+            : unlocked ? '🌿<span>Hire grounds staff · £250 + £1/hour</span>'
+                : '🌿<span>Grounds staff · Unlock at 4 facilities / 6 pitches</span>';
+    }
+    const handymanButton = document.getElementById('book-handyman-btn');
+    if (handymanButton) {
+        const maintenanceNeeded = state.caravans.some(caravan => caravan.isBroken) ||
+            state.facilities.some(facility => facility.type === 'toilets' &&
+                (facility.maintenanceClosed || Number(facility.cleanliness ?? 100) < 50 || Number(facility.wear ?? 100) < 50));
+        handymanButton.style.display = maintenanceNeeded || state.handymanContractHoursRemaining > 0 ? 'flex' : 'none';
+        handymanButton.disabled = state.handymanContractHoursRemaining > 0 || state.cash < 100;
+        handymanButton.innerHTML = state.handymanContractHoursRemaining > 0
+            ? '🛠️<span>Handyman booked · ' + state.handymanContractHoursRemaining + 'h left</span>'
+            : '🛠️<span>Book handyman · £100/day</span>';
+    }
     if (state.selectedEntity) {
         ins.style.display = 'block';
         const c = state.selectedEntity;
         if (typeof c.tier !== 'number' && typeof c.type === 'string') {
             document.getElementById('ins-name').innerText =
                 `${c.type.replaceAll('_', ' ')} facility`;
+            const isToiletBlock = c.type === 'toilets';
+            const cleanliness = Math.max(0, Math.min(100, Number(c.cleanliness ?? 100)));
+            const wear = Math.max(0, Math.min(100, Number(c.wear ?? 100)));
+            const activeTask = state.maintenanceTask && state.maintenanceTask.facilityIndex === state.facilities.indexOf(c)
+                ? state.maintenanceTask : null;
             document.getElementById('ins-content').innerHTML =
-                `Status: ${c.isOperational === false ? 'Closed' : 'Operational'}<br>` +
+                `Status: ${c.isOperational === false ? (c.maintenanceClosed ? 'Closed — needs maintenance' : 'Closed') : 'Operational'}<br>` +
                 `Capacity: ${c.capacity} guests/hour<br>` +
                 `Hourly operating cost: £${c.hourlyCost}<br>` +
                 `Current usage: ${c.hourlyUsage || 0}/${c.capacity}` +
+                (isToiletBlock ?
+                    `<br><br><strong>Cleanliness · ${Math.round(cleanliness)}%</strong>` +
+                    `<div class="condition-track" role="meter" aria-label="Toilet cleanliness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(cleanliness)}"><div class="condition-fill" style="width:${cleanliness}%;background:#27ae60"></div></div>` +
+                    `<strong>Wear and tear · ${Math.round(wear)}%</strong>` +
+                    `<div class="condition-track" role="meter" aria-label="Toilet block wear and tear" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(wear)}"><div class="condition-fill" style="width:${wear}%;background:#e67e22"></div></div>` +
+                    (activeTask ? `<br>Work in progress: ${activeTask.action === 'clean' ? 'Cleaning' : 'Repairing'} · ${activeTask.hoursRemaining} in-game hour(s) left` : '')
+                    : '') +
                 (ParkServices.ENTERTAINMENT_TYPES.includes(c.type)
                     ? `<br>Park-wide entertainment capacity: ${ParkServices.getEntertainmentCapacity(state)}`
                     : '');
@@ -1730,6 +1794,16 @@ function updateUI() {
                 button.style.display = 'none';
                 button.disabled = true;
             });
+            if (isToiletBlock) {
+                const cleaningCost = FacilityOperations.getMaintenanceCost('clean', cleanliness);
+                const repairCost = FacilityOperations.getMaintenanceCost('repair', wear);
+                toiletCleanButton.style.display = 'block';
+                toiletRepairButton.style.display = 'block';
+                toiletCleanButton.disabled = cleanliness >= 100 || Boolean(state.maintenanceTask) || state.cash < cleaningCost;
+                toiletRepairButton.disabled = wear >= 100 || Boolean(state.maintenanceTask) || state.cash < repairCost;
+                toiletCleanButton.textContent = cleanliness >= 100 ? '🧹 Already clean' : '🧹 Clean · £' + cleaningCost + ' · 2 in-game hours';
+                toiletRepairButton.textContent = wear >= 100 ? '🔧 No repairs needed' : '🔧 Repair · £' + repairCost + ' · 3 in-game hours';
+            }
             facilityToggle.style.display = 'block';
             facilityToggle.textContent = c.isOperational === false
                 ? '▶️ Reopen facility'
@@ -1834,9 +1908,64 @@ function sellSelectedCaravan() {
     showToast(`💰 Unit sold for £${salePrice}.`);
 }
 
+function maintainToiletBlocks(cleanlinessGain, wearGain) {
+    state.facilities.filter(facility => facility.type === 'toilets').forEach(facility => {
+        facility.cleanliness = Math.min(100, Number(facility.cleanliness ?? 100) + cleanlinessGain);
+        facility.wear = Math.min(100, Number(facility.wear ?? 100) + wearGain);
+        FacilityOperations.refreshFacilityOperationalStatus(facility);
+    });
+}
+function advanceMaintenanceTask() {
+    const task = state.maintenanceTask;
+    if (!task) return;
+    task.hoursRemaining--;
+    if (task.hoursRemaining > 0) { saveGame(); return; }
+    const facility = state.facilities[task.facilityIndex];
+    if (facility?.type === 'toilets') {
+        if (task.action === 'clean') facility.cleanliness = Math.min(100, Number(facility.cleanliness ?? 100) + 50);
+        else facility.wear = Math.min(100, Number(facility.wear ?? 100) + 50);
+        FacilityOperations.refreshFacilityOperationalStatus(facility);
+        showToast(task.action === 'clean'
+            ? '🧹 Toilet block cleaned. Guests can use it again if it is otherwise serviceable.'
+            : '🔧 Toilet block repaired. Check cleanliness as well as wear and tear.');
+    } else showToast('Maintenance could not be completed because the toilet block no longer exists.');
+    state.maintenanceTask = null;
+    saveGame();
+    updateUI();
+}
+function startToiletMaintenance(action) {
+    const facility = state.selectedEntity;
+    if (!facility || facility.type !== 'toilets' || state.maintenanceTask) return;
+    const facilityIndex = state.facilities.indexOf(facility);
+    if (facilityIndex < 0) return;
+    const condition = action === 'clean' ? Number(facility.cleanliness ?? 100) : Number(facility.wear ?? 100);
+    const cost = FacilityOperations.getMaintenanceCost(action, condition);
+    if (!Number.isFinite(cost)) return;
+    if (!spend(cost, 'maintenance', (action === 'clean' ? 'Cleaned' : 'Repaired') + ' toilet block (condition ' + Math.round(condition) + '%)')) return;
+    state.maintenanceTask = {facilityIndex, action, hoursRemaining: action === 'clean' ? 2 : 3, cost, conditionAtStart: condition};
+    saveGame();
+    updateUI();
+    showToast(action === 'clean'
+        ? '🧹 Cleaning started for £' + cost + '. This takes 2 in-game hours.'
+        : '🔧 Repairs started for £' + cost + '. This takes 3 in-game hours.');
+}
+function cleanSelectedToiletBlock() {
+    const facility = state.selectedEntity;
+    if (!facility || facility.type !== 'toilets' || Number(facility.cleanliness ?? 100) >= 100) return;
+    startToiletMaintenance('clean');
+}
+function repairSelectedToiletBlock() {
+    const facility = state.selectedEntity;
+    if (!facility || facility.type !== 'toilets' || Number(facility.wear ?? 100) >= 100) return;
+    startToiletMaintenance('repair');
+}
 function toggleSelectedFacility() {
     const facility = state.selectedEntity;
     if (!facility || typeof facility.tier === 'number' || typeof facility.type !== 'string') return;
+    if (facility.type === 'toilets' && facility.maintenanceClosed) {
+        showToast('This toilet block needs cleaning or repair before it can reopen.');
+        return;
+    }
     facility.isOperational = facility.isOperational === false;
     saveGame();
     updateUI();
@@ -2028,11 +2157,34 @@ function startNewGame() {
 }
 
 function hireHandyman() {
-    if (spend(150, 'staff', 'Hired handyman')) {
-        state.handymen++;
+    if (state.handymanContractHoursRemaining > 0) {
+        showToast('A handyman is already booked for today.');
+        return;
+    }
+    if (spend(100, 'contractor', 'Booked handyman for one day')) {
+        state.handymanContractHoursRemaining = 24;
         saveGame();
         updateUI();
-        showToast("🛠️ Handyman Hired!");
+        showToast('🛠️ Handyman booked for 24 in-game hours. Repairs are covered during the visit.');
+    }
+}
+function hireGroundsStaff() {
+    if (state.groundsStaff > 0) {
+        state.groundsStaff = 0;
+        saveGame();
+        updateUI();
+        showToast('🌿 Grounds staff dismissed. Their hourly wages have stopped.');
+        return;
+    }
+    if (!(state.facilities.length >= 4 && state.pitches.length >= 6)) {
+        showToast('Grounds staff become available once the park has 4 facilities and 6 pitches.');
+        return;
+    }
+    if (spend(250, 'staff', 'Hired grounds staff')) {
+        state.groundsStaff = 1;
+        saveGame();
+        updateUI();
+        showToast('🌿 Grounds staff hired. They clean and maintain toilet blocks for £1 per in-game hour. Use the same button to dismiss them.');
     }
 }
 
