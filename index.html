@@ -58,6 +58,8 @@
             <button class="btn-action" id="btn-skirting" style="background: #8e44ad;">🛡️ Fit Skirting (£150)</button>
             <button class="btn-action" id="btn-sell" style="background: #7f8c8d; margin-top: 15px;">💰 Sell Unit</button>
             <button class="btn-action" id="btn-facility-toggle" style="display:none; background:#2980b9;">⏸️ Close facility</button>
+            <button class="btn-action" id="btn-clean-toilets" style="display:none; background:#27ae60;" onclick="cleanSelectedToiletBlock()">🧹 Clean block · 2 in-game hours</button>
+            <button class="btn-action" id="btn-repair-facility" style="display:none; background:#d35400;" onclick="repairSelectedToiletBlock()">🔧 Repair block · 3 in-game hours</button>
         </div>
     </aside>
 
@@ -91,7 +93,7 @@
         </section>
         <section class="menu-panel" id="panel-facilities" aria-label="Facility tools">
             <div class="menu-heading"><strong>Park facilities</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
-            <p class="menu-description">Toilets are essential for every booking; tent and towed guests also require operational shared showers. Click a facility to inspect capacity and running costs.</p>
+            <p class="menu-description">Toilets are essential for every booking; tent and towed guests also require operational shared showers. Toilet blocks have no hourly charge, but guests make them dirty and wear them out. Click a block to clean or repair it.</p>
             <div class="tool-grid">
                 <button class="tool-btn" onclick="setTool('build_toilets', this)">🚻<span>Toilets · £800</span></button>
                 <button class="tool-btn" onclick="setTool('build_showers', this)">🚿<span>Shared showers · £1.2k</span></button>
@@ -139,7 +141,8 @@
             <div class="tool-grid">
                 <button class="tool-btn" onclick="setTool('build_tree', this)">🌳<span>Plant tree · £30</span></button>
                 <button class="tool-btn" onclick="sellTimber()">🪵<span>Sell timber · £8 each</span></button>
-                <button class="tool-btn" onclick="hireHandyman()">🛠️<span>Hire handyman</span></button>
+                <button class="tool-btn" id="book-handyman-btn" onclick="hireHandyman()">🛠️<span>Book handyman · £100/day</span></button>
+                <button class="tool-btn" id="hire-grounds-staff-btn" onclick="hireGroundsStaff()" disabled>🌿<span>Grounds staff · Unlock at 4 facilities / 6 pitches</span></button>
                 <button class="tool-btn" onclick="resetGame()" style="color:#ff8a80">☢️<span>Reset park</span></button>
             </div>
             <div class="settings-group">
