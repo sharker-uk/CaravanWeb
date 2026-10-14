@@ -5,6 +5,7 @@ This browser prototype uses a **16 × 16 logical world tile**. Keep that gamepla
 ## Technical delivery
 
 - **Style:** cohesive pixel art suited to a British, slightly shabby coastal caravan park; readable at the game's current zoom levels.
+- **Perspective:** the current browser renderer is straight top-down. Design the first pack for that view. If the intended final look is 3/4 / Stardew-style, confirm that before drawing the full pack; the renderer's object-depth ordering will need a deliberate update first.
 - **Atlas:** one transparent PNG, recommended starting size **512 × 512 px**, arranged on a 16 px source grid. Larger sprites may occupy multiples of that grid.
 - **Filtering:** nearest-neighbour / no smoothing. Do not pre-scale sprites.
 - **Transparency:** PNG with alpha for trees and objects. Ground and connected road/path tiles should be opaque.
