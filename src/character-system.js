@@ -191,101 +191,6 @@
         return {members, roster: available};
     }
 
-    function createNpcs(state, canOccupy) {
-        const count = 5 + Math.floor(Math.random() * 3);
-        const usedNames = new Set();
-        const npcs = [];
-        for (let index = 0; index < count; index++) {
-            let position = null;
-            for (let attempt = 0; attempt < 80; attempt++) {
-                const x = 10.5 + Math.random() * 10;
-                const y = 22.5 + Math.random() * 6;
-                if ((!canOccupy || canOccupy(x, y)) &&
-                    !npcs.some(npc => Math.hypot(npc.x - x, npc.y - y) < 1.25)) {
-                    position = {x, y};
-                    break;
-                }
-            }
-            if (!position) position = {x: 12.5 + index, y: 26.5};
-            let name = pick(NAMES);
-            let tries = 0;
-            while (usedNames.has(name) && tries++ < 20) name = pick(NAMES);
-            usedNames.add(name);
-            const appearance = randomizeAvatar(defaultAvatar());
-            appearance.name = name;
-            npcs.push({
-                id: 'visitor-' + (index + 1),
-                name,
-                appearance,
-                x: position.x,
-                y: position.y,
-                targetX: position.x,
-                targetY: position.y,
-                wanderTimer: Math.random() * 3,
-                speed: 0.22 + Math.random() * 0.18
-            });
-        }
-        return npcs;
-    }
-
-    function normalizeNpcs(value, state, canOccupy) {
-        if (!Array.isArray(value)) return createNpcs(state, canOccupy);
-        return value.slice(0, 12).filter(npc => npc && typeof npc === 'object' &&
-            Number.isFinite(npc.x) && Number.isFinite(npc.y)).map((npc, index) => {
-            const name = typeof npc.name === 'string' ? npc.name.slice(0, 24) : 'Visitor ' + (index + 1);
-            const appearance = normalizeAvatar({...npc.appearance, name});
-            const x = Math.max(1, Math.min(45, npc.x));
-            const y = Math.max(1, Math.min(37, npc.y));
-            return {
-                id: typeof npc.id === 'string' ? npc.id : 'visitor-' + (index + 1),
-                name,
-                appearance,
-                x, y,
-                targetX: Number.isFinite(npc.targetX) ? npc.targetX : x,
-                targetY: Number.isFinite(npc.targetY) ? npc.targetY : y,
-                wanderTimer: Number.isFinite(npc.wanderTimer) ? npc.wanderTimer : 0,
-                speed: Number.isFinite(npc.speed) ? Math.max(0.1, Math.min(0.6, npc.speed)) : 0.3
-            };
-        });
-    }
-
-    function updateNpcs(npcs, deltaSeconds, canOccupy) {
-        if (!Array.isArray(npcs) || !canOccupy || deltaSeconds <= 0) return;
-        npcs.forEach(npc => {
-            npc.wanderTimer -= deltaSeconds;
-            const distance = Math.hypot(npc.targetX - npc.x, npc.targetY - npc.y);
-            if (distance < 0.18 || npc.wanderTimer <= 0) {
-                let found = false;
-                for (let attempt = 0; attempt < 20; attempt++) {
-                    const targetX = 10.5 + Math.random() * 10;
-                    const targetY = 22.5 + Math.random() * 6;
-                    if (canOccupy(targetX, targetY)) {
-                        npc.targetX = targetX;
-                        npc.targetY = targetY;
-                        npc.wanderTimer = 2 + Math.random() * 5;
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    npc.targetX = npc.x;
-                    npc.targetY = npc.y;
-                    npc.wanderTimer = 2;
-                }
-                return;
-            }
-            const step = Math.min(distance, npc.speed * deltaSeconds);
-            const nextX = npc.x + (npc.targetX - npc.x) / distance * step;
-            const nextY = npc.y + (npc.targetY - npc.y) / distance * step;
-            if (canOccupy(nextX, nextY)) {
-                npc.x = nextX;
-                npc.y = nextY;
-            } else {
-                npc.wanderTimer = 0;
-            }
-        });
-    }
-
     globalScope.CharacterSystem = {
         skinTones: SKIN_TONES,
         hairColours: HAIR_COLOURS,
@@ -300,9 +205,7 @@
         createGuestRoster,
         normalizeGuestRoster,
         createPartyMembers,
-        createNpcs,
-        normalizeNpcs,
-        updateNpcs
+        createPartyMembers
     };
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = globalScope.CharacterSystem;
