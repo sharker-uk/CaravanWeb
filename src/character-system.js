@@ -248,4 +248,7 @@
         normalizeNpcs,
         updateNpcs
     };
-})(window);
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = globalScope.CharacterSystem;
+    }
+})(typeof window !== 'undefined' ? window : globalThis);
