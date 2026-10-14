@@ -77,12 +77,24 @@
 
     function chooseActivity(state, guest) {
         // Booked guests can take a trip into the village, stroll the park paths, or use facilities.
-        const villageWalk = Math.random() < 0.3 ? reachableWalk(state, guest, true) : null;
+        const choice = Math.random();
+        const villageWalk = choice < 0.28 ? reachableWalk(state, guest, true) : null;
         if (villageWalk) {
             guest.activity = 'visiting the village';
             guest.activityFacilityType = null;
             guest.destination = villageWalk.tile;
             guest.path = villageWalk.path;
+            guest.activityTimer = ACTIVITY_DURATION;
+            return;
+        }
+        const parkWalk = choice >= 0.28 && choice < 0.5
+            ? reachableWalk(state, guest, false)
+            : null;
+        if (parkWalk) {
+            guest.activity = 'strolling around the park';
+            guest.activityFacilityType = null;
+            guest.destination = parkWalk.tile;
+            guest.path = parkWalk.path;
             guest.activityTimer = ACTIVITY_DURATION;
             return;
         }
@@ -95,12 +107,12 @@
             guest.activityTimer = ACTIVITY_DURATION;
             return;
         }
-        const parkWalk = reachableWalk(state, guest, false);
-        if (parkWalk) {
+        const fallbackWalk = reachableWalk(state, guest, false);
+        if (fallbackWalk) {
             guest.activity = 'strolling around the park';
             guest.activityFacilityType = null;
-            guest.destination = parkWalk.tile;
-            guest.path = parkWalk.path;
+            guest.destination = fallbackWalk.tile;
+            guest.path = fallbackWalk.path;
             guest.activityTimer = ACTIVITY_DURATION;
             return;
         }
