@@ -54,7 +54,9 @@ test('booking service check requires nearby operational facilities with enough c
   ]};
   assert.deepEqual(ParkServices.getPitchServiceCheck(state, pitch, 'tent', 4), {valid: true, missing: []});
   state.facilities[1].isOperational = false;
-  assert.deepEqual(ParkServices.getPitchServiceCheck(state, pitch, 'tent', 4), {valid: false, missing: ['showers']});
+  assert.deepEqual(ParkServices.getPitchServiceCheck(state, pitch, 'tent', 4), {valid: true, missing: []});
+  state.facilities[0].isOperational = false;
+  assert.deepEqual(ParkServices.getPitchServiceCheck(state, pitch, 'tent', 4), {valid: false, missing: ['toilets']});
 });
 
 test('park-wide entertainment capacity aggregates venues and respects simultaneous occupancy', () => {
@@ -69,4 +71,24 @@ test('park-wide entertainment capacity aggregates venues and respects simultaneo
     valid: true, capacity: 52, occupied: 10, available: 42
   });
   assert.equal(ParkServices.canUseEntertainment(state, 43).valid, false);
+});
+
+test('maximum stay reflects shower access and touring-caravan hookups', () => {
+  const pitch = {x: 2, y: 2, w: 2, h: 2, type: 'grass'};
+  const tiles = map();
+  const toilets = {...FacilityOperations.getFacilityDefaults('toilets'), type: 'toilets', x: 2, y: 1, w: 2, h: 2};
+  const showers = {...FacilityOperations.getFacilityDefaults('showers'), type: 'showers', x: 2, y: 4, w: 2, h: 2};
+  const state = {tiles, facilities: [toilets, showers]};
+  assert.equal(ParkServices.getMaximumStayDays(state, pitch, 'tent', 2), 14);
+  assert.equal(ParkServices.getMaximumStayDays({tiles, facilities: [toilets]}, pitch, 'tent', 2), 5);
+  assert.equal(ParkServices.getMaximumStayDays(state, pitch, 'towed', 2), 7);
+
+  // Lay water and electricity along a connected road/path beside the pitch.
+  route(tiles, 0, 2, 'road', 'water');
+  route(tiles, 1, 2, 'road', 'water');
+  route(tiles, 2, 2, 'road', 'water');
+  route(tiles, 0, 3, 'road', 'electricity');
+  route(tiles, 1, 3, 'road', 'electricity');
+  route(tiles, 2, 3, 'road', 'electricity');
+  assert.equal(ParkServices.getMaximumStayDays(state, pitch, 'towed', 2), 14);
 });
