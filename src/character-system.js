@@ -204,7 +204,6 @@
         drawCharacter,
         createGuestRoster,
         normalizeGuestRoster,
-        createPartyMembers,
         createPartyMembers
     };
     if (typeof module !== 'undefined' && module.exports) {
