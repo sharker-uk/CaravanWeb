@@ -53,13 +53,54 @@
         return paths[0] || null;
     }
 
+    function reachableWalk(state, guest, villageOnly = false) {
+        const start = guest.position || {x: guest.pitch.x + guest.pitch.w / 2, y: guest.pitch.y + guest.pitch.h / 2};
+        const candidates = [];
+        for (let y = 0; y < state.tiles.length; y++) {
+            for (let x = 0; x < state.tiles[y].length; x++) {
+                const tile = state.tiles[y][x];
+                if (!tile || (!tile.road && !tile.path)) continue;
+                if (villageOnly ? x > 9 || y < 10 || y > 29 : x < 10) continue;
+                if (!isWalkable(state, x, y, guest) || Math.hypot(start.x - x, start.y - y) < 3) continue;
+                candidates.push({x, y});
+            }
+        }
+        for (let attempt = 0; attempt < Math.min(12, candidates.length); attempt++) {
+            const index = Math.floor(Math.random() * candidates.length);
+            const [tile] = candidates.splice(index, 1);
+            const path = globalScope.GameRules.findPathToAny(start, [tile],
+                (x, y) => isWalkable(state, x, y, guest));
+            if (path?.length) return {tile, path};
+        }
+        return null;
+    }
+
     function chooseActivity(state, guest) {
-        const activity = reachableActivity(state, guest);
-        if (activity) {
+        // Booked guests can take a trip into the village, stroll the park paths, or use facilities.
+        const villageWalk = Math.random() < 0.3 ? reachableWalk(state, guest, true) : null;
+        if (villageWalk) {
+            guest.activity = 'visiting the village';
+            guest.activityFacilityType = null;
+            guest.destination = villageWalk.tile;
+            guest.path = villageWalk.path;
+            guest.activityTimer = ACTIVITY_DURATION;
+            return;
+        }
+        const facility = reachableActivity(state, guest);
+        if (facility) {
             guest.activity = 'visiting facility';
-            guest.activityFacilityType = activity.facilityType || null;
-            guest.destination = activity.tile;
-            guest.path = activity.path;
+            guest.activityFacilityType = facility.facilityType || null;
+            guest.destination = facility.tile;
+            guest.path = facility.path;
+            guest.activityTimer = ACTIVITY_DURATION;
+            return;
+        }
+        const parkWalk = reachableWalk(state, guest, false);
+        if (parkWalk) {
+            guest.activity = 'strolling around the park';
+            guest.activityFacilityType = null;
+            guest.destination = parkWalk.tile;
+            guest.path = parkWalk.path;
             guest.activityTimer = ACTIVITY_DURATION;
             return;
         }
@@ -105,8 +146,15 @@
                 }
             }
             if (!guest.path.length && guest.destination) {
-                guest.facilityVisits = (guest.facilityVisits || 0) + 1;
-                guest.activity = guest.activity === 'visiting facility' ? 'using facility' : 'relaxing';
+                const completed = guest.activity;
+                if (completed === 'visiting facility') {
+                    guest.facilityVisits = (guest.facilityVisits || 0) + 1;
+                    guest.activity = 'using facility';
+                } else if (completed === 'visiting the village') {
+                    guest.activity = 'looking around the village';
+                } else if (completed === 'strolling around the park') {
+                    guest.activity = 'enjoying a walk';
+                }
                 guest.destination = null;
                 guest.activityTimer = ACTIVITY_DURATION;
             }
