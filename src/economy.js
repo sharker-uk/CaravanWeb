@@ -55,7 +55,9 @@
     function getGuestDemand(state) {
         const rating = Math.min(Math.max(Number(state?.rating) || 0, 0), 5) / 5;
         const satisfaction = Math.min(Math.max(Number(state?.satisfaction) || 0, 0), 100) / 100;
-        const score = Math.round((rating * 50) + (satisfaction * 50));
+        const baseScore = (rating * 50) + (satisfaction * 50);
+        const beauty = Math.min(Math.max(Number.isFinite(state?.beauty) ? state.beauty : 50, 0), 100);
+        const score = Math.round(Math.min(100, Math.max(0, baseScore + (beauty - 50) * 0.2)));
         return {
             score,
             level: score >= 67 ? 'High' : score >= 34 ? 'Moderate' : 'Low'

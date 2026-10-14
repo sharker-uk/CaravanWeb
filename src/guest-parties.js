@@ -84,7 +84,7 @@
         const candidates = [];
         (pitches || []).filter(pitch => !pitch.occupied).forEach(pitch => {
             getAccommodations(pitch).forEach(accommodation => {
-                if (canHost(accommodation, party.headcount)) {
+                if (canHost(accommodation, party.headcount, pitch)) {
                     candidates.push({pitch, accommodation, party});
                 }
             });

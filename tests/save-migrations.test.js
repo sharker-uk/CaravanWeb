@@ -28,6 +28,15 @@ function buildLegacySave() {
   };
 }
 
+test('migrateSave defaults missing starting cash to £1,500', () => {
+  const save = buildLegacySave();
+  delete save.cash;
+  delete save.initialBalance;
+  const migrated = migrateSave(save);
+  assert.equal(migrated.cash, 1500);
+  assert.equal(migrated.initialBalance, 1500);
+});
+
 test('migrateSave upgrades legacy save payloads to the current schema', () => {
   const migrated = migrateSave(buildLegacySave());
   assert.equal(migrated.schemaVersion, CURRENT_SAVE_SCHEMA);
@@ -136,4 +145,40 @@ test('migrateSave keeps already migrated saves stable', () => {
 
   assert.equal(migrated.schemaVersion, CURRENT_SAVE_SCHEMA);
   assert.equal(migrated.cash, 2000);
+  assert.equal(migrated.wood, 0);
+  assert.deepEqual(migrated.tools, {axe: true, shovel: false});
+});
+
+test('migrateSave preserves tool unlocks and always grants the starting axe', () => {
+  const save = buildLegacySave();
+  save.tools = {axe: false, shovel: true};
+  const migrated = migrateSave(save);
+  assert.deepEqual(migrated.tools, {axe: true, shovel: true});
+  delete save.tools;
+  assert.deepEqual(migrateSave(save).tools, {axe: true, shovel: false});
+});
+
+test('migrateSave preserves timber inventory and clamps invalid inventory values', () => {
+  const save = buildLegacySave();
+  save.wood = 17;
+  assert.equal(migrateSave(save).wood, 17);
+  save.wood = -4;
+  assert.equal(migrateSave(save).wood, 0);
+  save.wood = 'lots';
+  assert.equal(migrateSave(save).wood, 0);
+});
+
+
+test('migrateSave defaults overlays and park-wide entertainment capacity for legacy facilities', () => {
+  const save = buildLegacySave();
+  save.facilities = [
+    {x: 1, y: 1, w: 3, h: 3, type: 'pub'},
+    {x: 6, y: 1, w: 5, h: 4, type: 'entertainment_space'}
+  ];
+  const migrated = migrateSave(save);
+  assert.equal(migrated.overlayMode, 'none');
+  assert.equal(migrated.facilities[0].entertainmentCapacity, 12);
+  assert.equal(migrated.facilities[1].entertainmentCapacity, 40);
+  save.overlayMode = 'utilities';
+  assert.equal(migrateSave(save).overlayMode, 'utilities');
 });

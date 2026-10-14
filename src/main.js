@@ -25,6 +25,7 @@ const GuestParties = window.GuestParties;
 const FacilityOperations = window.FacilityOperations;
 const GuestActivities = window.GuestActivities;
 const GameRulesApi = window.GameRules;
+const LandManagement = window.LandManagement;
 
 const PALETTE = {
     grass: ['#556b2f', '#5c7433', '#4d612a'],
@@ -37,8 +38,11 @@ const PALETTE = {
 };
 
 let state = GameStateApi ? GameStateApi.createGameState() : {
-    cash: 2000,
-    initialBalance: 2000,
+    cash: 1500,
+    initialBalance: 1500,
+    wood: 0,
+    beauty: 50,
+    tools: {axe: true, shovel: false},
     transactions: [],
     rating: 1.0,
     satisfaction: 60,
@@ -58,6 +62,7 @@ let state = GameStateApi ? GameStateApi.createGameState() : {
     handymen: 0,
     camera: { x: 100, y: 100, zoom: 3 },
     activeTool: 'select',
+    overlayMode: 'none',
     selectedEntity: null,
     player: {x: 5.5, y: 10.5},
     playerPath: [],
@@ -136,6 +141,8 @@ function init() {
     }
 
     state.cash = Number.isFinite(data.cash) ? data.cash : state.cash;
+    state.wood = Number.isFinite(data.wood) ? Math.max(0, Math.floor(data.wood)) : 0;
+    state.tools = {axe: true, shovel: Boolean(data.tools?.shovel)};
     state.initialBalance = Number.isFinite(data.initialBalance) ? data.initialBalance : state.cash;
     state.transactions = Array.isArray(data.transactions) ? data.transactions : [];
     state.guestArrivalProgress = Number.isFinite(data.guestArrivalProgress)
@@ -145,6 +152,7 @@ function init() {
         ? data.dailyGuestArrivals
         : 0;
     state.tiles = data.tiles.map(row => row.map(normalizeTile));
+    state.overlayMode = ['none', 'services', 'utilities', 'entertainment'].includes(data.overlayMode) ? data.overlayMode : 'none';
     state.pitches = data.pitches.map(pitch => ({...pitch, occupied: false}));
     state.facilities = Array.isArray(data.facilities) ? data.facilities : [];
     state.facilities = state.facilities.filter(facility => {
@@ -222,14 +230,28 @@ function init() {
 }
 
 function generateNewMap() {
+    state.wood = 0;
+    state.pitches = [];
+    state.caravans = [];
+    state.guests = [];
+    state.facilities = [];
+    state.player = {x: 5.5, y: 10.5};
     for (let y = 0; y < GRID_H; y++) {
         state.tiles[y] = [];
         for (let x = 0; x < GRID_W; x++) {
             const terrain = Math.hypot(x - 50, y - 10) < 5 ? 'water' : 'grass';
             const road = terrain === 'grass' && y >= 18 && y <= 20 && x < 25;
+            const roll = Math.abs((x * 73 + y * 37 + x * y * 11 + 19) % 100);
+            const safeStart = x >= 3 && x <= 9 && y >= 7 && y <= 13;
+            const overgrownCore = x >= 10 && x <= 43 && y >= 5 && y <= 35;
+            let nature = null;
+            if (terrain === 'grass' && !road && !safeStart) {
+                if (roll < (overgrownCore ? 29 : 15)) nature = 'tree';
+                else if (roll < (overgrownCore ? 42 : 26)) nature = 'debris';
+            }
             state.tiles[y][x] = {
                 terrain,
-                nature: terrain === 'grass' && !road && Math.random() > 0.9 ? 'debris' : null,
+                nature,
                 road,
                 path: false,
                 utilities: createEmptyUtilities()
@@ -287,24 +309,7 @@ function isGuestAccommodationValid(pitch, accommodation) {
 }
 
 function getPitchHookups(pitch) {
-    const hookups = createEmptyUtilities();
-    for (let x = pitch.x; x < pitch.x + pitch.w; x++) {
-        for (const y of [pitch.y - 1, pitch.y + pitch.h]) {
-            const tile = state.tiles[y]?.[x];
-            if (tile && (tile.road || tile.path)) {
-                UTILITY_TYPES.forEach(type => { hookups[type] ||= tile.utilities[type]; });
-            }
-        }
-    }
-    for (let y = pitch.y; y < pitch.y + pitch.h; y++) {
-        for (const x of [pitch.x - 1, pitch.x + pitch.w]) {
-            const tile = state.tiles[y]?.[x];
-            if (tile && (tile.road || tile.path)) {
-                UTILITY_TYPES.forEach(type => { hookups[type] ||= tile.utilities[type]; });
-            }
-        }
-    }
-    return hookups;
+    return ParkServices.getPitchHookups(pitch, state.tiles);
 }
 
 function isPitchReadyForStatic(pitch) {
@@ -404,6 +409,30 @@ function distanceToTarget(target) {
 }
 
 function interactWith(target) {
+    if (target.kind === 'tree' || target.kind === 'debris') {
+        const tile = state.tiles[target.y]?.[target.x];
+        if (!tile || tile.nature !== target.kind) {
+            showToast('That overgrowth has already been cleared.');
+            return;
+        }
+        tile.nature = null;
+        state.interactionTarget = null;
+        state.playerPath = [];
+        if (target.kind === 'tree') {
+            const timber = LandManagement.harvestYield(target.x, target.y);
+            state.wood += timber;
+            playSound(180, 'triangle', 0.18);
+            saveGame();
+            updateUI();
+            showToast(`🪓 Tree felled · collected ${timber} timber. Sell timber from Park Management.`);
+        } else {
+            playSound(280, 'triangle', 0.1);
+            saveGame();
+            updateUI();
+            showToast('🌿 Brush and debris cleared.');
+        }
+        return;
+    }
     if (target.kind === 'caravan') {
         state.selectedEntity = target.entity;
         updateUI();
@@ -430,6 +459,10 @@ function interactNearby() {
         : [...state.caravans.map(entity => ({kind: 'caravan', entity, ...entity.pitch})),
             ...state.guests.map(entity => ({kind: 'guest', entity, ...entity.pitch})),
             ...state.facilities.map(entity => ({kind: 'facility', entity, ...entity})),
+            ...state.tiles.flatMap((row, y) => row.map((tile, x) =>
+                tile.nature === 'tree' || tile.nature === 'debris'
+                    ? {kind: tile.nature, entity: tile, x, y, w: 1, h: 1}
+                    : null).filter(Boolean)),
             ...state.pitches.filter(entity => !entity.occupied)
                 .map(entity => ({kind: 'pitch', entity, ...entity}))]
             .filter(item => distanceToTarget(item) <= 1.25)
@@ -446,11 +479,15 @@ function updateInteractionHint() {
     const hint = document.getElementById('interaction-hint');
     if (!hint) return;
     const target = state.interactionTarget;
-    let message = 'WASD / Arrows: Move · Click ground: Walk · Click object, then E: Interact';
+    let message = 'WASD / Arrows: Move · Click ground: Walk · Click overgrowth, approach, then E to clear';
     if (target && distanceToTarget(target) <= 1.25) {
-        message = 'Press E to interact';
+        message = target.kind === 'tree' ? 'Press E to fell tree and collect timber'
+            : target.kind === 'debris' ? 'Press E to clear brush and debris'
+            : 'Press E to interact';
     } else if (target) {
-        message = 'Approaching object... · E: Interact when nearby';
+        message = target.kind === 'tree' ? 'Approaching tree... · E: Fell when nearby'
+            : target.kind === 'debris' ? 'Approaching debris... · E: Clear when nearby'
+            : 'Approaching object... · E: Interact when nearby';
     }
     if (hint.innerText !== message) hint.innerText = message;
 }
@@ -504,9 +541,11 @@ function saveGame() {
         localStorage.setItem('caravan_tycoon_save', JSON.stringify({
             schemaVersion: SaveMigrations && SaveMigrations.CURRENT_SAVE_SCHEMA
                 ? SaveMigrations.CURRENT_SAVE_SCHEMA
-                : 7,
+                : 10,
             cash: state.cash,
             initialBalance: state.initialBalance,
+            wood: state.wood,
+            tools: {axe: true, shovel: Boolean(state.tools?.shovel)},
             transactions: state.transactions,
             tiles: state.tiles,
             pitches: state.pitches,
@@ -523,6 +562,7 @@ function saveGame() {
                 activity: guest.activity,
                 activityTimer: guest.activityTimer,
                 facilityVisits: guest.facilityVisits,
+                activityFacilityType: guest.activityFacilityType,
                 routeFailures: guest.routeFailures,
                 experienceScore: guest.experienceScore,
                 lastUtilityReliability: guest.lastUtilityReliability,
@@ -537,6 +577,7 @@ function saveGame() {
                 smokeParticles: undefined
             })),
             facilities: state.facilities,
+            overlayMode: state.overlayMode || 'none',
             handymen: state.handymen,
             day: state.day,
             hour: state.hour,
@@ -620,6 +661,8 @@ function onHourly() {
         demandMultiplier: demand.multiplier,
         eligible: Boolean(candidate && FacilityOperations.canHostParty(
             state, candidate.accommodation, candidate.party.headcount
+        ).valid && ParkServices.getPitchServiceCheck(
+            state, candidate.pitch, candidate.accommodation, candidate.party.headcount
         ).valid)
     })) arriveGuest(candidate);
     saveGame();
@@ -633,8 +676,9 @@ function createArrivalCandidate() {
         pitch => pitch.type === 'grass'
             ? ['tent', 'towed']
             : ['towed', ...(isPitchReadyForStatic(pitch) ? ['static'] : [])],
-        (accommodation, headcount) =>
-            FacilityOperations.canHostParty(state, accommodation, headcount).valid
+        (accommodation, headcount, pitch) =>
+            FacilityOperations.canHostParty(state, accommodation, headcount).valid &&
+            ParkServices.getPitchServiceCheck(state, pitch, accommodation, headcount).valid
     );
 }
 
@@ -642,7 +686,8 @@ function arriveGuest(candidate) {
     if (!candidate) return false;
     const {pitch, accommodation, party} = candidate;
     const facilityCheck = FacilityOperations.canHostParty(state, accommodation, party.headcount);
-    if (!facilityCheck.valid) return false;
+    const serviceCheck = ParkServices.getPitchServiceCheck(state, pitch, accommodation, party.headcount);
+    if (!facilityCheck.valid || !serviceCheck.valid) return false;
     const ratingAtArrival = state.rating;
     const stayDaysRemaining = 1 + Math.floor(Math.random() * 14);
     const dailyIncome = getGuestDailyIncome(ratingAtArrival) +
@@ -764,6 +809,14 @@ function onDaily() {
 // --- Build Functions ---
 function handleGridClick(gx, gy) {
     if (gx < 0 || gy < 0 || gx >= GRID_W || gy >= GRID_H) return;
+    if (state.activeTool === 'pitch_gravel' && !state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to prepare hardstanding.');
+        return;
+    }
+    if (state.activeTool.startsWith('utility_') && !state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to dig utility trenches.');
+        return;
+    }
     const tile = state.tiles[gy][gx];
 
     if (state.activeTool === 'select') {
@@ -898,6 +951,10 @@ function createPitch(x, y, w, h, type, cost) {
 }
 
 function createPitchesInBox(start, end, type) {
+    if (type === 'gravel' && !state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to prepare hardstanding.');
+        return false;
+    }
     const plan = GameRulesApi.planPitchBox(start, end, type);
     if (!plan.valid) {
         showToast(`❌ ${plan.reason}`);
@@ -932,6 +989,10 @@ function createPitchesInBox(start, end, type) {
 }
 
 function drawUtilityLine(start, end, utility) {
+    if (!state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to dig utility trenches.');
+        return false;
+    }
     const validation = GameRulesApi.validateUtilityLine(start, end, state.tiles, utility);
     if (!validation.valid) {
         showToast(`❌ ${validation.reason}`);
@@ -1053,6 +1114,54 @@ function draw(timestamp = 0) {
             ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
         }
     }
+    if (state.overlayMode === 'services') {
+        state.facilities.filter(f => ['toilets', 'showers'].includes(f.type)).forEach(f => {
+            const cx = (f.x + f.w / 2) * TILE_SIZE;
+            const cy = (f.y + f.h / 2) * TILE_SIZE;
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.12)';
+            ctx.strokeStyle = 'rgba(52, 152, 219, 0.75)';
+            ctx.lineWidth = 1.5 / state.camera.zoom;
+            const radius = ParkServices.LOCAL_SERVICE_RADIUS * TILE_SIZE;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - radius);
+            ctx.lineTo(cx + radius, cy);
+            ctx.lineTo(cx, cy + radius);
+            ctx.lineTo(cx - radius, cy);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+        });
+        state.pitches.forEach(p => {
+            const check = ParkServices.getPitchServiceCheck(state, p, p.type === 'gravel' ? 'static' : 'tent', 1);
+            ctx.fillStyle = check.valid ? 'rgba(46, 204, 113, 0.24)' : 'rgba(231, 76, 60, 0.22)';
+            ctx.fillRect(p.x*TILE_SIZE, p.y*TILE_SIZE, p.w*TILE_SIZE, p.h*TILE_SIZE);
+        });
+    } else if (state.overlayMode === 'utilities') {
+        const overlayColors = {gas: '#e67e22', water: '#5dade2', electricity: '#f4d03f', waste: '#d5d8dc'};
+        UTILITY_TYPES.forEach(type => {
+            const connected = ParkServices.getConnectedUtilityTiles(state.tiles, type);
+            const utilityIndex = UTILITY_TYPES.indexOf(type);
+            for (let y = 0; y < GRID_H; y++) for (let x = 0; x < GRID_W; x++) {
+                const tile = state.tiles[y][x];
+                if (!tile.utilities?.[type] || (!tile.road && !tile.path)) continue;
+                ctx.strokeStyle = connected.has(`${x},${y}`) ? overlayColors[type] : '#e74c3c';
+                ctx.lineWidth = 2 / state.camera.zoom;
+                ctx.beginPath();
+                ctx.moveTo(x*TILE_SIZE + 2, y*TILE_SIZE + 3 + utilityIndex * 3);
+                ctx.lineTo(x*TILE_SIZE + TILE_SIZE - 2, y*TILE_SIZE + 3 + utilityIndex * 3);
+                ctx.stroke();
+            }
+        });
+    } else if (state.overlayMode === 'entertainment') {
+        const capacity = ParkServices.getEntertainmentCapacity(state);
+        const usage = ParkServices.getEntertainmentUsage(state);
+        state.facilities.filter(f => ParkServices.ENTERTAINMENT_TYPES.includes(f.type)).forEach(f => {
+            ctx.fillStyle = 'rgba(155, 89, 182, 0.2)';
+            ctx.fillRect(f.x*TILE_SIZE, f.y*TILE_SIZE, f.w*TILE_SIZE, f.h*TILE_SIZE);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 8px Arial';
+            ctx.fillText(`Park ${usage}/${capacity}`, f.x*TILE_SIZE + 3, f.y*TILE_SIZE + 12);
+        });
+    }
+
     const utilityColors = {
         gas: '#e67e22', water: '#5dade2', electricity: '#f4d03f', waste: '#d5d8dc'
     };
@@ -1192,7 +1301,19 @@ function draw(timestamp = 0) {
 
 // --- UI & Controls ---
 function updateUI() {
+    state.beauty = LandManagement.calculateBeauty(state.tiles, state.pitches, state.facilities);
     document.getElementById('cash-display').innerText = Math.floor(state.cash).toLocaleString();
+    const woodDisplay = document.getElementById('wood-display');
+    if (woodDisplay) woodDisplay.innerText = Math.floor(state.wood).toLocaleString();
+    const beautyDisplay = document.getElementById('beauty-display');
+    if (beautyDisplay) beautyDisplay.innerText = `${state.beauty}%`;
+    const shovelButton = document.getElementById('buy-shovel-btn');
+    if (shovelButton) {
+        shovelButton.disabled = Boolean(state.tools?.shovel);
+        shovelButton.innerHTML = state.tools?.shovel
+            ? '🪏<span>Shovel · Owned</span>'
+            : '🪏<span>Shovel · £350</span>';
+    }
     document.getElementById('clock-display').innerText =
         `Day ${state.day}, ${String(state.hour).padStart(2, '0')}:${String(Math.floor(state.minute)).padStart(2, '0')}`;
     const lighting = getDayNightLighting();
@@ -1240,7 +1361,10 @@ function updateUI() {
                 `Status: ${c.isOperational === false ? 'Closed' : 'Operational'}<br>` +
                 `Capacity: ${c.capacity} guests/hour<br>` +
                 `Hourly operating cost: £${c.hourlyCost}<br>` +
-                `Current usage: ${c.hourlyUsage || 0}/${c.capacity}`;
+                `Current usage: ${c.hourlyUsage || 0}/${c.capacity}` +
+                (ParkServices.ENTERTAINMENT_TYPES.includes(c.type)
+                    ? `<br>Park-wide entertainment capacity: ${ParkServices.getEntertainmentCapacity(state)}`
+                    : '');
             actionButtons.forEach(button => {
                 button.style.display = 'none';
                 button.disabled = true;
@@ -1372,15 +1496,65 @@ function toggleBuildMenu(open) {
     if (menu) menu.classList.toggle('collapsed', !open);
 }
 
+function setOverlayMode(mode) {
+    state.overlayMode = ['none', 'services', 'utilities', 'entertainment'].includes(mode) ? mode : 'none';
+    document.querySelectorAll('[data-overlay]').forEach(button =>
+        button.classList.toggle('active', button.dataset.overlay === state.overlayMode)
+    );
+    saveGame();
+}
+
 function setTool(t, btn) {
+    if (t === 'pitch_gravel' && !state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to prepare hardstanding.');
+        showMenuPanel('shop', document.querySelector('[data-panel="shop"]'));
+        return;
+    }
+    if (t.startsWith('utility_') && !state.tools?.shovel) {
+        showToast('🔒 Buy the shovel from the Tool Shop to dig utility trenches.');
+        showMenuPanel('shop', document.querySelector('[data-panel="shop"]'));
+        return;
+    }
     state.activeTool = t;
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    if (btn) btn.classList.add('active');
 }
 
 function showToast(m) {
     const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block';
     setTimeout(() => t.style.display = 'none', 2000);
+}
+
+function buyTool(tool) {
+    if (!state.tools) state.tools = {axe: true, shovel: false};
+    const catalogue = {
+        shovel: {cost: 350, label: 'Shovel', description: 'unlocked hardstanding preparation and utility trenching'}
+    };
+    const item = catalogue[tool];
+    if (!item) return;
+    if (state.tools?.[tool]) {
+        showToast(`You already own the ${item.label}.`);
+        return;
+    }
+    if (!spend(item.cost, 'tools', `Purchased ${item.label}`)) return;
+    state.tools = {...state.tools, axe: true, [tool]: true};
+    saveGame();
+    updateUI();
+    showToast(`🛠️ ${item.label} purchased! You have ${item.description}.`);
+}
+
+function sellTimber() {
+    const units = Math.floor(state.wood || 0);
+    if (units <= 0) {
+        showToast('No timber to sell. Fell a few trees first.');
+        return;
+    }
+    const value = LandManagement.getTimberSaleValue(units);
+    if (!recordTransaction(value, 'timber sale', `Sold ${units} timber`)) return;
+    state.wood -= units;
+    saveGame();
+    updateUI();
+    showToast(`💰 Sold ${units} timber for £${value}.`);
 }
 
 function hireHandyman() {

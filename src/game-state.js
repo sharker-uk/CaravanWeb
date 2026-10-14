@@ -1,7 +1,10 @@
 (function (globalScope) {
     const DEFAULT_STATE = {
-        cash: 2000,
-        initialBalance: 2000,
+        cash: 1500,
+        initialBalance: 1500,
+        wood: 0,
+        beauty: 50,
+        tools: {axe: true, shovel: false},
         transactions: [],
         rating: 1.0,
         satisfaction: 60,
@@ -79,7 +82,7 @@
             walkable: tile.terrain === 'grass' && !tree && !hasObject,
             buildable,
             occupied: Boolean(tree || pitch || hasObject),
-            interactable: Boolean(pitchIsAvailable || caravan || guest || facility)
+            interactable: Boolean(tree || tile.nature === 'debris' || pitchIsAvailable || caravan || guest || facility)
         };
     }
 
@@ -128,6 +131,11 @@
     }
 
     function findInteractableAt(state, x, y) {
+        const tile = state.tiles[y]?.[x];
+        if (tile?.nature === 'tree' || tile?.nature === 'debris') {
+            return { kind: tile.nature, entity: tile, x, y, w: 1, h: 1 };
+        }
+
         const caravan = state.caravans.find(item =>
             x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
             y >= item.pitch.y && y < item.pitch.y + item.pitch.h

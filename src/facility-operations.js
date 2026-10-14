@@ -5,13 +5,13 @@
         laundry: {capacity: 6, hourlyCost: 1, costPerUse: 2},
         shop: {capacity: 10, hourlyCost: 0.5, costPerUse: 0},
         playground: {capacity: 16, hourlyCost: 0.5, costPerUse: 0},
-        pub: {capacity: 12, hourlyCost: 1.5, costPerUse: 0},
-        restaurant: {capacity: 12, hourlyCost: 2, costPerUse: 0},
-        arcade: {capacity: 12, hourlyCost: 1.5, costPerUse: 0},
-        entertainment_space: {capacity: 20, hourlyCost: 2.5, costPerUse: 0},
-        pool: {capacity: 20, hourlyCost: 3, costPerUse: 0},
-        activity_centre: {capacity: 16, hourlyCost: 2, costPerUse: 0},
-        entertainment_hub: {capacity: 24, hourlyCost: 4, costPerUse: 0}
+        pub: {capacity: 12, entertainmentCapacity: 12, hourlyCost: 1.5, costPerUse: 0},
+        restaurant: {capacity: 12, entertainmentCapacity: 12, hourlyCost: 2, costPerUse: 0},
+        arcade: {capacity: 12, entertainmentCapacity: 15, hourlyCost: 1.5, costPerUse: 0},
+        entertainment_space: {capacity: 20, entertainmentCapacity: 40, hourlyCost: 2.5, costPerUse: 0},
+        pool: {capacity: 20, entertainmentCapacity: 20, hourlyCost: 3, costPerUse: 0},
+        activity_centre: {capacity: 16, entertainmentCapacity: 16, hourlyCost: 2, costPerUse: 0},
+        entertainment_hub: {capacity: 24, entertainmentCapacity: 40, hourlyCost: 4, costPerUse: 0}
     };
 
     function getFacilityDefaults(type) {

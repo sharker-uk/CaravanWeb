@@ -45,9 +45,12 @@ test('guest satisfaction responds to utilities, stay quality, and facility acces
   const guest = state.guests[0];
   guest.accommodation = 'towed';
   const noUtilityScore = calculateGuestExperience(state, guest);
+  // Utilities count only when the laid line reaches the incoming feed at the park edge.
+  for (let x = 0; x <= 4; x++) {
+    state.tiles[6][x].utilities.water = true;
+    state.tiles[6][x].utilities.electricity = true;
+  }
   const hooked = state.tiles[6][4].utilities;
-  hooked.water = true;
-  hooked.electricity = true;
   const utilityScore = calculateGuestExperience(state, guest);
   assert.ok(utilityScore > noUtilityScore);
 

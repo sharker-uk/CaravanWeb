@@ -1,5 +1,5 @@
 (function (globalScope) {
-    const CURRENT_SAVE_SCHEMA = 7;
+    const CURRENT_SAVE_SCHEMA = 10;
     const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
     const facilityApi = globalScope.FacilityOperations ||
         (typeof require === 'function' ? require('./facility-operations.js') : null);
@@ -217,6 +217,9 @@
                 capacity: Number.isFinite(facility.capacity) && facility.capacity >= 0
                     ? facility.capacity
                     : defaults.capacity,
+                entertainmentCapacity: Number.isFinite(facility.entertainmentCapacity) && facility.entertainmentCapacity >= 0
+                    ? facility.entertainmentCapacity
+                    : (defaults.entertainmentCapacity ?? 0),
                 hourlyCost: Number.isFinite(facility.hourlyCost) && facility.hourlyCost >= 0
                     ? facility.hourlyCost
                     : defaults.hourlyCost,
@@ -244,10 +247,15 @@
         const migrated = {
             ...saveData,
             schemaVersion: CURRENT_SAVE_SCHEMA,
-            cash: Number.isFinite(saveData.cash) ? saveData.cash : 2000,
+            cash: Number.isFinite(saveData.cash) ? saveData.cash : 1500,
+            wood: Number.isFinite(saveData.wood) ? Math.max(0, Math.floor(saveData.wood)) : 0,
+            tools: {
+                axe: true,
+                shovel: Boolean(saveData.tools?.shovel)
+            },
             initialBalance: Number.isFinite(saveData.initialBalance)
                 ? saveData.initialBalance
-                : Number.isFinite(saveData.cash) ? saveData.cash : 2000,
+                : Number.isFinite(saveData.cash) ? saveData.cash : 1500,
             transactions: normalizeTransactions(saveData.transactions),
             guestArrivalProgress: Number.isFinite(saveData.guestArrivalProgress)
                 ? Math.max(0, saveData.guestArrivalProgress)
@@ -260,6 +268,8 @@
             guests: normalizeGuests(saveData.guests, Number.isFinite(saveData.day) ? saveData.day : 1),
             caravans: normalizeCaravans(saveData.caravans),
             facilities: normalizeFacilities(saveData.facilities),
+            overlayMode: ['none', 'services', 'utilities', 'entertainment'].includes(saveData.overlayMode)
+                ? saveData.overlayMode : 'none',
             handymen: Number.isFinite(saveData.handymen) ? saveData.handymen : 0,
             day: Number.isFinite(saveData.day) ? saveData.day : 1,
             hour: Number.isFinite(saveData.hour) ? saveData.hour : 9,
