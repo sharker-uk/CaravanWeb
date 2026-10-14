@@ -1351,6 +1351,22 @@ function spend(amt, category = 'construction', description = 'Park construction'
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// Artwork is optional: AssetRenderer falls back to the original procedural art
+// until a tileset manifest and atlas are supplied.
+function drawAsset(key, x, y, width, height, fallback) {
+    return window.AssetRenderer
+        ? window.AssetRenderer.draw(ctx, key, x, y, width, height, fallback)
+        : (fallback(), false);
+}
+
+function connectedSurfaceMask(x, y, surface) {
+    const has = (tileX, tileY) => Boolean(state.tiles[tileY]?.[tileX]?.[surface]);
+    return (has(x, y - 1) ? 1 : 0) |
+        (has(x + 1, y) ? 2 : 0) |
+        (has(x, y + 1) ? 4 : 0) |
+        (has(x - 1, y) ? 8 : 0);
+}
+
 function resizeCanvas() {
     const topBar = document.getElementById('top-bar');
     const availableHeight = Math.max(160, window.innerHeight - (topBar?.getBoundingClientRect().height || 52));
@@ -1373,9 +1389,15 @@ function draw(timestamp = 0) {
     for(let y=0; y<GRID_H; y++) {
         for(let x=0; x<GRID_W; x++) {
             const t = state.tiles[y][x];
-            ctx.fillStyle = t.terrain === 'grass' ? PALETTE.grass[(x+y)%3] :
-                t.terrain === 'sand' ? '#d6c18e' : PALETTE.water;
-            ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            const px = x * TILE_SIZE;
+            const py = y * TILE_SIZE;
+            const terrainKey = t.terrain === 'grass' ? `terrain.grass.${(x + y) % 3}`
+                : t.terrain === 'sand' ? 'terrain.sand' : 'terrain.water';
+            drawAsset(terrainKey, px, py, TILE_SIZE, TILE_SIZE, () => {
+                ctx.fillStyle = t.terrain === 'grass' ? PALETTE.grass[(x+y)%3] :
+                    t.terrain === 'sand' ? '#d6c18e' : PALETTE.water;
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+            });
         }
     }
 
@@ -1385,12 +1407,16 @@ function draw(timestamp = 0) {
             const nature = state.tiles[y][x].nature;
             const px = x*TILE_SIZE; const py = y*TILE_SIZE;
             if (nature === 'debris') {
-                ctx.fillStyle = 'rgba(35, 45, 24, 0.35)';
-                ctx.fillRect(px+4, py+5, 2, 2);
-                ctx.fillRect(px+10, py+11, 2, 2);
+                drawAsset('nature.debris', px, py, TILE_SIZE, TILE_SIZE, () => {
+                    ctx.fillStyle = 'rgba(35, 45, 24, 0.35)';
+                    ctx.fillRect(px+4, py+5, 2, 2);
+                    ctx.fillRect(px+10, py+11, 2, 2);
+                });
             } else if (nature === 'tree') {
-                ctx.fillStyle = '#2d3b1e'; ctx.fillRect(px+6, py+10, 4, 6);
-                ctx.fillStyle = PALETTE.tree; ctx.beginPath(); ctx.arc(px+8, py+6, 6, 0, Math.PI*2); ctx.fill();
+                drawAsset('nature.tree', px, py - TILE_SIZE, TILE_SIZE, TILE_SIZE * 2, () => {
+                    ctx.fillStyle = '#2d3b1e'; ctx.fillRect(px+6, py+10, 4, 6);
+                    ctx.fillStyle = PALETTE.tree; ctx.beginPath(); ctx.arc(px+8, py+6, 6, 0, Math.PI*2); ctx.fill();
+                });
             }
         }
     }
@@ -1399,15 +1425,25 @@ function draw(timestamp = 0) {
     for(let y=0; y<GRID_H; y++) {
         for(let x=0; x<GRID_W; x++) {
             if (!state.tiles[y][x].road) continue;
-            ctx.fillStyle = PALETTE.road;
-            ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            const px = x * TILE_SIZE;
+            const py = y * TILE_SIZE;
+            const mask = connectedSurfaceMask(x, y, 'road');
+            drawAsset(`surface.road.${mask}`, px, py, TILE_SIZE, TILE_SIZE, () => {
+                ctx.fillStyle = PALETTE.road;
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+            });
         }
     }
     for(let y=0; y<GRID_H; y++) {
         for(let x=0; x<GRID_W; x++) {
             if (!state.tiles[y][x].path) continue;
-            ctx.fillStyle = PALETTE.path;
-            ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            const px = x * TILE_SIZE;
+            const py = y * TILE_SIZE;
+            const mask = connectedSurfaceMask(x, y, 'path');
+            drawAsset(`surface.path.${mask}`, px, py, TILE_SIZE, TILE_SIZE, () => {
+                ctx.fillStyle = PALETTE.path;
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+            });
         }
     }
     if (state.overlayMode === 'services') {
@@ -1477,19 +1513,23 @@ function draw(timestamp = 0) {
             return;
         }
         const isFarmhouse = landmark.type === 'farmhouse';
-        ctx.fillStyle = isFarmhouse ? '#9b8464' : '#d6c4a3';
-        ctx.fillRect(px, py + 3, width, height - 3);
-        ctx.fillStyle = isFarmhouse ? '#69483b' : '#6b3f32';
-        ctx.fillRect(px - 2, py, width + 4, 5);
-        ctx.fillStyle = '#31485a';
-        ctx.fillRect(px + 4, py + 9, 5, 6);
-        ctx.fillRect(px + width - 10, py + 9, 5, 6);
-        ctx.fillStyle = '#fff4dc';
-        ctx.font = 'bold 7px Arial';
-        ctx.fillText(landmark.name.toUpperCase(), px + 3, py + height - 5, width - 6);
-        if (landmark.subtitle) {
-            ctx.font = '6px Arial';
-            ctx.fillText(landmark.subtitle, px + 3, py + height + 3, width - 6);
+        const hasArtwork = drawAsset(`landmark.${landmark.type}`, px, py, width, height, () => {
+            ctx.fillStyle = isFarmhouse ? '#9b8464' : '#d6c4a3';
+            ctx.fillRect(px, py + 3, width, height - 3);
+            ctx.fillStyle = isFarmhouse ? '#69483b' : '#6b3f32';
+            ctx.fillRect(px - 2, py, width + 4, 5);
+            ctx.fillStyle = '#31485a';
+            ctx.fillRect(px + 4, py + 9, 5, 6);
+            ctx.fillRect(px + width - 10, py + 9, 5, 6);
+        });
+        if (!hasArtwork) {
+            ctx.fillStyle = '#fff4dc';
+            ctx.font = 'bold 7px Arial';
+            ctx.fillText(landmark.name.toUpperCase(), px + 3, py + height - 5, width - 6);
+            if (landmark.subtitle) {
+                ctx.font = '6px Arial';
+                ctx.fillText(landmark.subtitle, px + 3, py + height + 3, width - 6);
+            }
         }
     });
     const utilityColors = {
@@ -1596,9 +1636,16 @@ function draw(timestamp = 0) {
             activity_centre: ['#a9dfbf', '#1e8449'], entertainment_hub: ['#d2b4de', '#512e5f']
         };
         const [wallColor, roofColor] = facilityColors[f.type] || [PALETTE.fac_wall, PALETTE.fac_roof];
-        ctx.fillStyle = wallColor; ctx.fillRect(px, py, f.w*TILE_SIZE, f.h*TILE_SIZE);
-        ctx.fillStyle = roofColor; ctx.fillRect(px-2, py, (f.w*TILE_SIZE)+4, 4);
-        ctx.fillStyle = '#2c3e50'; ctx.font = '8px Arial'; ctx.fillText(f.type.toUpperCase(), px+4, py+14);
+        const hasArtwork = drawAsset(`facility.${f.type}`, px, py,
+            f.w * TILE_SIZE, f.h * TILE_SIZE, () => {
+                ctx.fillStyle = wallColor; ctx.fillRect(px, py, f.w*TILE_SIZE, f.h*TILE_SIZE);
+                ctx.fillStyle = roofColor; ctx.fillRect(px-2, py, (f.w*TILE_SIZE)+4, 4);
+            });
+        if (!hasArtwork) {
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = '8px Arial';
+            ctx.fillText(f.type.toUpperCase(), px+4, py+14);
+        }
     });
 
     state.constructions.forEach(job => {
@@ -1621,11 +1668,14 @@ function draw(timestamp = 0) {
         const px = c.pitch.x*TILE_SIZE + 4; const py = c.pitch.y*TILE_SIZE + 4;
         const pw = (c.pitch.w*TILE_SIZE)-8; const ph = (c.pitch.h*TILE_SIZE)-8;
         
-        ctx.fillStyle = c.tier === 1 ? '#d8cfbe' : '#ded495';
-        ctx.fillRect(px, py, pw, ph);
-        ctx.strokeStyle = '#000'; ctx.lineWidth=1; ctx.strokeRect(px, py, pw, ph);
-        // Windows
-        ctx.fillStyle = '#85c1e9'; ctx.fillRect(px+4, py+2, pw-8, 6);
+        drawAsset(c.tier === 1 ? 'accommodation.tin' : 'accommodation.static',
+            px, py, pw, ph, () => {
+                ctx.fillStyle = c.tier === 1 ? '#d8cfbe' : '#ded495';
+                ctx.fillRect(px, py, pw, ph);
+                ctx.strokeStyle = '#000'; ctx.lineWidth=1; ctx.strokeRect(px, py, pw, ph);
+                // Windows
+                ctx.fillStyle = '#85c1e9'; ctx.fillRect(px+4, py+2, pw-8, 6);
+            });
         if (c.isBroken) { ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(px+pw/2, py+ph/2, 4, 0, Math.PI*2); ctx.fill(); }
     });
 
@@ -1637,23 +1687,28 @@ function draw(timestamp = 0) {
         const width = pitch.w * TILE_SIZE;
         const height = pitch.h * TILE_SIZE;
         if (guest.accommodation === 'tent') {
-            ctx.fillStyle = '#c9823b';
-            ctx.beginPath();
-            ctx.moveTo(px + width * 0.2, py + height * 0.58);
-            ctx.lineTo(px + width * 0.5, py + height * 0.2);
-            ctx.lineTo(px + width * 0.8, py + height * 0.58);
-            ctx.closePath();
-            ctx.fill();
-            ctx.fillStyle = '#f2d7a0';
-            ctx.fillRect(px + width * 0.47, py + height * 0.43, width * 0.06, height * 0.15);
+            drawAsset('accommodation.tent', px, py, width, height, () => {
+                ctx.fillStyle = '#c9823b';
+                ctx.beginPath();
+                ctx.moveTo(px + width * 0.2, py + height * 0.58);
+                ctx.lineTo(px + width * 0.5, py + height * 0.2);
+                ctx.lineTo(px + width * 0.8, py + height * 0.58);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#f2d7a0';
+                ctx.fillRect(px + width * 0.47, py + height * 0.43, width * 0.06, height * 0.15);
+            });
         } else {
-            ctx.fillStyle = guest.accommodation === 'static' ? '#ded495' : '#d8cfbe';
-            ctx.fillRect(px + width * 0.16, py + height * 0.24, width * 0.68, height * 0.42);
-            ctx.strokeStyle = '#1a252f';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(px + width * 0.16, py + height * 0.24, width * 0.68, height * 0.42);
-            ctx.fillStyle = '#85c1e9';
-            ctx.fillRect(px + width * 0.26, py + height * 0.3, width * 0.16, height * 0.1);
+            drawAsset(guest.accommodation === 'static' ? 'accommodation.static' : 'accommodation.tin',
+                px + width * 0.16, py + height * 0.24, width * 0.68, height * 0.42, () => {
+                    ctx.fillStyle = guest.accommodation === 'static' ? '#ded495' : '#d8cfbe';
+                    ctx.fillRect(px + width * 0.16, py + height * 0.24, width * 0.68, height * 0.42);
+                    ctx.strokeStyle = '#1a252f';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(px + width * 0.16, py + height * 0.24, width * 0.68, height * 0.42);
+                    ctx.fillStyle = '#85c1e9';
+                    ctx.fillRect(px + width * 0.26, py + height * 0.3, width * 0.16, height * 0.1);
+                });
         }
         const residentX = (guest.position?.x ?? (pitch.x + pitch.w / 2)) * TILE_SIZE;
         const residentY = (guest.position?.y ?? (pitch.y + pitch.h / 2)) * TILE_SIZE;
