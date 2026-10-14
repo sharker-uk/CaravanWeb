@@ -54,6 +54,27 @@ test('arrival demand is capacity-based and arrives only as demand accrues', () =
   assert.equal(shouldAcceptGuest(state), false);
 });
 
+test('starting demand can produce a booking by the end of the second arrival window', () => {
+  const state = {
+    rating: 1,
+    satisfaction: 60,
+    pitches: [{occupied: false}, {occupied: false}],
+    dailyGuestArrivals: 0,
+    guestArrivalProgress: 0
+  };
+  let arrivals = 0;
+
+  for (let hour = 0; hour < 9; hour++) {
+    if (shouldAcceptGuest(state, {demandMultiplier: 0.7})) arrivals++;
+  }
+  state.pitches.push({occupied: false});
+  for (let hour = 0; hour < 10; hour++) {
+    if (shouldAcceptGuest(state, {demandMultiplier: 0.7})) arrivals++;
+  }
+
+  assert.equal(arrivals, 1);
+});
+
 test('landscape beauty improves guest demand without replacing satisfaction and rating', () => {
   const poorLandscape = getGuestDemand({rating: 3, satisfaction: 70, beauty: 0});
   const attractiveLandscape = getGuestDemand({rating: 3, satisfaction: 70, beauty: 100});

@@ -74,7 +74,7 @@
         state.guestArrivalProgress = (state.guestArrivalProgress || 0) +
             dailyCapacity * demand * (Number.isFinite(options.demandMultiplier)
                 ? Math.max(0, options.demandMultiplier)
-                : 1) / 2400;
+                : 1) / 1000;
         if (state.guestArrivalProgress < 1) return false;
         state.guestArrivalProgress -= 1;
         state.dailyGuestArrivals = (state.dailyGuestArrivals || 0) + 1;
