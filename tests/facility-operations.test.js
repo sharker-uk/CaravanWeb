@@ -5,6 +5,7 @@ const {
   canHostParty,
   getFacilityDefaults,
   getRequiredFacilities,
+  getMaintenanceCost,
   processHourlyFacilities
 } = require('../src/facility-operations.js');
 const {getSevenDayBalance, recordTransaction} = require('../src/economy.js');
@@ -33,6 +34,30 @@ test('toilet blocks have no hourly running cost and begin in good condition', ()
   assert.equal(toilets.hourlyCost, 0);
   assert.equal(toilets.cleanliness, 100);
   assert.equal(toilets.wear, 100);
+});
+
+test('toilet maintenance prices rise with neglect, independent of job duration', () => {
+  assert.equal(getMaintenanceCost('clean', 100), 5);
+  assert.equal(getMaintenanceCost('clean', 80), 5);
+  assert.equal(getMaintenanceCost('clean', 79), 10);
+  assert.equal(getMaintenanceCost('clean', 60), 10);
+  assert.equal(getMaintenanceCost('clean', 59), 18);
+  assert.equal(getMaintenanceCost('clean', 40), 18);
+  assert.equal(getMaintenanceCost('clean', 39), 28);
+  assert.equal(getMaintenanceCost('clean', 20), 28);
+  assert.equal(getMaintenanceCost('clean', 19), 40);
+  assert.equal(getMaintenanceCost('clean', 0), 40);
+  assert.equal(getMaintenanceCost('repair', 100), 10);
+  assert.equal(getMaintenanceCost('repair', 80), 10);
+  assert.equal(getMaintenanceCost('repair', 79), 20);
+  assert.equal(getMaintenanceCost('repair', 60), 20);
+  assert.equal(getMaintenanceCost('repair', 59), 35);
+  assert.equal(getMaintenanceCost('repair', 40), 35);
+  assert.equal(getMaintenanceCost('repair', 39), 60);
+  assert.equal(getMaintenanceCost('repair', 20), 60);
+  assert.equal(getMaintenanceCost('repair', 19), 100);
+  assert.equal(getMaintenanceCost('repair', 0), 100);
+  assert.equal(getMaintenanceCost('unknown', 50), null);
 });
 
 test('essential capacity matches single-facility service allocation', () => {
