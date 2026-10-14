@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Static browser prototype for Caravan Park Tycoon",
   "scripts": {
-    "check:syntax": "node --check src/main.js",
+    "check:syntax": "node --check src/main.js && node --check src/character-system.js",
     "test": "node --test"
   }
 }
