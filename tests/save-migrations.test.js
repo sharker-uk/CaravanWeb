@@ -138,6 +138,20 @@ test('migrateSave applies current defaults to newly modeled facilities', () => {
   assert.equal(migrated.facilities[0].costPerUse, 0.25);
 });
 
+test('migrateSave adds toilet condition bars and removes the legacy hourly toilet fee', () => {
+  const save = buildLegacySave();
+  save.facilities = [{x: 1, y: 1, w: 3, h: 3, type: 'toilets', hourlyCost: 0.5, cleanliness: 42, wear: 68}];
+  let migrated = migrateSave(save);
+  assert.equal(migrated.facilities[0].hourlyCost, 0);
+  assert.equal(migrated.facilities[0].cleanliness, 42);
+  assert.equal(migrated.facilities[0].wear, 68);
+  assert.equal(migrated.facilities[0].maintenanceClosed, false);
+  save.facilities[0].cleanliness = 0;
+  migrated = migrateSave(save);
+  assert.equal(migrated.facilities[0].isOperational, false);
+  assert.equal(migrated.facilities[0].maintenanceClosed, true);
+});
+
 test('migrateSave keeps already migrated saves stable', () => {
   const migrated = migrateSave({
     schemaVersion: CURRENT_SAVE_SCHEMA,
