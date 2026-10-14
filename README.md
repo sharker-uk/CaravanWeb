@@ -10,7 +10,7 @@
 - Draw utility lines along roads or paths. Each line is validated and charged as one operation.
 - Click an empty pitch with an accommodation tool to place a caravan. Static units require a gravel pitch and all four hookups.
 - Guest parties book when demand, pitch vacancy, essential washroom capacity and operational status allow. Each booking tracks party composition, dates, preferences, needs and upfront payment.
-- Toilets are required for all overnight bookings; shared showers are required for tent and towed stays. Facilities have finite hourly capacity, operational switches and running costs.
+- Toilets are required for all overnight bookings; shared showers are required for tent and towed stays. Toilet blocks have no hourly running charge, but guest use reduces cleanliness and wear. The player can clean them in 2 in-game hours or repair them in 3; blocks that reach zero condition close until maintained. A one-day handyman booking costs £100 and can handle urgent maintenance, while grounds staff unlock after 4 facilities and 6 pitches and cost £1 per in-game hour.
 
 Guest mix and arrival pressure shift between summer school holidays, weekends and quieter weekdays. Party preferences and unmet toilet/shower needs affect satisfaction; shop and laundry usage creates guest revenue alongside facility operating expenses. The park overview shows guest headcount, recent ledger entries, the rolling seven-day income/expense balance, and a reconciliation check against current cash. Save schema migrations preserve existing `caravan_tycoon_save` payloads while upgrading old one-guest bookings to solo parties.
 
