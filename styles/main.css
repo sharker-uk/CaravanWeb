@@ -154,3 +154,28 @@ canvas { display: block; width: 100%; flex: 1 1 auto; min-height: 0; }
   .avatar-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .visitor-randomiser { align-items: stretch; flex-direction: column; }
 }
+
+
+/* Compact welcome menu with optional detail panels. */
+.start-card.start-card-compact { width: min(470px, 100%); padding: clamp(20px, 4vw, 30px); }
+.start-card-compact h1 { margin: 0 0 22px; text-align: center; }
+.start-menu-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.start-menu-buttons button { min-height: 46px; margin: 0; padding: 10px 12px; }
+.start-menu-buttons #start-game { grid-column: 1 / -1; }
+.menu-button { border: 1px solid #718391; border-radius: 6px; background: #34495e; color: #f3f5f6; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.menu-button:hover { background: #496276; }
+.start-status { margin: 14px 0 0; color: var(--text-dim); font-size: 12px; line-height: 1.45; text-align: center; }
+.start-options-panel { margin-top: 16px; padding: 14px; border: 1px solid #526575; border-radius: 8px; background: rgba(10, 18, 24, .38); }
+.start-options-panel[hidden] { display: none; }
+.panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.panel-heading h2 { margin: 0; color: #ffe0ba; font-size: 16px; }
+.panel-close { width: 32px; height: 32px; border: 1px solid #667988; border-radius: 5px; background: #263845; color: #fff; font-size: 17px; cursor: pointer; }
+.panel-done { width: 100%; min-height: 38px; margin-top: 12px; border: 0; border-radius: 5px; background: var(--accent-bright); color: #fff; font-weight: 800; cursor: pointer; }
+.start-options-panel .avatar-creator { margin-top: 8px; }
+.start-options-panel .controls-grid { margin: 12px 0 8px; }
+.start-options-panel .start-tip { margin-bottom: 8px; font-size: 12px; }
+@media (max-width: 520px) {
+  .start-menu-buttons { grid-template-columns: 1fr; }
+  .start-menu-buttons #start-game { grid-column: auto; }
+  .start-card.start-card-compact { max-height: calc(100dvh - 20px); overflow-y: auto; }
+}
