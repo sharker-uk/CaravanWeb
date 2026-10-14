@@ -255,6 +255,7 @@ function init() {
         caravan.smokeParticles = [];
         return caravan;
     });
+    state.guestProfilePool = CharacterSystem.normalizeGuestRoster(data.guestProfilePool);
     const occupiedGuestPitches = new Set();
     state.guests = (Array.isArray(data.guests) ? data.guests : []).flatMap(guest => {
         const pitch = state.pitches[guest.pitchIndex];
@@ -279,6 +280,12 @@ function init() {
                 ? guest.dailyIncome
                 : getGuestDailyIncome(ratingAtArrival)
         };
+        restoredGuest.party ||= {type: 'solo', adults: 1, children: 0, headcount: 1};
+        if (!Array.isArray(restoredGuest.party.members) || !restoredGuest.party.members.length) {
+            const assigned = CharacterSystem.createPartyMembers(restoredGuest.party, state.guestProfilePool);
+            restoredGuest.party.members = assigned.members;
+            state.guestProfilePool = assigned.roster;
+        }
         pitch.occupied = true;
         occupiedGuestPitches.add(guest.pitchIndex);
         return [restoredGuest];
@@ -296,14 +303,16 @@ function init() {
         canOccupyPlayer(data.player.x, data.player.y)) {
         state.player = {...data.player};
     }
-    state.playerAvatar = CharacterSystem.normalizeAvatar(data.playerAvatar || state.playerAvatar || CharacterSystem.defaultAvatar());
-    state.parkNpcs = CharacterSystem.normalizeNpcs(data.parkNpcs, state, canOccupyPlayer);
+    state.playerAvatar = data.playerAvatar
+        ? CharacterSystem.normalizeAvatar(data.playerAvatar)
+        : CharacterSystem.randomizeAvatar(CharacterSystem.defaultAvatar());
     updateAvatarEditor();
     updateVisitorCount();
     state.playerPath = [];
     state.interactionTarget = null;
-    // Upgrade older local saves once so their first generated visitors persist across reloads.
-    if (!Array.isArray(data.parkNpcs) || !data.playerAvatar) saveGame();
+    // Upgrade older saves to use booked guests and persist a one-time random player avatar.
+    if (!Array.isArray(data.guestProfilePool) || !data.playerAvatar ||
+        (Array.isArray(data.parkNpcs) && data.parkNpcs.length)) saveGame();
 }
 
 function generateNewMap() {
@@ -345,8 +354,10 @@ function generateNewMap() {
             };
         }
     }
-    state.playerAvatar = CharacterSystem.normalizeAvatar(state.playerAvatar || CharacterSystem.defaultAvatar());
-    state.parkNpcs = CharacterSystem.createNpcs(state, canOccupyPlayer);
+    state.playerAvatar = state.playerAvatar
+        ? CharacterSystem.normalizeAvatar(state.playerAvatar)
+        : CharacterSystem.randomizeAvatar(CharacterSystem.defaultAvatar());
+    state.guestProfilePool = CharacterSystem.normalizeGuestRoster(state.guestProfilePool);
     updateAvatarEditor();
     updateVisitorCount();
     updateTutorialVisibility();
@@ -771,7 +782,7 @@ function saveGame() {
             camera: state.camera,
             player: state.player,
             playerAvatar: CharacterSystem.normalizeAvatar(state.playerAvatar),
-            parkNpcs: Array.isArray(state.parkNpcs) ? state.parkNpcs : [],
+            guestProfilePool: CharacterSystem.normalizeGuestRoster(state.guestProfilePool),
             guestArrivalProgress: state.guestArrivalProgress,
             dailyGuestArrivals: state.dailyGuestArrivals
         }));
@@ -895,6 +906,9 @@ function arriveGuest(candidate) {
         source: 'demand',
         requiredFacilities: FacilityOperations.getRequiredFacilities(accommodation)
     };
+    const assignedMembers = CharacterSystem.createPartyMembers(party, state.guestProfilePool);
+    party.members = assignedMembers.members;
+    state.guestProfilePool = assignedMembers.roster;
     const guest = {
         pitch,
         pitchIndex: state.pitches.indexOf(pitch),
@@ -916,6 +930,7 @@ function arriveGuest(candidate) {
     };
     pitch.occupied = true;
     state.guests.push(guest);
+    updateVisitorCount();
     recordTransaction(guest.totalIncome, 'guest payment', 'Guest stay paid upfront');
     showToast(`${party.type} party (${party.headcount}) checked in for ${guest.stayDaysRemaining} day${guest.stayDaysRemaining === 1 ? '' : 's'} · £${guest.totalIncome} paid`);
     playSound(660, 'sine', 0.12);
@@ -1318,9 +1333,6 @@ function draw(timestamp = 0) {
     const deltaSeconds = lastFrameTime ? Math.min((timestamp - lastFrameTime) / 1000, 0.05) : 0;
     lastFrameTime = timestamp;
     updatePlayerMovement(deltaSeconds);
-    if (document.getElementById('start-screen').hidden && CharacterSystem) {
-        CharacterSystem.updateNpcs(state.parkNpcs, deltaSeconds, canOccupyPlayer);
-    }
     updateCamera();
     ctx.clearRect(0,0,canvas.width, canvas.height);
     ctx.save();
@@ -1615,15 +1627,18 @@ function draw(timestamp = 0) {
         }
         const residentX = (guest.position?.x ?? (pitch.x + pitch.w / 2)) * TILE_SIZE;
         const residentY = (guest.position?.y ?? (pitch.y + pitch.h / 2)) * TILE_SIZE;
-        ctx.fillStyle = '#f5cba7';
-        ctx.beginPath(); ctx.arc(residentX, residentY, 3.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(residentX - 2, residentY + 3, 4, 5);
-    });
-
-    // Visitors and player share one small pixel-art renderer so their style stays consistent.
-    (state.parkNpcs || []).slice().sort((a, b) => a.y - b.y).forEach(npc => {
-        CharacterSystem.drawCharacter(ctx, npc.appearance, npc.x * TILE_SIZE, npc.y * TILE_SIZE, 1);
+        const members = Array.isArray(guest.party?.members) && guest.party.members.length
+            ? guest.party.members
+            : [{appearance: CharacterSystem.defaultAvatar()}];
+        const offsets = [
+            [-0.18, 0], [0.18, 0], [-0.38, 0.22], [0.38, 0.22],
+            [-0.18, 0.42], [0.18, 0.42], [-0.42, -0.2], [0.42, -0.2]
+        ];
+        members.slice(0, 8).forEach((member, index) => {
+            const [offsetX, offsetY] = offsets[index] || [0, 0];
+            CharacterSystem.drawCharacter(ctx, member.appearance || CharacterSystem.defaultAvatar(),
+                residentX + offsetX * TILE_SIZE, residentY + offsetY * TILE_SIZE, members.length > 3 ? 0.8 : 0.9);
+        });
     });
     const playerX = state.player.x * TILE_SIZE;
     const playerY = state.player.y * TILE_SIZE;
@@ -1903,6 +1918,34 @@ function sellTimber() {
 function updateTutorialVisibility(visible = true) {
     const screen = document.getElementById('start-screen');
     if (screen) screen.hidden = !visible;
+    if (visible) {
+        updateAvatarEditor();
+        updateVisitorCount();
+    }
+}
+
+function setStartPanel(panelId) {
+    const panelIds = ['avatar-panel', 'controls-panel'];
+    const target = document.getElementById(panelId);
+    if (!target) return;
+    const shouldOpen = target.hidden;
+    panelIds.forEach(id => {
+        const panel = document.getElementById(id);
+        if (panel) panel.hidden = id !== panelId || !shouldOpen;
+        const button = document.querySelector(`[aria-controls="${id}"]`);
+        if (button) button.setAttribute('aria-expanded', String(id === panelId && shouldOpen));
+    });
+    if (shouldOpen && panelId === 'avatar-panel') {
+        updateAvatarEditor();
+        document.getElementById('player-name')?.focus();
+    }
+}
+
+function closeStartPanel(panelId) {
+    const panel = document.getElementById(panelId);
+    if (panel) panel.hidden = true;
+    const button = document.querySelector(`[aria-controls="${panelId}"]`);
+    if (button) button.setAttribute('aria-expanded', 'false');
 }
 
 function getAvatarFromEditor() {
@@ -1947,8 +1990,10 @@ function updateAvatarEditor() {
 function updateVisitorCount() {
     const count = document.getElementById('visitor-count');
     if (count) {
-        const total = Array.isArray(state.parkNpcs) ? state.parkNpcs.length : 0;
-        count.textContent = `${total} randomly dressed visitors will wander around your starting park.`;
+        const total = Array.isArray(state.guestProfilePool) ? state.guestProfilePool.length : 0;
+        count.textContent = total
+            ? `${total} guest profiles ready. People appear in the world only after their booking is accepted.`
+            : 'Guest appearances will be generated automatically when bookings are accepted.';
     }
 }
 
@@ -1967,7 +2012,7 @@ function randomizePlayerAvatar() {
 }
 
 function randomizeStartingNpcs() {
-    state.parkNpcs = CharacterSystem.createNpcs(state, canOccupyPlayer);
+    state.guestProfilePool = CharacterSystem.createGuestRoster(12);
     updateVisitorCount();
 }
 
@@ -2070,6 +2115,10 @@ window.onload = () => {
     document.getElementById('start-game').addEventListener('click', startNewGame);
     document.getElementById('randomize-avatar').addEventListener('click', randomizePlayerAvatar);
     document.getElementById('randomize-npcs').addEventListener('click', randomizeStartingNpcs);
+    document.getElementById('open-avatar-creator').addEventListener('click', () => setStartPanel('avatar-panel'));
+    document.getElementById('open-controls').addEventListener('click', () => setStartPanel('controls-panel'));
+    document.querySelectorAll('[data-close-panel]').forEach(button =>
+        button.addEventListener('click', () => closeStartPanel(button.dataset.closePanel)));
     ['player-name', 'avatar-skin', 'avatar-hair-style', 'avatar-hair-colour', 'avatar-top', 'avatar-bottom', 'avatar-accessory']
         .forEach(id => document.getElementById(id).addEventListener('input', renderAvatarPreview));
     document.getElementById('sleep-confirm').addEventListener('click', sleepThroughNight);
