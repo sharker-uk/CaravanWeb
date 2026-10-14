@@ -180,12 +180,13 @@
         if (!Array.isArray(value)) return createNpcs(state, canOccupy);
         return value.slice(0, 12).filter(npc => npc && typeof npc === 'object' &&
             Number.isFinite(npc.x) && Number.isFinite(npc.y)).map((npc, index) => {
-            const appearance = normalizeAvatar(npc.appearance);
+            const name = typeof npc.name === 'string' ? npc.name.slice(0, 24) : 'Visitor ' + (index + 1);
+            const appearance = normalizeAvatar({...npc.appearance, name});
             const x = Math.max(1, Math.min(45, npc.x));
             const y = Math.max(1, Math.min(37, npc.y));
             return {
                 id: typeof npc.id === 'string' ? npc.id : 'visitor-' + (index + 1),
-                name: typeof npc.name === 'string' ? npc.name.slice(0, 24) : appearance.name,
+                name,
                 appearance,
                 x, y,
                 targetX: Number.isFinite(npc.targetX) ? npc.targetX : x,
