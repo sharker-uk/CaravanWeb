@@ -1392,6 +1392,10 @@ function updateUI() {
     }
     const handymanButton = document.getElementById('book-handyman-btn');
     if (handymanButton) {
+        const maintenanceNeeded = state.caravans.some(caravan => caravan.isBroken) ||
+            state.facilities.some(facility => facility.type === 'toilets' &&
+                (facility.maintenanceClosed || Number(facility.cleanliness ?? 100) < 50 || Number(facility.wear ?? 100) < 50));
+        handymanButton.style.display = maintenanceNeeded || state.handymanContractHoursRemaining > 0 ? 'flex' : 'none';
         handymanButton.disabled = state.handymanContractHoursRemaining > 0 || state.cash < 100;
         handymanButton.innerHTML = state.handymanContractHoursRemaining > 0
             ? `🛠️<span>Handyman booked · ${state.handymanContractHoursRemaining}h left</span>`
@@ -1614,6 +1618,10 @@ function repairSelectedToiletBlock() {
 function toggleSelectedFacility() {
     const facility = state.selectedEntity;
     if (!facility || typeof facility.tier === 'number' || typeof facility.type !== 'string') return;
+    if (facility.type === 'toilets' && facility.maintenanceClosed) {
+        showToast('This toilet block needs cleaning or repair before it can reopen.');
+        return;
+    }
     facility.isOperational = facility.isOperational === false;
     saveGame();
     updateUI();
