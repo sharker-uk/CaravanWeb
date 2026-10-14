@@ -91,7 +91,9 @@
 
         return {
             walkable: (tile.terrain === 'grass' || tile.terrain === 'sand') && !tree &&
-                !hasObject && !landmarkBlocksMovement && !construction?.blocksMovement,
+                !hasObject && !landmarkBlocksMovement &&
+                (!construction?.blocksMovement ||
+                    (state.player && playerOverlapsFootprint(state.player, construction.footprint))),
             buildable,
             occupied: Boolean(tree || pitch || hasObject),
             interactable: Boolean(tree || tile.nature === 'debris' || pitchIsAvailable ||
@@ -107,6 +109,14 @@
                 const tileY = Math.floor(y + offsetY);
                 return getTileProperties(state, tileX, tileY).walkable;
             });
+    }
+
+    function playerOverlapsFootprint(player, footprint) {
+        const radius = 0.18;
+        return player.x + radius > footprint.x &&
+            player.x - radius < footprint.x + footprint.w &&
+            player.y + radius > footprint.y &&
+            player.y - radius < footprint.y + footprint.h;
     }
 
     function findPathToAny(state, destinationTiles) {

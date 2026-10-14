@@ -66,6 +66,32 @@ test('landmarks and construction reserve build areas without blocking the beach'
   assert.equal(getTileProperties(state, 7, 2).walkable, true);
 });
 
+test('a player can leave an occupied construction footprint but cannot re-enter', () => {
+  const tiles = Array.from({length: 5}, () =>
+    Array.from({length: 8}, () => ({terrain: 'grass', nature: null, road: false, path: false}))
+  );
+  const state = createGameState({
+    tiles,
+    player: {x: 3.5, y: 2.5},
+    pitches: [],
+    caravans: [],
+    guests: [],
+    facilities: [],
+    constructions: [{
+      footprint: {x: 3, y: 0, w: 2, h: 5},
+      blocksMovement: true
+    }]
+  });
+
+  assert.equal(getTileProperties(state, 3, 2).walkable, true);
+  assert.ok(findPathToAny(state, [{x: 5, y: 2}]));
+
+  state.player = {x: 2.5, y: 2.5};
+  assert.equal(getTileProperties(state, 3, 2).walkable, false);
+  assert.equal(canOccupyPlayer(state, 3.5, 2.5), false);
+  assert.equal(findPathToAny(state, [{x: 5, y: 2}]), null);
+});
+
 test('trees block walking and building but can be targeted for chopping', () => {
   const tiles = Array.from({ length: 4 }, () =>
     Array.from({ length: 4 }, () => ({ terrain: 'grass', nature: null, road: false, path: false }))
