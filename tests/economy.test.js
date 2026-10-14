@@ -75,6 +75,21 @@ test('starting demand can produce a booking by the end of the second arrival win
   assert.equal(arrivals, 1);
 });
 
+test('a viable empty park gets its first booking during the opening days', () => {
+  const state = {
+    day: 2,
+    rating: 1,
+    satisfaction: 60,
+    pitches: [{occupied: false}],
+    guests: [],
+    dailyGuestArrivals: 0,
+    guestArrivalProgress: 0
+  };
+
+  assert.equal(shouldAcceptGuest(state, {demandMultiplier: 0.7, eligible: true}), true);
+  assert.equal(state.dailyGuestArrivals, 1);
+});
+
 test('landscape beauty improves guest demand without replacing satisfaction and rating', () => {
   const poorLandscape = getGuestDemand({rating: 3, satisfaction: 70, beauty: 0});
   const attractiveLandscape = getGuestDemand({rating: 3, satisfaction: 70, beauty: 100});
