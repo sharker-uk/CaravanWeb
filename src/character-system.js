@@ -158,9 +158,24 @@
         return roster;
     }
 
+    function normalizeGuestRoster(value) {
+        if (!Array.isArray(value)) return createGuestRoster(12);
+        const profiles = value.slice(0, 30).filter(profile => profile && typeof profile === 'object');
+        return profiles.map((profile, index) => {
+            const name = typeof profile.name === 'string' && profile.name.trim()
+                ? profile.name.trim().slice(0, 24)
+                : 'Visitor ' + (index + 1);
+            return {
+                id: typeof profile.id === 'string' ? profile.id : 'guest-profile-' + (index + 1),
+                name,
+                appearance: normalizeAvatar({...profile.appearance, name})
+            };
+        });
+    }
+
     function createPartyMembers(party, roster = []) {
         const requestedCount = Math.max(1, Math.min(8, Number.isInteger(party?.headcount) ? party.headcount : 1));
-        const available = Array.isArray(roster) ? roster.slice() : [];
+        const available = normalizeGuestRoster(roster);
         while (available.length < requestedCount) {
             available.push(...createGuestRoster(Math.max(4, requestedCount - available.length)));
         }
@@ -283,6 +298,7 @@
         randomizeAvatar,
         drawCharacter,
         createGuestRoster,
+        normalizeGuestRoster,
         createPartyMembers,
         createNpcs,
         normalizeNpcs,
