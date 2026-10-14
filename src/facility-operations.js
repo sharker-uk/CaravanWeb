@@ -27,7 +27,8 @@
     }
 
     function getRequiredFacilities(accommodation) {
-        return accommodation === 'static' ? ['toilets'] : ['toilets', 'showers'];
+        // Toilets are essential for every stay; showers improve the stay but are optional.
+        return ['toilets'];
     }
 
     function canHostParty(state, accommodation, headcount) {
