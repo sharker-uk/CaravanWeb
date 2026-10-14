@@ -39,7 +39,10 @@
         if (atlas && sprite &&
             ['x', 'y', 'w', 'h'].every(field => Number.isFinite(sprite[field])) &&
             sprite.w > 0 && sprite.h > 0) {
+            const previousSmoothing = ctx.imageSmoothingEnabled;
+            ctx.imageSmoothingEnabled = false;
             ctx.drawImage(atlas, sprite.x, sprite.y, sprite.w, sprite.h, x, y, width, height);
+            ctx.imageSmoothingEnabled = previousSmoothing;
             return true;
         }
         if (typeof fallback === 'function') fallback();
