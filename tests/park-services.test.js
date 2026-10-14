@@ -84,11 +84,9 @@ test('maximum stay reflects shower access and touring-caravan hookups', () => {
   assert.equal(ParkServices.getMaximumStayDays(state, pitch, 'towed', 2), 7);
 
   // Lay water and electricity along a connected road/path beside the pitch.
-  route(tiles, 0, 2, 'road', 'water');
-  route(tiles, 1, 2, 'road', 'water');
-  route(tiles, 2, 2, 'road', 'water');
-  route(tiles, 0, 3, 'road', 'electricity');
-  route(tiles, 1, 3, 'road', 'electricity');
-  route(tiles, 2, 3, 'road', 'electricity');
+  for (let y = 0; y <= 5; y++) {
+    route(tiles, 1, y, 'road', 'water');
+    route(tiles, 1, y, 'road', 'electricity');
+  }
   assert.equal(ParkServices.getMaximumStayDays(state, pitch, 'towed', 2), 14);
 });
