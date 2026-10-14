@@ -28,6 +28,13 @@ test('overnight party eligibility requires operational capacity for essential fa
   });
 });
 
+test('toilet blocks have no hourly running cost and begin in good condition', () => {
+  const toilets = facility('toilets');
+  assert.equal(toilets.hourlyCost, 0);
+  assert.equal(toilets.cleanliness, 100);
+  assert.equal(toilets.wear, 100);
+});
+
 test('essential capacity matches single-facility service allocation', () => {
   const state = {
     facilities: [
@@ -86,6 +93,22 @@ test('facility service capacity, party needs and transactions affect operating r
   processHourlyFacilities(state, transaction);
   assert.ok(state.facilities.every(item => item.hourlyUsage <= item.capacity));
   assert.ok(party.needs.toiletVisits + party.needs.showerVisits > 0);
+});
+
+test('toilet use gradually reduces cleanliness and wear and dirty toilets lower satisfaction', () => {
+  const party = createGuestParty(181, () => 0);
+  party.headcount = 4;
+  party.preferences = {...party.preferences, toiletIntervalHours: 1, showerVisitIntervalDays: 0, shopIntervalHours: 0, laundryEveryDays: 0};
+  const toilets = facility('toilets', 16);
+  toilets.cleanliness = 40;
+  const state = {day: 1, hour: 0, facilities: [toilets], guests: [{
+    party, accommodation: 'static', pitchIndex: 0,
+    booking: {arrivalDay: 1}, lastFacilityUpdate: -1
+  }]};
+  processHourlyFacilities(state, () => {});
+  assert.ok(toilets.cleanliness < 40);
+  assert.ok(toilets.wear < 100);
+  assert.ok(party.needs.satisfaction < 75);
 });
 
 test('three-week managed-park operations remain ledger-reconciled and profitable', () => {
