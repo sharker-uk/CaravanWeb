@@ -46,6 +46,13 @@ test('local toilet and shower service coverage is limited by radius and operatin
   assert.equal(ParkServices.getServiceCoverage({...toilets, isOperational: false}, pitch), false);
 });
 
+test('service range only needs to reach part of the pitch boundary', () => {
+  const pitch = {x: 10, y: 10, w: 4, h: 6};
+  const toilets = {...FacilityOperations.getFacilityDefaults('toilets'), type: 'toilets', x: 1, y: 10, w: 3, h: 3};
+
+  assert.equal(ParkServices.getServiceCoverage(toilets, pitch), true);
+});
+
 test('booking service check requires nearby operational facilities with enough capacity', () => {
   const pitch = {x: 10, y: 10, w: 4, h: 6};
   const state = {facilities: [

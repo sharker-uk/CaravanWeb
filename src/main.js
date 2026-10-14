@@ -890,11 +890,7 @@ function onHourly() {
     const demand = GuestParties.getDemandProfile(state.day);
     if (Economy.shouldAcceptGuest(state, {
         demandMultiplier: demand.multiplier,
-        eligible: Boolean(candidate && FacilityOperations.canHostParty(
-            state, candidate.accommodation, candidate.party.headcount
-        ).valid && ParkServices.getPitchServiceCheck(
-            state, candidate.pitch, candidate.accommodation, candidate.party.headcount
-        ).valid)
+        eligible: Boolean(candidate)
     })) arriveGuest(candidate);
     saveGame();
 }
@@ -908,9 +904,8 @@ function createArrivalCandidate() {
             ? ['tent', 'towed']
             : ['towed', ...(isPitchReadyForStatic(pitch) ? ['static'] : [])])
             .filter(accommodation => GuestParties.isArrivalTimeAllowed(accommodation, state.hour)),
-        (accommodation, headcount, pitch) =>
-            FacilityOperations.canHostParty(state, accommodation, headcount).valid &&
-            ParkServices.getPitchServiceCheck(state, pitch, accommodation, headcount).valid
+        (accommodation, headcount) =>
+            FacilityOperations.canHostParty(state, accommodation, headcount).valid
     );
 }
 
@@ -918,8 +913,7 @@ function arriveGuest(candidate) {
     if (!candidate) return false;
     const {pitch, accommodation, party} = candidate;
     const facilityCheck = FacilityOperations.canHostParty(state, accommodation, party.headcount);
-    const serviceCheck = ParkServices.getPitchServiceCheck(state, pitch, accommodation, party.headcount);
-    if (!facilityCheck.valid || !serviceCheck.valid) return false;
+    if (!facilityCheck.valid) return false;
     const ratingAtArrival = state.rating;
     const maximumStayDays = accommodation === 'static'
         ? 14

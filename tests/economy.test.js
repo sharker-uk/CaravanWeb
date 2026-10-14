@@ -54,7 +54,7 @@ test('arrival demand is capacity-based and arrives only as demand accrues', () =
   assert.equal(shouldAcceptGuest(state), false);
 });
 
-test('starting demand can produce a booking by the end of the second arrival window', () => {
+test('starting demand produces bookings as the park expands over two days', () => {
   const state = {
     rating: 1,
     satisfaction: 60,
@@ -65,14 +65,23 @@ test('starting demand can produce a booking by the end of the second arrival win
   let arrivals = 0;
 
   for (let hour = 0; hour < 9; hour++) {
-    if (shouldAcceptGuest(state, {demandMultiplier: 0.7})) arrivals++;
+    if (shouldAcceptGuest(state, {demandMultiplier: 0.7})) {
+      arrivals++;
+      state.pitches.find(pitch => !pitch.occupied).occupied = true;
+    }
   }
   state.pitches.push({occupied: false});
+  state.day = 2;
+  state.dailyGuestArrivals = 0;
+  state.guests = [{}];
   for (let hour = 0; hour < 10; hour++) {
-    if (shouldAcceptGuest(state, {demandMultiplier: 0.7})) arrivals++;
+    if (shouldAcceptGuest(state, {demandMultiplier: 0.7})) {
+      arrivals++;
+      state.pitches.find(pitch => !pitch.occupied).occupied = true;
+    }
   }
 
-  assert.equal(arrivals, 1);
+  assert.equal(arrivals, 2);
 });
 
 test('a viable empty park gets its first booking during the opening days', () => {
@@ -88,6 +97,25 @@ test('a viable empty park gets its first booking during the opening days', () =>
 
   assert.equal(shouldAcceptGuest(state, {demandMultiplier: 0.7, eligible: true}), true);
   assert.equal(state.dailyGuestArrivals, 1);
+});
+
+test('high demand fills an available pitch by late morning', () => {
+  const state = {
+    day: 2,
+    rating: 1.7,
+    satisfaction: 100,
+    pitches: [{occupied: true}, {occupied: false}],
+    guests: [{}],
+    dailyGuestArrivals: 0,
+    guestArrivalProgress: 0
+  };
+  let arrivals = 0;
+
+  for (let hour = 0; hour < 4; hour++) {
+    if (shouldAcceptGuest(state, {demandMultiplier: 0.7, eligible: true})) arrivals++;
+  }
+
+  assert.equal(arrivals, 1);
 });
 
 test('landscape beauty improves guest demand without replacing satisfaction and rating', () => {

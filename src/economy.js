@@ -70,16 +70,17 @@
         const vacancies = pitches.filter(pitch => !pitch.occupied).length;
         const demand = getGuestDemand(state).score;
         const dailyCapacity = Math.min(pitches.length, 24);
-        if (!vacancies || !demand || (state.dailyGuestArrivals || 0) >= dailyCapacity) return false;
-        const openingBooking = state.day <= 2 && Array.isArray(state.guests) &&
-            state.guests.length === 0 && (state.dailyGuestArrivals || 0) === 0;
-        if (openingBooking) {
+        const dailyArrivals = state.dailyGuestArrivals || 0;
+        if (!vacancies || !demand || dailyArrivals >= dailyCapacity) return false;
+        const firstBookingToday = dailyArrivals === 0 && (demand >= 67 ||
+            (state.day <= 2 && Array.isArray(state.guests) && state.guests.length === 0));
+        if (firstBookingToday) {
             state.guestArrivalProgress = 1;
         } else {
             state.guestArrivalProgress = (state.guestArrivalProgress || 0) +
                 dailyCapacity * demand * (Number.isFinite(options.demandMultiplier)
                     ? Math.max(0, options.demandMultiplier)
-                    : 1) / 1000;
+                    : 1) / 500;
         }
         if (state.guestArrivalProgress < 1) return false;
         state.guestArrivalProgress -= 1;

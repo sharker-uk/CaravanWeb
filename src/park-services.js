@@ -56,16 +56,25 @@
         return {x: facility.x + facility.w / 2, y: facility.y + facility.h / 2};
     }
 
-    function getPitchAccessPoint(pitch) {
-        // Use the middle of the pitch edge closest to the park's local service buildings.
-        return {x: pitch.x + pitch.w / 2, y: pitch.y + pitch.h / 2};
+    function getDistanceToPitchBoundary(point, pitch) {
+        const left = pitch.x;
+        const right = pitch.x + pitch.w;
+        const top = pitch.y;
+        const bottom = pitch.y + pitch.h;
+        const insidePitch = point.x >= left && point.x <= right &&
+            point.y >= top && point.y <= bottom;
+        if (insidePitch) {
+            return Math.min(point.x - left, right - point.x, point.y - top, bottom - point.y);
+        }
+
+        const nearestX = Math.max(left, Math.min(point.x, right));
+        const nearestY = Math.max(top, Math.min(point.y, bottom));
+        return Math.abs(point.x - nearestX) + Math.abs(point.y - nearestY);
     }
 
     function getServiceCoverage(facility, pitch, radius = LOCAL_SERVICE_RADIUS) {
         if (!facility || !pitch || facility.isOperational === false) return false;
-        const a = getFacilityAccessPoint(facility);
-        const b = getPitchAccessPoint(pitch);
-        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) <= radius;
+        return getDistanceToPitchBoundary(getFacilityAccessPoint(facility), pitch) <= radius;
     }
 
     function getRequiredFacilities(accommodation) {
