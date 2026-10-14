@@ -9,9 +9,27 @@
 <body>
 
 <div id="game-container">
+    <section id="start-screen" class="start-screen" role="dialog" aria-modal="true" aria-labelledby="start-title" hidden>
+        <div class="start-card">
+            <p class="start-kicker">WELCOME TO THE PARK</p>
+            <h1 id="start-title">Caister Coast Caravan Park</h1>
+            <p>Your new life starts in a run-down farmhouse by the sea. Learn the controls, then get to work.</p>
+            <div class="controls-grid">
+                <div><strong>WASD / Arrow keys</strong><span>Move around the park</span></div>
+                <div><strong>Click the ground</strong><span>Walk to that spot</span></div>
+                <div><strong>Click an object, then E</strong><span>Walk over and interact</span></div>
+                <div><strong>Choose a tool, then drag</strong><span>Lay roads, paths and pitches</span></div>
+                <div><strong>Mouse wheel</strong><span>Zoom the view in or out</span></div>
+                <div><strong>Space</strong><span>Pause or resume time</span></div>
+            </div>
+            <p class="start-tip">New construction takes two in-game hours. You can change the simulation speed or pause at any time.</p>
+            <button id="start-game" class="start-button" type="button">OK — Start the game</button>
+        </div>
+    </section>
+
     <div id="top-bar">
         <div class="stat-group">
-            <div id="park-name" style="color: var(--accent-bright);">🌲 Sandy Sands Deluxe</div>
+            <div id="park-name" style="color: var(--accent-bright);">🌊 Caister Coast</div>
             <div class="stat">📅 <span id="clock-display">Day 1, 09:00</span></div>
             <div class="stat" id="time-of-day">☀️ Daylight</div>
             <div class="stat"><span id="weather-display">☀️</span> <span id="weather-text">Sunny</span></div>
@@ -72,7 +90,7 @@
         </nav>
         <section class="menu-panel active" id="panel-terrain" aria-label="Ground tools">
             <div class="menu-heading"><strong>Ground & pitches</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
-            <p class="menu-description">The park starts overgrown. Click a tree or brush, walk up to it, then press E to clear it; trees yield saleable timber. Drag a box to place pitches; undersized boxes are shown in red.</p>
+            <p class="menu-description">The park starts overgrown. Click a tree or brush, walk up to it, then press E to clear it; trees yield saleable timber. WASD moves the player while the camera follows. Drag to lay roads, paths or pitch areas; unfinished construction takes two in-game hours.</p>
             <div class="tool-grid">
                 <button class="tool-btn active" onclick="setTool('select', this)">🔍<span>Select</span></button>
                 <button class="tool-btn" onclick="setTool('road', this)">🛣️<span>Tarmac · £20</span></button>
@@ -160,6 +178,7 @@
     <script src="src/land-management.js"></script>
     <script src="src/game-state.js"></script>
     <script src="src/simulation-clock.js"></script>
+    <script src="src/construction.js"></script>
     <script src="src/guest-parties.js"></script>
     <script src="src/facility-operations.js"></script>
     <script src="src/save-migrations.js"></script>

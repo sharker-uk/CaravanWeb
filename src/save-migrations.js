@@ -15,7 +15,7 @@
 
         if (tile.terrain !== undefined) {
             return {
-                terrain: ['grass', 'water'].includes(tile.terrain) ? tile.terrain : 'grass',
+                terrain: ['grass', 'water', 'sand'].includes(tile.terrain) ? tile.terrain : 'grass',
                 nature: tile.nature === 'tree' || tile.nature === 'debris' ? tile.nature : null,
                 road: Boolean(tile.road),
                 path: Boolean(tile.path),
@@ -270,6 +270,13 @@
             facilities: normalizeFacilities(saveData.facilities),
             overlayMode: ['none', 'services', 'utilities', 'entertainment'].includes(saveData.overlayMode)
                 ? saveData.overlayMode : 'none',
+            landmarks: Array.isArray(saveData.landmarks) ? saveData.landmarks.filter(landmark =>
+                landmark && ['x', 'y', 'w', 'h'].every(key => Number.isFinite(landmark[key])) &&
+                typeof landmark.type === 'string') : [],
+            constructions: Array.isArray(saveData.constructions) ? saveData.constructions.filter(job =>
+                job && typeof job.kind === 'string' && Number.isFinite(job.completesAt) &&
+                job.footprint && ['x', 'y', 'w', 'h'].every(key =>
+                    Number.isFinite(job.footprint[key]))) : [],
             handymen: Number.isFinite(saveData.handymen) ? saveData.handymen : 0,
             day: Number.isFinite(saveData.day) ? saveData.day : 1,
             hour: Number.isFinite(saveData.hour) ? saveData.hour : 9,

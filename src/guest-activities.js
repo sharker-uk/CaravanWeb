@@ -5,7 +5,13 @@
     function isWalkable(state, x, y, guest) {
         if (x < 0 || y < 0 || y >= state.tiles.length || x >= state.tiles[0].length) return false;
         const tile = state.tiles[y][x];
-        if (!tile || tile.terrain !== 'grass' || tile.nature === 'tree') return false;
+        if (!tile || !['grass', 'sand'].includes(tile.terrain) || tile.nature === 'tree') return false;
+        if ((state.landmarks || []).some(landmark => landmark.blocksMovement &&
+            x >= landmark.x && x < landmark.x + landmark.w &&
+            y >= landmark.y && y < landmark.y + landmark.h)) return false;
+        if ((state.constructions || []).some(construction => construction.blocksMovement &&
+            x >= construction.footprint.x && x < construction.footprint.x + construction.footprint.w &&
+            y >= construction.footprint.y && y < construction.footprint.y + construction.footprint.h)) return false;
         if ((state.caravans || []).some(caravan =>
             x >= caravan.pitch.x && x < caravan.pitch.x + caravan.pitch.w &&
             y >= caravan.pitch.y && y < caravan.pitch.y + caravan.pitch.h)) return false;

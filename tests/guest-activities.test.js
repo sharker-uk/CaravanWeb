@@ -40,6 +40,16 @@ test('guests select a reachable facility and move through world coordinates', ()
   assert.equal(state.guests[0].activity, 'visiting facility');
 });
 
+test('guest pathfinding treats blocking map landmarks as obstacles', () => {
+  const state = createState();
+  state.landmarks = [{x: 5, y: 0, w: 1, h: 12, blocksMovement: true}];
+
+  updateGuestActivities(state, 0.1);
+
+  assert.equal(state.guests[0].activity, 'relaxing at pitch');
+  assert.deepEqual(state.guests[0].path, []);
+});
+
 test('guest satisfaction responds to utilities, stay quality, and facility access', () => {
   const state = createState();
   const guest = state.guests[0];

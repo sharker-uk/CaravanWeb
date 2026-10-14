@@ -4,11 +4,12 @@
 
 ## Controls and construction
 
+- New parks begin at a coastal Caister-inspired site with a farmhouse, pond, roadside shops and a neighbouring beach field marked for sale. First-time players see a controls screen before the simulation starts.
 - Move the park manager with **WASD** or the arrow keys; the camera follows and scroll-wheel zooms.
-- Select a build tool, then left-click or drag on the map. The manager pauses while a build drag is active.
-- Drag a pitch-sized rectangle to fill it with grass or hardstanding pitches. A red outline indicates a box below the minimum pitch size.
+- Select a build tool, then drag on the map. Roads and paths fill the selected rectangle; pitches can be laid as a box, and fixed-size buildings preview at the drag start.
+- New roads, paths, pitches, utilities, trees, facilities and caravans take two in-game hours to finish. Their cost is charged when work begins; unfinished areas are reserved until construction completes.
 - Draw utility lines along roads or paths. Each line is validated and charged as one operation.
-- Click an empty pitch with an accommodation tool to place a caravan. Static units require a gravel pitch and all four hookups.
+- Click an empty pitch with an accommodation tool to order a caravan. Static units require a gravel pitch and all four hookups.
 - Guest parties book when demand, pitch vacancy, essential washroom capacity and operational status allow. Each booking tracks party composition, dates, preferences, needs and upfront payment.
 - Toilets are required for all overnight bookings; shared showers are required for tent and towed stays. Facilities have finite hourly capacity, operational switches and running costs.
 

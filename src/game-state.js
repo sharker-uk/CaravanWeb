@@ -22,6 +22,8 @@
         guestArrivalProgress: 0,
         dailyGuestArrivals: 0,
         facilities: [],
+        landmarks: [],
+        constructions: [],
         vehicles: [],
         handymen: 0,
         camera: { x: 100, y: 100, zoom: 3 },
@@ -72,17 +74,28 @@
             x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
             y >= item.pitch.y && y < item.pitch.y + item.pitch.h
         );
+        const landmark = state.landmarks?.find(item =>
+            x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
+        );
+        const construction = state.constructions?.find(item =>
+            item.footprint && x >= item.footprint.x && x < item.footprint.x + item.footprint.w &&
+            y >= item.footprint.y && y < item.footprint.y + item.footprint.h
+        );
         const pitchIsAvailable = Boolean(pitch && !pitch.occupied);
         const tree = tile.nature === 'tree';
         const hasObject = Boolean(facility || caravan || guest);
+        const landmarkBlocksBuilding = Boolean(landmark?.blocksBuilding);
+        const landmarkBlocksMovement = Boolean(landmark?.blocksMovement);
         const buildable = tile.terrain === 'grass' && !tile.road && !tile.path && !tree &&
-            !pitch && !hasObject;
+            !pitch && !hasObject && !landmarkBlocksBuilding && !construction;
 
         return {
-            walkable: tile.terrain === 'grass' && !tree && !hasObject,
+            walkable: (tile.terrain === 'grass' || tile.terrain === 'sand') && !tree &&
+                !hasObject && !landmarkBlocksMovement && !construction?.blocksMovement,
             buildable,
             occupied: Boolean(tree || pitch || hasObject),
-            interactable: Boolean(tree || tile.nature === 'debris' || pitchIsAvailable || caravan || guest || facility)
+            interactable: Boolean(tree || tile.nature === 'debris' || pitchIsAvailable ||
+                caravan || guest || facility || landmark?.interactable === true)
         };
     }
 
@@ -152,6 +165,11 @@
             x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
         );
         if (facility) return { kind: 'facility', entity: facility, x: facility.x, y: facility.y, w: facility.w, h: facility.h };
+
+        const landmark = state.landmarks?.find(item => item.interactable === true &&
+            x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
+        );
+        if (landmark) return {kind: 'landmark', entity: landmark, x: landmark.x, y: landmark.y, w: landmark.w, h: landmark.h};
 
         const pitch = state.pitches.find(item => !item.occupied &&
             x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h);

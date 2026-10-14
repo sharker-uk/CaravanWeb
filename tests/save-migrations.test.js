@@ -110,6 +110,24 @@ test('migrateSave retains party details and facility operating state', () => {
   assert.equal(migrated.facilities[0].hourlyCost, 3);
 });
 
+test('migrateSave preserves coastal terrain, landmarks and unfinished builds', () => {
+  const save = buildLegacySave();
+  save.tiles[0][0] = {terrain: 'sand', road: false, path: false};
+  save.landmarks = [{type: 'farmhouse', x: 2, y: 3, w: 4, h: 3, blocksBuilding: true}];
+  save.constructions = [{
+    kind: 'surface',
+    surface: 'road',
+    tiles: [{x: 8, y: 8}],
+    footprint: {x: 8, y: 8, w: 1, h: 1},
+    completesAt: 1200
+  }];
+
+  const migrated = migrateSave(save);
+  assert.equal(migrated.tiles[0][0].terrain, 'sand');
+  assert.equal(migrated.landmarks[0].type, 'farmhouse');
+  assert.equal(migrated.constructions[0].completesAt, 1200);
+});
+
 test('migrateSave applies current defaults to newly modeled facilities', () => {
   const save = buildLegacySave();
   save.facilities = [{x: 1, y: 1, w: 3, h: 3, type: 'showers'}];

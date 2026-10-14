@@ -13,6 +13,52 @@ function playSound(freq, type, duration) {
     osc.stop(AudioCtx.currentTime + duration);
 }
 
+function isFootprintUnderConstruction(footprint) {
+    return state.constructions.some(job => job.footprint &&
+        footprint.x < job.footprint.x + job.footprint.w &&
+        footprint.x + footprint.w > job.footprint.x &&
+        footprint.y < job.footprint.y + job.footprint.h &&
+        footprint.y + footprint.h > job.footprint.y);
+}
+
+function completeConstruction(job) {
+    if (job.kind === 'surface') {
+        job.tiles.forEach(({x, y}) => { state.tiles[y][x][job.surface] = true; });
+    } else if (job.kind === 'utility') {
+        job.tiles.forEach(({x, y}) => { state.tiles[y][x].utilities[job.utility] = true; });
+    } else if (job.kind === 'pitch') {
+        state.pitches.push(job.pitch);
+    } else if (job.kind === 'pitches') {
+        state.pitches.push(...job.pitches);
+    } else if (job.kind === 'facility') {
+        state.facilities.push({...FacilityOperations.getFacilityDefaults(job.type), ...job.facility});
+    } else if (job.kind === 'tree') {
+        state.tiles[job.x][job.y].nature = 'tree';
+    } else if (job.kind === 'caravan') {
+        const pitch = state.pitches[job.pitchIndex];
+        if (!pitch || !pitch.constructionReserved) {
+            console.error('Unable to complete caravan construction: its pitch is unavailable.', job);
+            return false;
+        }
+        const caravan = new Caravan(pitch, job.tier);
+        delete pitch.constructionReserved;
+        pitch.occupied = true;
+        state.caravans.push(caravan);
+    } else {
+        console.error('Unknown construction type.', job);
+        return false;
+    }
+    playSound(523, 'sine', 0.1);
+    return true;
+}
+
+function updateConstructions() {
+    const completed = Construction.completeDueConstructions(state, completeConstruction);
+    if (!completed) return;
+    saveGame();
+    showToast(`${completed} construction${completed === 1 ? '' : 's'} completed.`);
+}
+
 const TILE_SIZE = 16;
 const GRID_W = 60;
 const GRID_H = 40;
@@ -26,6 +72,7 @@ const FacilityOperations = window.FacilityOperations;
 const GuestActivities = window.GuestActivities;
 const GameRulesApi = window.GameRules;
 const LandManagement = window.LandManagement;
+const Construction = window.Construction;
 
 const PALETTE = {
     grass: ['#556b2f', '#5c7433', '#4d612a'],
@@ -36,6 +83,13 @@ const PALETTE = {
     fac_roof: '#c0392b',
     tree: '#1e8449'
 };
+const STARTING_LANDMARKS = [
+    {type: 'farmhouse', name: 'Run-down farmhouse', x: 13, y: 17, w: 6, h: 5, blocksBuilding: true, blocksMovement: true, interactable: true},
+    {type: 'rusty_resales', name: 'Rusty Resales', subtitle: 'Caravan Emporium', x: 2, y: 7, w: 5, h: 3, blocksBuilding: true, blocksMovement: true, interactable: true},
+    {type: 'fiddl_shop', name: 'Fiddl', subtitle: 'Convenience shop', x: 2, y: 14, w: 5, h: 3, blocksBuilding: true, blocksMovement: true, interactable: true},
+    {type: 'job_centre', name: 'Job Centre', subtitle: 'Park staff', x: 2, y: 21, w: 5, h: 3, blocksBuilding: true, blocksMovement: true, interactable: true},
+    {type: 'for_sale', name: 'Land for sale', x: 29, y: 12, w: 17, h: 16, blocksBuilding: true, blocksMovement: false, interactable: false}
+];
 
 let state = GameStateApi ? GameStateApi.createGameState() : {
     cash: 1500,
@@ -58,6 +112,8 @@ let state = GameStateApi ? GameStateApi.createGameState() : {
     guestArrivalProgress: 0,
     dailyGuestArrivals: 0,
     facilities: [],
+    landmarks: [],
+    constructions: [],
     vehicles: [],
     handymen: 0,
     camera: { x: 100, y: 100, zoom: 3 },
@@ -119,7 +175,9 @@ function init() {
             (caravan.tier === 1 || caravan.tier === 2)) ||
         (data.facilities !== undefined && (!Array.isArray(data.facilities) ||
             !data.facilities.every(facility => facility &&
-                ['x', 'y', 'w', 'h'].every(key => Number.isFinite(facility[key])))))) {
+                ['x', 'y', 'w', 'h'].every(key => Number.isFinite(facility[key]))))) ||
+        (data.landmarks !== undefined && !Array.isArray(data.landmarks)) ||
+        (data.constructions !== undefined && !Array.isArray(data.constructions))) {
         console.error('Saved game data is missing required map or entity data.');
         showToast('❌ Save data is invalid. A new park has been started.');
         generateNewMap();
@@ -155,6 +213,8 @@ function init() {
     state.overlayMode = ['none', 'services', 'utilities', 'entertainment'].includes(data.overlayMode) ? data.overlayMode : 'none';
     state.pitches = data.pitches.map(pitch => ({...pitch, occupied: false}));
     state.facilities = Array.isArray(data.facilities) ? data.facilities : [];
+    state.landmarks = Array.isArray(data.landmarks) ? data.landmarks : [];
+    state.constructions = Array.isArray(data.constructions) ? data.constructions : [];
     state.facilities = state.facilities.filter(facility => {
         if (facility.type !== 'tree') return true;
         const tile = state.tiles[facility.y]?.[facility.x];
@@ -174,6 +234,7 @@ function init() {
         ? Math.max(1, Number(data.simulationSpeed))
         : state.simulationSpeed;
     state.isPaused = Boolean(data.isPaused);
+    updateTutorialVisibility(false);
     state.satisfaction = Number.isFinite(data.satisfaction) ? data.satisfaction : state.satisfaction;
     state.rating = Number.isFinite(data.rating) ? data.rating : state.rating;
     state.weather = typeof data.weather === 'string' ? data.weather : state.weather;
@@ -221,6 +282,15 @@ function init() {
         occupiedGuestPitches.add(guest.pitchIndex);
         return [restoredGuest];
     });
+    state.constructions.filter(job => job.kind === 'caravan').forEach(job => {
+        const pitch = state.pitches[job.pitchIndex];
+        if (pitch && !pitch.occupied) {
+            pitch.occupied = true;
+            pitch.constructionReserved = true;
+        } else {
+            console.error('Saved caravan construction refers to an unavailable pitch.', job);
+        }
+    });
     if (data.player && Number.isFinite(data.player.x) && Number.isFinite(data.player.y) &&
         canOccupyPlayer(data.player.x, data.player.y)) {
         state.player = {...data.player};
@@ -231,21 +301,31 @@ function init() {
 
 function generateNewMap() {
     state.wood = 0;
+    state.tools = {axe: true, shovel: false};
+    state.overlayMode = 'none';
     state.pitches = [];
     state.caravans = [];
     state.guests = [];
     state.facilities = [];
-    state.player = {x: 5.5, y: 10.5};
+    state.landmarks = STARTING_LANDMARKS.map(landmark => ({...landmark}));
+    state.constructions = [];
+    state.player = {x: 15.5, y: 25.5};
+    state.isPaused = true;
     for (let y = 0; y < GRID_H; y++) {
         state.tiles[y] = [];
         for (let x = 0; x < GRID_W; x++) {
-            const terrain = Math.hypot(x - 50, y - 10) < 5 ? 'water' : 'grass';
-            const road = terrain === 'grass' && y >= 18 && y <= 20 && x < 25;
+            const terrain = x >= 50 ? 'water' : x >= 47 ? 'sand' :
+                Math.hypot(x - 23, y - 20) < 2.5 ? 'water' : 'grass';
+            const road = terrain === 'grass' && x >= 8 && x <= 9;
+            const path = terrain === 'grass' && y >= 24 && y <= 25 && x >= 10 && x <= 16;
             const roll = Math.abs((x * 73 + y * 37 + x * y * 11 + 19) % 100);
-            const safeStart = x >= 3 && x <= 9 && y >= 7 && y <= 13;
+            const safeStart = x >= 1 && x <= 20 && y >= 5 && y <= 29;
             const overgrownCore = x >= 10 && x <= 43 && y >= 5 && y <= 35;
             let nature = null;
-            if (terrain === 'grass' && !road && !safeStart) {
+            const landmark = state.landmarks.some(item =>
+                x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
+            );
+            if (terrain === 'grass' && !road && !path && !safeStart && !landmark) {
                 if (roll < (overgrownCore ? 29 : 15)) nature = 'tree';
                 else if (roll < (overgrownCore ? 42 : 26)) nature = 'debris';
             }
@@ -253,11 +333,12 @@ function generateNewMap() {
                 terrain,
                 nature,
                 road,
-                path: false,
+                path,
                 utilities: createEmptyUtilities()
             };
         }
     }
+    updateTutorialVisibility();
 }
 
 function normalizeTile(tile) {
@@ -294,7 +375,7 @@ function isValidTileData(tile) {
     if (tile.terrain === undefined) {
         return ['grass', 'road', 'water'].includes(tile.type);
     }
-    return ['grass', 'water'].includes(tile.terrain) &&
+    return ['grass', 'water', 'sand'].includes(tile.terrain) &&
         (tile.nature === null || tile.nature === undefined ||
             ['tree', 'debris'].includes(tile.nature)) &&
         (tile.road === undefined || typeof tile.road === 'boolean') &&
@@ -443,6 +524,25 @@ function interactWith(target) {
         updateUI();
         return;
     }
+    if (target.kind === 'landmark') {
+        const panel = {
+            rusty_resales: 'accommodation',
+            fiddl_shop: 'facilities',
+            job_centre: 'park'
+        }[target.entity.type];
+        if (panel) {
+            showMenuPanel(panel, document.querySelector(`[data-panel="${panel}"]`));
+            const message = {
+                rusty_resales: 'Rusty Resales: browse new and pre-loved caravans here. Sell a selected caravan from its inspector.',
+                fiddl_shop: 'Fiddl: park facilities and improvements are available in the build menu.',
+                job_centre: 'Job Centre: hire park staff from the management menu as your park grows.'
+            }[target.entity.type];
+            showToast(message);
+        } else {
+            showToast('Home sweet (if slightly run-down) home.');
+        }
+        return;
+    }
     if (target.kind === 'guest') {
         showToast(`${target.entity.party?.type || 'Guest'} party (${target.entity.party?.headcount || 1}) · ${target.entity.activity || 'relaxing'} · £${target.entity.totalIncome} paid · ${target.entity.stayDaysRemaining} day${target.entity.stayDaysRemaining === 1 ? '' : 's'} left`);
         return;
@@ -463,6 +563,8 @@ function interactNearby() {
                 tile.nature === 'tree' || tile.nature === 'debris'
                     ? {kind: tile.nature, entity: tile, x, y, w: 1, h: 1}
                     : null).filter(Boolean)),
+            ...(state.landmarks || []).filter(entity => entity.interactable)
+                .map(entity => ({kind: 'landmark', entity, ...entity})),
             ...state.pitches.filter(entity => !entity.occupied)
                 .map(entity => ({kind: 'pitch', entity, ...entity}))]
             .filter(item => distanceToTarget(item) <= 1.25)
@@ -578,6 +680,8 @@ function saveGame() {
             })),
             facilities: state.facilities,
             overlayMode: state.overlayMode || 'none',
+            landmarks: state.landmarks,
+            constructions: state.constructions,
             handymen: state.handymen,
             day: state.day,
             hour: state.hour,
@@ -641,6 +745,7 @@ function update(dt) {
         GuestActivities.updateGuestSatisfaction(state);
     }
 
+    if (!state.isPaused) updateConstructions();
     updateUI();
 }
 
@@ -742,7 +847,14 @@ function findGuestArrivalPosition(pitch) {
     );
     const isArrivalWalkable = ({x, y}) => {
         const tile = state.tiles[y]?.[x];
-        return tile?.terrain === 'grass' && tile.nature !== 'tree' && isFree({x, y}) &&
+        return tile && ['grass', 'sand'].includes(tile.terrain) && tile.nature !== 'tree' &&
+            !(state.landmarks || []).some(landmark => landmark.blocksMovement &&
+                x >= landmark.x && x < landmark.x + landmark.w &&
+                y >= landmark.y && y < landmark.y + landmark.h) &&
+            !(state.constructions || []).some(job => job.blocksMovement &&
+                x >= job.footprint.x && x < job.footprint.x + job.footprint.w &&
+                y >= job.footprint.y && y < job.footprint.y + job.footprint.h) &&
+            isFree({x, y}) &&
             !state.facilities.some(facility =>
                 x >= facility.x && x < facility.x + facility.w &&
                 y >= facility.y && y < facility.y + facility.h
@@ -834,36 +946,18 @@ function handleGridClick(gx, gy) {
         return;
     }
 
-    if (state.activeTool === 'road') {
-        if (!getTileProperties(gx, gy).buildable) {
-            showToast('❌ Roads can only be built on clear, buildable ground.');
-        } else if (spend(20, 'construction', 'Built road tile')) {
-            tile.road = true;
-            saveGame();
-        }
-    }
-    if (state.activeTool === 'path') {
-        if (!getTileProperties(gx, gy).buildable) {
-            showToast('❌ Paths can only be built on clear, buildable ground.');
-        } else if (spend(10, 'construction', 'Built path tile')) {
-            tile.path = true;
-            saveGame();
-        }
-    }
     if (state.activeTool.startsWith('utility_')) {
         const utility = state.activeTool.slice('utility_'.length);
         if (!tile.road && !tile.path) {
             showToast('❌ Utility lines can only be laid under a road or path.');
         } else if (tile.utilities[utility]) {
             showToast('That tile already has this utility line.');
-        } else if (spend(UTILITY_COSTS[utility], 'construction', `Laid ${utility} utility line`)) {
-            tile.utilities[utility] = true;
-            saveGame();
-            const connectedPitchCount = state.pitches.filter(pitch =>
-                getPitchHookups(pitch)[utility]).length;
-            if (connectedPitchCount) {
-                showToast(`${utility[0].toUpperCase()}${utility.slice(1)} line laid · ${connectedPitchCount} pitch${connectedPitchCount === 1 ? '' : 'es'} connected.`);
-            }
+        } else if (isTileUnderConstruction(gx, gy)) {
+            showToast('That tile already has construction in progress.');
+        } else {
+            startConstruction('utility', {utility, tiles: [{x: gx, y: gy}]},
+                {x: gx, y: gy, w: 1, h: 1}, UTILITY_COSTS[utility],
+                `Laid ${utility} utility line`);
         }
     }
     if (state.activeTool === 'pitch_grass') createPitch(gx, gy, 4, 6, 'grass', 100);
@@ -879,12 +973,12 @@ function handleGridClick(gx, gy) {
             );
             if (!placement.valid) {
                 showToast(`❌ ${placement.reason}`);
-            } else if (spend(cost, 'accommodation', `Purchased tier ${tier} caravan`)) {
-                const c = new Caravan(p, tier);
-                p.occupied = true;
-                state.caravans.push(c);
-                playSound(440, 'square', 0.1);
-                saveGame();
+            } else if (!isFootprintUnderConstruction(p)) {
+                const pitchIndex = state.pitches.indexOf(p);
+                startConstruction('caravan', {pitchIndex, tier}, p, cost,
+                    `Purchased tier ${tier} caravan`, 'accommodation');
+            } else {
+                showToast('That pitch already has construction in progress.');
             }
         } else {
             showToast('❌ There is no pitch under the selected tile.');
@@ -918,10 +1012,7 @@ function plantTree(x, y) {
         showToast('❌ That space is blocked or out of bounds.');
         return;
     }
-    if (!spend(30, 'construction', 'Planted park tree')) return;
-    state.tiles[y][x].nature = 'tree';
-    playSound(523, 'sine', 0.1);
-    saveGame();
+    startConstruction('tree', {x, y}, {x, y, w: 1, h: 1}, 30, 'Planted park tree');
 }
 
 function placeFacility(x, y, w, h, type, cost) {
@@ -929,14 +1020,18 @@ function placeFacility(x, y, w, h, type, cost) {
         showToast('❌ That space is blocked or out of bounds.');
         return;
     }
-    if (!spend(cost, 'construction', `Built ${type} facility`)) return;
-    state.facilities.push({...FacilityOperations.getFacilityDefaults(type), x, y, w, h, type});
-    playSound(523, 'sine', 0.1);
-    saveGame();
+    startConstruction('facility', {
+        type,
+        facility: {x, y, w, h, type}
+    }, {x, y, w, h}, cost, `Built ${type} facility`);
 }
 
 function createPitch(x, y, w, h, type, cost) {
     const pitch = {x, y, w, h, type, occupied: false};
+    if (!isFootprintAvailable(x, y, w, h)) {
+        showToast('❌ That pitch area is blocked or out of bounds.');
+        return;
+    }
     const result = GameRulesApi.validatePitchPlacement(
         pitch, state.tiles, state.pitches, state.facilities
     );
@@ -944,10 +1039,7 @@ function createPitch(x, y, w, h, type, cost) {
         showToast(`❌ ${result.reason}`);
         return;
     }
-    if (!spend(cost, 'construction', `Built ${type} pitch`)) return;
-    state.pitches.push(pitch);
-    playSound(659, 'sine', 0.1);
-    saveGame();
+    startConstruction('pitch', {pitch}, pitch, cost, `Built ${type} pitch`);
 }
 
 function createPitchesInBox(start, end, type) {
@@ -967,6 +1059,10 @@ function createPitchesInBox(start, end, type) {
 
     const added = [];
     for (const pitch of plan.pitches) {
+        if (!isFootprintAvailable(pitch.x, pitch.y, pitch.w, pitch.h)) {
+            showToast('❌ That pitch area is blocked or out of bounds.');
+            return false;
+        }
         const result = GameRulesApi.validatePitchPlacement(
             pitch, state.tiles, [...state.pitches, ...added], state.facilities,
             {requireAdjacentRoute: false}
@@ -978,14 +1074,9 @@ function createPitchesInBox(start, end, type) {
         added.push(pitch);
     }
     const unitCost = type === 'grass' ? 100 : 250;
-    if (!spend(unitCost * added.length, 'construction', `Built ${added.length} ${type} pitch${added.length === 1 ? '' : 'es'}`)) {
-        return false;
-    }
-    state.pitches.push(...added);
-    playSound(659, 'sine', 0.1);
-    saveGame();
-    showToast(`${added.length} ${type} pitch${added.length === 1 ? '' : 'es'} built.`);
-    return true;
+    return startConstruction('pitches', {pitches: added}, plan.box,
+        unitCost * added.length,
+        `Built ${added.length} ${type} pitch${added.length === 1 ? '' : 'es'}`);
 }
 
 function drawUtilityLine(start, end, utility) {
@@ -999,17 +1090,19 @@ function drawUtilityLine(start, end, utility) {
         return false;
     }
     const points = validation.tiles;
-    if (!spend(points.length * UTILITY_COSTS[utility], 'construction',
-        `Laid ${utility} utility line (${points.length} tiles)`)) return false;
-    points.forEach(({x, y}) => { state.tiles[y][x].utilities[utility] = true; });
-    saveGame();
-    const connectedPitchCount = state.pitches.filter(pitch =>
-        getPitchHookups(pitch)[utility]).length;
-    showToast(`${utility[0].toUpperCase()}${utility.slice(1)} line laid · ${connectedPitchCount} pitch${connectedPitchCount === 1 ? '' : 'es'} connected.`);
-    return true;
+    if (points.some(({x, y}) => isTileUnderConstruction(x, y))) {
+        showToast('That tile already has construction in progress.');
+        return false;
+    }
+    return startConstruction('utility', {utility, tiles: points},
+        getTileBounds(points), points.length * UTILITY_COSTS[utility],
+        `Laid ${utility} utility line (${points.length} tiles)`);
 }
 
 function handleBuildDrag(start, end) {
+    if (state.activeTool === 'road' || state.activeTool === 'path') {
+        return createSurfaceInBox(start, end, state.activeTool);
+    }
     if (state.activeTool === 'pitch_grass' || state.activeTool === 'pitch_gravel') {
         const type = state.activeTool === 'pitch_grass' ? 'grass' : 'gravel';
         return createPitchesInBox(start, end, type);
@@ -1017,8 +1110,69 @@ function handleBuildDrag(start, end) {
     if (state.activeTool.startsWith('utility_')) {
         return drawUtilityLine(start, end, state.activeTool.slice('utility_'.length));
     }
-    handleGridClick(start.x, start.y);
+    handleGridClick(end.x, end.y);
     return true;
+}
+
+function getTileBounds(tiles) {
+    const xs = tiles.map(tile => tile.x);
+    const ys = tiles.map(tile => tile.y);
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+    return {x, y, w: Math.max(...xs) - x + 1, h: Math.max(...ys) - y + 1};
+}
+
+function startConstruction(kind, payload, footprint, cost, description, category = 'construction') {
+    const job = Construction.queueConstruction(state, {
+        kind, ...payload, footprint, blocksMovement: true
+    });
+    if (!job) {
+        console.error('Unable to queue construction.', {kind, payload, footprint});
+        showToast('❌ Construction could not be scheduled.');
+        return false;
+    }
+    if (!spend(cost, category, description)) {
+        state.constructions.pop();
+        return false;
+    }
+    if (kind === 'caravan') {
+        const pitch = state.pitches[payload.pitchIndex];
+        pitch.occupied = true;
+        pitch.constructionReserved = true;
+    }
+    saveGame();
+    showToast('Construction started · ready in 2 in-game hours.');
+    return true;
+}
+
+function isTileUnderConstruction(x, y) {
+    return state.constructions.some(job => job.footprint &&
+        x >= job.footprint.x && x < job.footprint.x + job.footprint.w &&
+        y >= job.footprint.y && y < job.footprint.y + job.footprint.h);
+}
+
+function createSurfaceInBox(start, end, surface) {
+    const x = Math.min(start.x, end.x);
+    const y = Math.min(start.y, end.y);
+    const w = Math.abs(end.x - start.x) + 1;
+    const h = Math.abs(end.y - start.y) + 1;
+    if (x < 0 || y < 0 || x + w > GRID_W || y + h > GRID_H) {
+        showToast('❌ The selected area is outside the park.');
+        return false;
+    }
+    const tiles = [];
+    for (let tileY = y; tileY < y + h; tileY++) {
+        for (let tileX = x; tileX < x + w; tileX++) {
+            if (!getTileProperties(tileX, tileY).buildable) {
+                showToast(`❌ ${surface === 'road' ? 'Roads' : 'Paths'} need clear, buildable ground.`);
+                return false;
+            }
+            tiles.push({x: tileX, y: tileY});
+        }
+    }
+    const cost = surface === 'road' ? 20 : 10;
+    return startConstruction('surface', {surface, tiles}, {x, y, w, h}, cost * tiles.length,
+        `Built ${tiles.length} ${surface} tile${tiles.length === 1 ? '' : 's'}`);
 }
 
 function hasAdjacentRoute(x, y, w, h) {
@@ -1078,7 +1232,8 @@ function draw(timestamp = 0) {
     for(let y=0; y<GRID_H; y++) {
         for(let x=0; x<GRID_W; x++) {
             const t = state.tiles[y][x];
-            ctx.fillStyle = t.terrain === 'grass' ? PALETTE.grass[(x+y)%3] : PALETTE.water;
+            ctx.fillStyle = t.terrain === 'grass' ? PALETTE.grass[(x+y)%3] :
+                t.terrain === 'sand' ? '#d6c18e' : PALETTE.water;
             ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
         }
     }
@@ -1162,6 +1317,40 @@ function draw(timestamp = 0) {
         });
     }
 
+    state.landmarks.forEach(landmark => {
+        const px = landmark.x * TILE_SIZE;
+        const py = landmark.y * TILE_SIZE;
+        const width = landmark.w * TILE_SIZE;
+        const height = landmark.h * TILE_SIZE;
+        if (landmark.type === 'for_sale') {
+            ctx.fillStyle = 'rgba(218, 196, 127, 0.16)';
+            ctx.fillRect(px, py, width, height);
+            ctx.strokeStyle = '#f3df9b';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 3]);
+            ctx.strokeRect(px + 2, py + 2, width - 4, height - 4);
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#fff4c2';
+            ctx.font = 'bold 9px Arial';
+            ctx.fillText('LAND FOR SALE', px + 6, py + 14);
+            return;
+        }
+        const isFarmhouse = landmark.type === 'farmhouse';
+        ctx.fillStyle = isFarmhouse ? '#9b8464' : '#d6c4a3';
+        ctx.fillRect(px, py + 3, width, height - 3);
+        ctx.fillStyle = isFarmhouse ? '#69483b' : '#6b3f32';
+        ctx.fillRect(px - 2, py, width + 4, 5);
+        ctx.fillStyle = '#31485a';
+        ctx.fillRect(px + 4, py + 9, 5, 6);
+        ctx.fillRect(px + width - 10, py + 9, 5, 6);
+        ctx.fillStyle = '#fff4dc';
+        ctx.font = 'bold 7px Arial';
+        ctx.fillText(landmark.name.toUpperCase(), px + 3, py + height - 5, width - 6);
+        if (landmark.subtitle) {
+            ctx.font = '6px Arial';
+            ctx.fillText(landmark.subtitle, px + 3, py + height + 3, width - 6);
+        }
+    });
     const utilityColors = {
         gas: '#e67e22', water: '#5dade2', electricity: '#f4d03f', waste: '#d5d8dc'
     };
@@ -1211,6 +1400,49 @@ function draw(timestamp = 0) {
         ctx.strokeRect(x * TILE_SIZE, y * TILE_SIZE, width * TILE_SIZE, height * TILE_SIZE);
     }
 
+    if (state.isDown && state.dragStart && state.pointerTile) {
+        let box = null;
+        let valid = true;
+        if (state.activeTool === 'road' || state.activeTool === 'path') {
+            const x = Math.min(state.dragStart.x, state.pointerTile.x);
+            const y = Math.min(state.dragStart.y, state.pointerTile.y);
+            const w = Math.abs(state.pointerTile.x - state.dragStart.x) + 1;
+            const h = Math.abs(state.pointerTile.y - state.dragStart.y) + 1;
+            box = {x, y, w, h};
+            valid = x >= 0 && y >= 0 && x + w <= GRID_W && y + h <= GRID_H &&
+                Array.from({length: h}, (_, row) => Array.from({length: w}, (_, column) =>
+                    getTileProperties(x + column, y + row).buildable).every(Boolean)).every(Boolean);
+        } else if (state.activeTool.startsWith('build_') && state.activeTool !== 'build_tree') {
+            const type = state.activeTool.slice('build_'.length);
+            const building = FACILITY_BUILDINGS[type];
+            if (building) {
+                box = {...state.pointerTile, ...building};
+                valid = isFootprintAvailable(box.x, box.y, box.w, box.h);
+            }
+        } else if (state.activeTool === 'build_tree') {
+            box = {...state.pointerTile, w: 1, h: 1};
+            valid = isFootprintAvailable(box.x, box.y, 1, 1);
+        } else if (state.activeTool.startsWith('utility_')) {
+            const validation = GameRulesApi.validateUtilityLine(state.dragStart,
+                state.pointerTile, state.tiles, state.activeTool.slice('utility_'.length));
+            valid = validation.valid;
+            if (validation.tiles.length) box = getTileBounds(validation.tiles);
+        } else if (state.activeTool.startsWith('buy_')) {
+            const pitch = state.pitches.find(item => state.pointerTile.x >= item.x &&
+                state.pointerTile.x < item.x + item.w && state.pointerTile.y >= item.y &&
+                state.pointerTile.y < item.y + item.h);
+            if (pitch) box = pitch;
+            valid = Boolean(pitch && !pitch.occupied && !isFootprintUnderConstruction(pitch));
+        }
+        if (box) {
+            ctx.fillStyle = valid ? 'rgba(46, 204, 113, 0.2)' : 'rgba(231, 76, 60, 0.24)';
+            ctx.strokeStyle = valid ? '#2ecc71' : '#e74c3c';
+            ctx.lineWidth = 2 / state.camera.zoom;
+            ctx.fillRect(box.x * TILE_SIZE, box.y * TILE_SIZE, box.w * TILE_SIZE, box.h * TILE_SIZE);
+            ctx.strokeRect(box.x * TILE_SIZE, box.y * TILE_SIZE, box.w * TILE_SIZE, box.h * TILE_SIZE);
+        }
+    }
+
     // Placed-object layer
     state.facilities.forEach(f => {
         const px = f.x*TILE_SIZE; const py = f.y*TILE_SIZE;
@@ -1226,6 +1458,21 @@ function draw(timestamp = 0) {
         ctx.fillStyle = wallColor; ctx.fillRect(px, py, f.w*TILE_SIZE, f.h*TILE_SIZE);
         ctx.fillStyle = roofColor; ctx.fillRect(px-2, py, (f.w*TILE_SIZE)+4, 4);
         ctx.fillStyle = '#2c3e50'; ctx.font = '8px Arial'; ctx.fillText(f.type.toUpperCase(), px+4, py+14);
+    });
+
+    state.constructions.forEach(job => {
+        const {x, y, w, h} = job.footprint;
+        ctx.fillStyle = 'rgba(230, 126, 34, 0.2)';
+        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, w * TILE_SIZE, h * TILE_SIZE);
+        ctx.strokeStyle = '#f39c12';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 2]);
+        ctx.strokeRect(x * TILE_SIZE + 1, y * TILE_SIZE + 1,
+            w * TILE_SIZE - 2, h * TILE_SIZE - 2);
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#fff2d8';
+        ctx.font = 'bold 7px Arial';
+        ctx.fillText('BUILDING', x * TILE_SIZE + 3, y * TILE_SIZE + 10);
     });
 
     // Caravans occupy their pitch footprint and belong to the placed-object layer
@@ -1557,6 +1804,18 @@ function sellTimber() {
     showToast(`💰 Sold ${units} timber for £${value}.`);
 }
 
+function updateTutorialVisibility(visible = true) {
+    const screen = document.getElementById('start-screen');
+    if (screen) screen.hidden = !visible;
+}
+
+function startNewGame() {
+    state.isPaused = false;
+    updateTutorialVisibility(false);
+    saveGame();
+    updateUI();
+}
+
 function hireHandyman() {
     if (spend(150, 'staff', 'Hired handyman')) {
         state.handymen++;
@@ -1583,6 +1842,7 @@ function gridFromPointer(clientX, clientY) {
 
 canvas.addEventListener('mousedown', event => {
     if (event.button !== 0) return;
+    if (!document.getElementById('start-screen').hidden) return;
     state.isDown = true;
     state.buildingDrag = state.activeTool !== 'select';
     state.lastM = {x: event.clientX, y: event.clientY};
@@ -1590,6 +1850,7 @@ canvas.addEventListener('mousedown', event => {
     state.pointerTile = state.dragStart;
 });
 window.addEventListener('keydown', e => {
+    if (!document.getElementById('start-screen').hidden) return;
     const key = e.key.toLowerCase();
     if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) e.preventDefault();
     if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
@@ -1633,6 +1894,7 @@ canvas.addEventListener('wheel', e => {
 
 // Start
 window.onload = () => {
+    document.getElementById('start-game').addEventListener('click', startNewGame);
     document.getElementById('btn-repair').addEventListener('click', repairSelectedCaravan);
     document.getElementById('btn-upgrade').addEventListener('click', upgradeSelectedCaravan);
     document.getElementById('btn-skirting').addEventListener('click', fitSelectedSkirting);
