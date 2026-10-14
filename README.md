@@ -4,7 +4,8 @@
 
 ## Controls and construction
 
-- New parks begin at a coastal Caister-inspired site with a farmhouse, pond, roadside shops and a neighbouring beach field marked for sale. First-time players see a controls screen before the simulation starts.
+- New parks begin at a coastal Caister-inspired site with a farmhouse, pond, roadside shops and a neighbouring beach field marked for sale. The start screen includes a small pixel-art player avatar creator and randomiser.
+- A new run starts with 5–7 randomly generated visitors who wander around the starting area. Their looks and positions are saved with the park; the start screen can re-roll the visitor group before you begin.
 - Move the park manager with **WASD** or the arrow keys; the camera follows and scroll-wheel zooms.
 - Walk up to the Old Farm House between 8pm and 5am to sleep until 8am.
 - Tent and towed guests may arrive from 8am to 5pm; static renters arrive from 3pm to 8pm and check out by noon on their departure day.
@@ -17,4 +18,4 @@
 
 Guest mix and arrival pressure shift between summer school holidays, weekends and quieter weekdays. Party preferences and unmet toilet/shower needs affect satisfaction; shop and laundry usage creates guest revenue alongside facility operating expenses. The park overview shows guest headcount, recent ledger entries, the rolling seven-day income/expense balance, and a reconciliation check against current cash. Save schema migrations preserve existing `caravan_tycoon_save` payloads while upgrading old one-guest bookings to solo parties.
 
-Run `npm test` for the gameplay rules, simulation, save-migration, guest activity, and economy tests.
+Run `npm test` for the gameplay rules, simulation, save-migration, guest activity, economy, and character-system tests. Run `npm run check:syntax` to check the game and character-system scripts.
