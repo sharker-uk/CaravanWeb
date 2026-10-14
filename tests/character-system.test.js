@@ -38,29 +38,37 @@ test('avatar randomiser keeps the manager name and selects supported appearance 
     assert.ok(CharacterSystem.accessories.includes(avatar.accessory));
 });
 
-test('new park visitors are generated as distinct, styled characters', () => {
-    const npcs = CharacterSystem.createNpcs({tiles: []}, () => true);
-    assert.ok(npcs.length >= 5 && npcs.length <= 7);
-    assert.equal(new Set(npcs.map(npc => npc.name)).size, npcs.length);
-    npcs.forEach(npc => {
-        assert.ok(Number.isFinite(npc.x));
-        assert.ok(Number.isFinite(npc.y));
-        assert.ok(CharacterSystem.hairStyles.includes(npc.appearance.hairStyle));
-        assert.equal(npc.appearance.name, npc.name);
+test('guest roster creates profiles for future bookings without spawning roaming NPCs', () => {
+    const roster = CharacterSystem.createGuestRoster(12);
+    assert.equal(roster.length, 12);
+    assert.equal(new Set(roster.map(profile => profile.name)).size, 12);
+    roster.forEach(profile => {
+        assert.ok(profile.name.length > 0);
+        assert.ok(CharacterSystem.hairStyles.includes(profile.appearance.hairStyle));
+        assert.equal(profile.appearance.name, profile.name);
     });
 });
 
-test('saved visitor data is normalized and capped', () => {
-    const npcs = Array.from({length: 15}, (_, index) => ({
+test('a booking receives the correct number of named character appearances', () => {
+    const roster = CharacterSystem.createGuestRoster(5);
+    const result = CharacterSystem.createPartyMembers({type: 'family', headcount: 3}, roster);
+    assert.equal(result.members.length, 3);
+    assert.equal(result.roster.length, 2);
+    result.members.forEach(member => {
+        assert.ok(member.name.length > 0);
+        assert.equal(member.appearance.name, member.name);
+    });
+});
+
+test('saved guest roster profiles are normalized and capped', () => {
+    const roster = Array.from({length: 35}, (_, index) => ({
         id: String(index),
         name: 'Visitor ' + index,
-        appearance: {skin: 'invalid'},
-        x: 100,
-        y: -5
+        appearance: {skin: 'invalid'}
     }));
-    const restored = CharacterSystem.normalizeNpcs(npcs, {}, () => true);
-    assert.equal(restored.length, 12);
-    assert.equal(restored[0].x, 45);
-    assert.equal(restored[0].y, 1);
+    const restored = CharacterSystem.normalizeGuestRoster(roster);
+    assert.equal(restored.length, 30);
+    assert.equal(restored[0].name, 'Visitor 0');
     assert.equal(restored[0].appearance.skin, CharacterSystem.defaultAvatar().skin);
 });
+
