@@ -5,6 +5,7 @@ const {
   canHostParty,
   getFacilityDefaults,
   getRequiredFacilities,
+  getMaintenanceCost,
   processHourlyFacilities
 } = require('../src/facility-operations.js');
 const {getSevenDayBalance, recordTransaction} = require('../src/economy.js');
@@ -23,6 +24,37 @@ test('overnight party eligibility requires operational capacity for essential fa
   assert.deepEqual(canHostParty(state, 'static', 4), {valid: true, missing: []});
   state.facilities[1].isOperational = false;
   assert.deepEqual(canHostParty(state, 'towed', 2), {valid: true, missing: []});
+});
+
+test('toilet blocks have no hourly running cost and begin in good condition', () => {
+  const toilets = facility('toilets');
+  assert.equal(toilets.hourlyCost, 0);
+  assert.equal(toilets.cleanliness, 100);
+  assert.equal(toilets.wear, 100);
+});
+
+test('toilet maintenance prices rise with neglect, independent of job duration', () => {
+  assert.equal(getMaintenanceCost('clean', 100), 5);
+  assert.equal(getMaintenanceCost('clean', 80), 5);
+  assert.equal(getMaintenanceCost('clean', 79), 10);
+  assert.equal(getMaintenanceCost('clean', 60), 10);
+  assert.equal(getMaintenanceCost('clean', 59), 18);
+  assert.equal(getMaintenanceCost('clean', 40), 18);
+  assert.equal(getMaintenanceCost('clean', 39), 28);
+  assert.equal(getMaintenanceCost('clean', 20), 28);
+  assert.equal(getMaintenanceCost('clean', 19), 40);
+  assert.equal(getMaintenanceCost('clean', 0), 40);
+  assert.equal(getMaintenanceCost('repair', 100), 10);
+  assert.equal(getMaintenanceCost('repair', 80), 10);
+  assert.equal(getMaintenanceCost('repair', 79), 20);
+  assert.equal(getMaintenanceCost('repair', 60), 20);
+  assert.equal(getMaintenanceCost('repair', 59), 35);
+  assert.equal(getMaintenanceCost('repair', 40), 35);
+  assert.equal(getMaintenanceCost('repair', 39), 60);
+  assert.equal(getMaintenanceCost('repair', 20), 60);
+  assert.equal(getMaintenanceCost('repair', 19), 100);
+  assert.equal(getMaintenanceCost('repair', 0), 100);
+  assert.equal(getMaintenanceCost('unknown', 50), null);
 });
 
 test('essential capacity matches single-facility service allocation', () => {
@@ -83,6 +115,23 @@ test('facility service capacity, party needs and transactions affect operating r
   processHourlyFacilities(state, transaction);
   assert.ok(state.facilities.every(item => item.hourlyUsage <= item.capacity));
   assert.ok(party.needs.toiletVisits + party.needs.showerVisits > 0);
+});
+
+test('toilet use gradually reduces cleanliness and wear and dirty toilets lower satisfaction', () => {
+  const party = createGuestParty(181, () => 0);
+  party.headcount = 4;
+  party.needs.satisfaction = 75;
+  party.preferences = {...party.preferences, preferredFacilities: [], toiletIntervalHours: 1, showerVisitIntervalDays: 0, shopIntervalHours: 0, laundryEveryDays: 0};
+  const toilets = facility('toilets', 16);
+  toilets.cleanliness = 40;
+  const state = {day: 1, hour: 0, facilities: [toilets], guests: [{
+    party, accommodation: 'static', pitchIndex: 0,
+    booking: {arrivalDay: 1}, lastFacilityUpdate: -1
+  }]};
+  processHourlyFacilities(state, () => {});
+  assert.ok(toilets.cleanliness < 40);
+  assert.ok(toilets.wear < 100);
+  assert.ok(party.needs.satisfaction < 75);
 });
 
 test('three-week managed-park operations remain ledger-reconciled and profitable', () => {
