@@ -1384,9 +1384,9 @@ function updateUI() {
     const groundsStaffButton = document.getElementById('hire-grounds-staff-btn');
     if (groundsStaffButton) {
         const unlocked = state.facilities.length >= 4 && state.pitches.length >= 6;
-        groundsStaffButton.disabled = state.groundsStaff > 0 || !unlocked || state.cash < 250;
+        groundsStaffButton.disabled = state.groundsStaff > 0 ? false : (!unlocked || state.cash < 250);
         groundsStaffButton.innerHTML = state.groundsStaff > 0
-            ? '🌿<span>Grounds staff · Employed</span>'
+            ? '🌿<span>Dismiss grounds staff</span>'
             : unlocked ? '🌿<span>Hire grounds staff · £250 + £1/hour</span>'
                 : '🌿<span>Grounds staff · Unlock at 4 facilities / 6 pitches</span>';
     }
@@ -1717,20 +1717,23 @@ function hireHandyman() {
 }
 
 function hireGroundsStaff() {
+    if (state.groundsStaff > 0) {
+        state.groundsStaff = 0;
+        saveGame();
+        updateUI();
+        showToast('🌿 Grounds staff dismissed. Their hourly wages have stopped.');
+        return;
+    }
     const unlocked = state.facilities.length >= 4 && state.pitches.length >= 6;
     if (!unlocked) {
         showToast('Grounds staff become available once the park has 4 facilities and 6 pitches.');
-        return;
-    }
-    if (state.groundsStaff > 0) {
-        showToast('Grounds staff are already employed.');
         return;
     }
     if (spend(250, 'staff', 'Hired grounds staff')) {
         state.groundsStaff = 1;
         saveGame();
         updateUI();
-        showToast('🌿 Grounds staff hired. They clean and maintain toilet blocks for £1 per in-game hour.');
+        showToast('🌿 Grounds staff hired. They clean and maintain toilet blocks for £1 per in-game hour. Use the same button to dismiss them.');
     }
 }
 
