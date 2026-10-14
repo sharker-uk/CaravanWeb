@@ -826,6 +826,15 @@ function onHourly() {
         });
     }
     FacilityOperations.processHourlyFacilities(state, recordTransaction);
+    if (state.hour >= 12) {
+        const departingStaticGuests = state.guests.filter(guest =>
+            GuestParties.isStaticCheckoutDue(guest, state.day, state.hour)
+        );
+        const checkedOut = checkOutGuests(departingStaticGuests);
+        if (checkedOut) {
+            showToast(`${checkedOut} static renter${checkedOut === 1 ? '' : 's'} checked out.`);
+        }
+    }
     const candidate = createArrivalCandidate();
     const demand = GuestParties.getDemandProfile(state.day);
     if (Economy.shouldAcceptGuest(state, {
@@ -844,9 +853,10 @@ function createArrivalCandidate() {
     return GuestParties.selectEligibleBooking(
         state.pitches,
         party,
-        pitch => pitch.type === 'grass'
+        pitch => (pitch.type === 'grass'
             ? ['tent', 'towed']
-            : ['towed', ...(isPitchReadyForStatic(pitch) ? ['static'] : [])],
+            : ['towed', ...(isPitchReadyForStatic(pitch) ? ['static'] : [])])
+            .filter(accommodation => GuestParties.isArrivalTimeAllowed(accommodation, state.hour)),
         (accommodation, headcount, pitch) =>
             FacilityOperations.canHostParty(state, accommodation, headcount).valid &&
             ParkServices.getPitchServiceCheck(state, pitch, accommodation, headcount).valid
@@ -948,16 +958,7 @@ function findGuestArrivalPosition(pitch) {
     return {x: pitch.x + pitch.w / 2, y: pitch.y + pitch.h / 2};
 }
 
-function onDaily() {
-    let income = 0;
-    state.caravans.forEach(c => {
-        if (!c.isBroken && c.isRentalReady()) income += c.getDailyRent();
-    });
-    const departingGuests = [];
-    state.guests.forEach(guest => {
-        guest.stayDaysRemaining--;
-        if (guest.stayDaysRemaining <= 0) departingGuests.push(guest);
-    });
+function checkOutGuests(departingGuests) {
     departingGuests.forEach(guest => {
         if (Number.isFinite(guest.experienceScore)) {
             const partySatisfaction = Number(guest.party?.needs?.satisfaction) || 75;
@@ -968,6 +969,22 @@ function onDaily() {
         guest.pitch.occupied = false;
         state.guests.splice(state.guests.indexOf(guest), 1);
     });
+    return departingGuests.length;
+}
+
+function onDaily() {
+    let income = 0;
+    state.caravans.forEach(c => {
+        if (!c.isBroken && c.isRentalReady()) income += c.getDailyRent();
+    });
+    const departingGuests = [];
+    state.guests.forEach(guest => {
+        guest.stayDaysRemaining--;
+        if (guest.stayDaysRemaining <= 0 && guest.accommodation !== 'static') {
+            departingGuests.push(guest);
+        }
+    });
+    checkOutGuests(departingGuests);
     if (income) recordTransaction(income, 'caravan rental', 'Daily caravan rental income');
     state.dailyGuestArrivals = 0;
     if (income > 0 || departingGuests.length) {

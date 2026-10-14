@@ -35,6 +35,21 @@
         };
     }
 
+    function isArrivalTimeAllowed(accommodation, hour) {
+        if (!Number.isInteger(hour) || hour < 0 || hour > 23) return false;
+        if (accommodation === 'tent' || accommodation === 'towed') {
+            return hour >= 8 && hour <= 17;
+        }
+        return accommodation === 'static' && hour >= 15 && hour <= 20;
+    }
+
+    function isStaticCheckoutDue(guest, day, hour) {
+        return guest?.accommodation === 'static' &&
+            Number.isInteger(guest.booking?.departureDay) &&
+            Number.isFinite(day) && hour >= 12 &&
+            guest.booking.departureDay <= day;
+    }
+
     function randomInteger(range, random) {
         return range[0] + Math.floor(random() * (range[1] - range[0] + 1));
     }
@@ -94,7 +109,14 @@
             : null;
     }
 
-    const api = {getDemandPeriod, getDemandProfile, createGuestParty, selectEligibleBooking};
+    const api = {
+        getDemandPeriod,
+        getDemandProfile,
+        isArrivalTimeAllowed,
+        isStaticCheckoutDue,
+        createGuestParty,
+        selectEligibleBooking
+    };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     globalScope.GuestParties = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
