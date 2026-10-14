@@ -73,6 +73,7 @@ const GuestActivities = window.GuestActivities;
 const GameRulesApi = window.GameRules;
 const LandManagement = window.LandManagement;
 const Construction = window.Construction;
+const CharacterSystem = window.CharacterSystem;
 
 const PALETTE = {
     grass: ['#556b2f', '#5c7433', '#4d612a'],
@@ -295,6 +296,10 @@ function init() {
         canOccupyPlayer(data.player.x, data.player.y)) {
         state.player = {...data.player};
     }
+    state.playerAvatar = CharacterSystem.normalizeAvatar(data.playerAvatar || state.playerAvatar || CharacterSystem.defaultAvatar());
+    state.parkNpcs = CharacterSystem.normalizeNpcs(data.parkNpcs, state, canOccupyPlayer);
+    updateAvatarEditor();
+    updateVisitorCount();
     state.playerPath = [];
     state.interactionTarget = null;
 }
@@ -338,6 +343,10 @@ function generateNewMap() {
             };
         }
     }
+    state.playerAvatar = CharacterSystem.normalizeAvatar(state.playerAvatar || CharacterSystem.defaultAvatar());
+    state.parkNpcs = CharacterSystem.createNpcs(state, canOccupyPlayer);
+    updateAvatarEditor();
+    updateVisitorCount();
     updateTutorialVisibility();
 }
 
@@ -759,6 +768,8 @@ function saveGame() {
             isPaused: state.isPaused,
             camera: state.camera,
             player: state.player,
+            playerAvatar: CharacterSystem.normalizeAvatar(state.playerAvatar),
+            parkNpcs: Array.isArray(state.parkNpcs) ? state.parkNpcs : [],
             guestArrivalProgress: state.guestArrivalProgress,
             dailyGuestArrivals: state.dailyGuestArrivals
         }));
@@ -1305,6 +1316,9 @@ function draw(timestamp = 0) {
     const deltaSeconds = lastFrameTime ? Math.min((timestamp - lastFrameTime) / 1000, 0.05) : 0;
     lastFrameTime = timestamp;
     updatePlayerMovement(deltaSeconds);
+    if (document.getElementById('start-screen').hidden && CharacterSystem) {
+        CharacterSystem.updateNpcs(state.parkNpcs, deltaSeconds, canOccupyPlayer);
+    }
     updateCamera();
     ctx.clearRect(0,0,canvas.width, canvas.height);
     ctx.save();
@@ -1605,16 +1619,13 @@ function draw(timestamp = 0) {
         ctx.fillRect(residentX - 2, residentY + 3, 4, 5);
     });
 
-    // Player
+    // Visitors and player share one small pixel-art renderer so their style stays consistent.
+    (state.parkNpcs || []).slice().sort((a, b) => a.y - b.y).forEach(npc => {
+        CharacterSystem.drawCharacter(ctx, npc.appearance, npc.x * TILE_SIZE, npc.y * TILE_SIZE, 1);
+    });
     const playerX = state.player.x * TILE_SIZE;
     const playerY = state.player.y * TILE_SIZE;
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.beginPath(); ctx.ellipse(playerX, playerY + 5, 6, 3, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#f5cba7';
-    ctx.beginPath(); ctx.arc(playerX, playerY, 5, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#1a252f'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.fillStyle = '#2e86c1';
-    ctx.fillRect(playerX - 4, playerY + 3, 8, 5);
+    CharacterSystem.drawCharacter(ctx, state.playerAvatar, playerX, playerY, 1);
 
     const lighting = getDayNightLighting();
     if (lighting.darkness > 0) {
@@ -1892,7 +1903,74 @@ function updateTutorialVisibility(visible = true) {
     if (screen) screen.hidden = !visible;
 }
 
+function getAvatarFromEditor() {
+    const value = id => document.getElementById(id)?.value;
+    return CharacterSystem.normalizeAvatar({
+        name: (value('player-name') || 'Park Manager').trim() || 'Park Manager',
+        skin: value('avatar-skin'),
+        hairStyle: value('avatar-hair-style'),
+        hairColour: value('avatar-hair-colour'),
+        top: value('avatar-top'),
+        bottom: value('avatar-bottom'),
+        accessory: value('avatar-accessory')
+    });
+}
+
+function renderAvatarPreview() {
+    const preview = document.getElementById('avatar-preview');
+    if (!preview || !CharacterSystem) return;
+    const previewContext = preview.getContext('2d');
+    previewContext.clearRect(0, 0, preview.width, preview.height);
+    CharacterSystem.drawCharacter(previewContext, getAvatarFromEditor(), 48, 59, 4);
+}
+
+function updateAvatarEditor() {
+    const avatar = CharacterSystem.normalizeAvatar(state.playerAvatar || CharacterSystem.defaultAvatar());
+    const fields = {
+        'player-name': avatar.name,
+        'avatar-skin': avatar.skin,
+        'avatar-hair-style': avatar.hairStyle,
+        'avatar-hair-colour': avatar.hairColour,
+        'avatar-top': avatar.top,
+        'avatar-bottom': avatar.bottom,
+        'avatar-accessory': avatar.accessory
+    };
+    Object.entries(fields).forEach(([id, value]) => {
+        const field = document.getElementById(id);
+        if (field) field.value = value;
+    });
+    renderAvatarPreview();
+}
+
+function updateVisitorCount() {
+    const count = document.getElementById('visitor-count');
+    if (count) {
+        const total = Array.isArray(state.parkNpcs) ? state.parkNpcs.length : 0;
+        count.textContent = `${total} randomly dressed visitors will wander around your starting park.`;
+    }
+}
+
+function randomizePlayerAvatar() {
+    const avatar = CharacterSystem.randomizeAvatar(getAvatarFromEditor());
+    const fields = {
+        'avatar-skin': avatar.skin,
+        'avatar-hair-style': avatar.hairStyle,
+        'avatar-hair-colour': avatar.hairColour,
+        'avatar-top': avatar.top,
+        'avatar-bottom': avatar.bottom,
+        'avatar-accessory': avatar.accessory
+    };
+    Object.entries(fields).forEach(([id, value]) => { document.getElementById(id).value = value; });
+    renderAvatarPreview();
+}
+
+function randomizeStartingNpcs() {
+    state.parkNpcs = CharacterSystem.createNpcs(state, canOccupyPlayer);
+    updateVisitorCount();
+}
+
 function startNewGame() {
+    state.playerAvatar = getAvatarFromEditor();
     state.isPaused = false;
     updateTutorialVisibility(false);
     saveGame();
@@ -1988,6 +2066,10 @@ canvas.addEventListener('wheel', e => {
 // Start
 window.onload = () => {
     document.getElementById('start-game').addEventListener('click', startNewGame);
+    document.getElementById('randomize-avatar').addEventListener('click', randomizePlayerAvatar);
+    document.getElementById('randomize-npcs').addEventListener('click', randomizeStartingNpcs);
+    ['player-name', 'avatar-skin', 'avatar-hair-style', 'avatar-hair-colour', 'avatar-top', 'avatar-bottom', 'avatar-accessory']
+        .forEach(id => document.getElementById(id).addEventListener('input', renderAvatarPreview));
     document.getElementById('sleep-confirm').addEventListener('click', sleepThroughNight);
     document.getElementById('sleep-cancel').addEventListener('click', dismissSleepPrompt);
     document.getElementById('btn-repair').addEventListener('click', repairSelectedCaravan);
