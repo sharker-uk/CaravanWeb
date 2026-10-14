@@ -1,5 +1,5 @@
 (function (globalScope) {
-    const CURRENT_SAVE_SCHEMA = 10;
+    const CURRENT_SAVE_SCHEMA = 11;
     const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
     const facilityApi = globalScope.FacilityOperations ||
         (typeof require === 'function' ? require('./facility-operations.js') : null);
@@ -220,13 +220,25 @@
                 entertainmentCapacity: Number.isFinite(facility.entertainmentCapacity) && facility.entertainmentCapacity >= 0
                     ? facility.entertainmentCapacity
                     : (defaults.entertainmentCapacity ?? 0),
-                hourlyCost: Number.isFinite(facility.hourlyCost) && facility.hourlyCost >= 0
-                    ? facility.hourlyCost
-                    : defaults.hourlyCost,
+                hourlyCost: facility.type === 'toilets' ? 0 :
+                    Number.isFinite(facility.hourlyCost) && facility.hourlyCost >= 0
+                        ? facility.hourlyCost
+                        : defaults.hourlyCost,
+                cleanliness: Number.isFinite(facility.cleanliness)
+                    ? Math.min(100, Math.max(0, facility.cleanliness)) : 100,
+                wear: Number.isFinite(facility.wear)
+                    ? Math.min(100, Math.max(0, facility.wear)) : 100,
+                maintenanceClosed: Boolean(facility.maintenanceClosed) ||
+                    (facility.type === 'toilets' &&
+                        ((Number.isFinite(facility.cleanliness) ? facility.cleanliness : 100) <= 0 ||
+                         (Number.isFinite(facility.wear) ? facility.wear : 100) <= 0)),
                 costPerUse: Number.isFinite(facility.costPerUse) && facility.costPerUse >= 0
                     ? facility.costPerUse
                     : defaults.costPerUse || 0,
-                isOperational: facility.isOperational !== false,
+                isOperational: facility.isOperational !== false &&
+                    !(facility.type === 'toilets' &&
+                        ((Number.isFinite(facility.cleanliness) ? facility.cleanliness : 100) <= 0 ||
+                         (Number.isFinite(facility.wear) ? facility.wear : 100) <= 0)),
                 hourlyUsage: Number.isFinite(facility.hourlyUsage) && facility.hourlyUsage >= 0
                     ? facility.hourlyUsage
                     : 0,
@@ -270,7 +282,19 @@
             facilities: normalizeFacilities(saveData.facilities),
             overlayMode: ['none', 'services', 'utilities', 'entertainment'].includes(saveData.overlayMode)
                 ? saveData.overlayMode : 'none',
-            handymen: Number.isFinite(saveData.handymen) ? saveData.handymen : 0,
+            handymen: Number.isFinite(saveData.handymen) ? Math.max(0, Math.floor(saveData.handymen)) : 0,
+            groundsStaff: Number.isFinite(saveData.groundsStaff) ? Math.max(0, Math.floor(saveData.groundsStaff)) : 0,
+            handymanContractHoursRemaining: Number.isFinite(saveData.handymanContractHoursRemaining)
+                ? Math.min(24, Math.max(0, Math.floor(saveData.handymanContractHoursRemaining))) : 0,
+            maintenanceTask: saveData.maintenanceTask &&
+                Number.isInteger(saveData.maintenanceTask.facilityIndex) &&
+                ['clean', 'repair'].includes(saveData.maintenanceTask.action) &&
+                Number.isInteger(saveData.maintenanceTask.hoursRemaining) &&
+                saveData.maintenanceTask.hoursRemaining > 0
+                    ? {facilityIndex: saveData.maintenanceTask.facilityIndex,
+                        action: saveData.maintenanceTask.action,
+                        hoursRemaining: Math.min(3, saveData.maintenanceTask.hoursRemaining)}
+                    : null,
             day: Number.isFinite(saveData.day) ? saveData.day : 1,
             hour: Number.isFinite(saveData.hour) ? saveData.hour : 9,
             minute: Number.isFinite(saveData.minute) ? saveData.minute : 0,
