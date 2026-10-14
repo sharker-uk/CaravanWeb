@@ -1432,12 +1432,24 @@ function updateUI() {
                 button.disabled = true;
             });
             if (isToiletBlock) {
+                const cleaningCost = FacilityOperations.getMaintenanceCost('clean', cleanliness);
+                const repairCost = FacilityOperations.getMaintenanceCost('repair', wear);
                 toiletCleanButton.style.display = 'block';
                 toiletRepairButton.style.display = 'block';
-                toiletCleanButton.disabled = cleanliness >= 100 || Boolean(state.maintenanceTask);
-                toiletRepairButton.disabled = wear >= 100 || Boolean(state.maintenanceTask);
-                toiletCleanButton.textContent = cleanliness >= 100 ? '🧹 Already clean' : '🧹 Clean block · 2 in-game hours';
-                toiletRepairButton.textContent = wear >= 100 ? '🔧 No repairs needed' : '🔧 Repair block · 3 in-game hours';
+                toiletCleanButton.disabled = cleanliness >= 100 || Boolean(state.maintenanceTask) || state.cash < cleaningCost;
+                toiletRepairButton.disabled = wear >= 100 || Boolean(state.maintenanceTask) || state.cash < repairCost;
+                toiletCleanButton.textContent = cleanliness >= 100
+                    ? '🧹 Already clean'
+                    : '🧹 Clean · £' + cleaningCost + ' · 2 in-game hours';
+                toiletRepairButton.textContent = wear >= 100
+                    ? '🔧 No repairs needed'
+                    : '🔧 Repair · £' + repairCost + ' · 3 in-game hours';
+                toiletCleanButton.title = cleanliness < 100
+                    ? 'Cleaning costs £' + cleaningCost + ', based on current cleanliness.'
+                    : 'No cleaning needed.';
+                toiletRepairButton.title = wear < 100
+                    ? 'Repairs cost £' + repairCost + ', based on current wear and tear.'
+                    : 'No repairs needed.';
             }
             facilityToggle.style.display = 'block';
             facilityToggle.textContent = c.isOperational === false
@@ -1587,12 +1599,22 @@ function startToiletMaintenance(action) {
     }
     const facilityIndex = state.facilities.indexOf(facility);
     if (facilityIndex < 0) return;
-    state.maintenanceTask = {facilityIndex, action, hoursRemaining: action === 'clean' ? 2 : 3};
+    const condition = action === 'clean'
+        ? Number(facility.cleanliness ?? 100)
+        : Number(facility.wear ?? 100);
+    const cost = FacilityOperations.getMaintenanceCost(action, condition);
+    if (!Number.isFinite(cost)) {
+        showToast('❌ Unknown maintenance job.');
+        return;
+    }
+    // Quote and charge once, when the job starts. Job duration never changes the price.
+    if (!spend(cost, 'maintenance', (action === 'clean' ? 'Cleaned' : 'Repaired') + ' toilet block (condition ' + Math.round(condition) + '%)')) return;
+    state.maintenanceTask = {facilityIndex, action, hoursRemaining: action === 'clean' ? 2 : 3, cost, conditionAtStart: condition};
     saveGame();
     updateUI();
     showToast(action === 'clean'
-        ? '🧹 You start cleaning the toilet block. This takes 2 in-game hours.'
-        : '🔧 You start repairing the toilet block. This takes 3 in-game hours.');
+        ? '🧹 Cleaning started for £' + cost + '. This takes 2 in-game hours.'
+        : '🔧 Repairs started for £' + cost + '. This takes 3 in-game hours.');
 }
 
 function cleanSelectedToiletBlock() {
