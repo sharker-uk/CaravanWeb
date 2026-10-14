@@ -19,6 +19,19 @@
         return {...defaults, isOperational: true, hourlyUsage: 0, usageDay: null, usageHour: null, cleanliness: 100, wear: 100, maintenanceClosed: false};
     }
 
+    // Maintenance prices reflect accumulated neglect, not the time the job takes.
+    // Zero condition uses the highest band so a closed, neglected block is still maintainable.
+    function getMaintenanceCost(action, condition) {
+        const value = Math.max(0, Math.min(100, Number(condition) || 0));
+        const bands = action === 'clean'
+            ? [{minimum: 80, cost: 5}, {minimum: 60, cost: 10}, {minimum: 40, cost: 18}, {minimum: 20, cost: 28}, {minimum: 0, cost: 40}]
+            : action === 'repair'
+                ? [{minimum: 80, cost: 10}, {minimum: 60, cost: 20}, {minimum: 40, cost: 35}, {minimum: 20, cost: 60}, {minimum: 0, cost: 100}]
+                : null;
+        if (!bands) return null;
+        return bands.find(band => value >= band.minimum).cost;
+    }
+
     function isFacilityOperational(facility) {
         return Boolean(facility && facility.isOperational !== false &&
             !(facility.type === 'toilets' &&
@@ -167,6 +180,7 @@
     const api = {
         FACILITY_DEFAULTS,
         getFacilityDefaults,
+        getMaintenanceCost,
         isFacilityOperational,
         refreshFacilityOperationalStatus,
         getLargestOperationalFacilityCapacity,
