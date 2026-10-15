@@ -175,11 +175,8 @@
         </section>
         <section class="menu-panel" id="panel-accommodation" aria-label="Accommodation tools">
             <div class="menu-heading"><strong>Accommodation</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
-            <p class="menu-description">Select an empty pitch, then place a unit.</p>
-            <div class="tool-grid">
-                <button class="tool-btn" onclick="setTool('buy_tin', this)">🚐<span>Tin Banger</span></button>
-                <button class="tool-btn" onclick="setTool('buy_classic', this)">🏠<span>Classic '02</span></button>
-            </div>
+            <p class="menu-description">Static caravans are purchased at Rusty Resales. Walk to the shop, click it and press E to browse the catalogue, compare trade-in values and schedule a delivery.</p>
+            <p class="menu-description">A static's bedroom configuration determines its guest capacity. Delivery is reserved to the chosen pitch and takes six in-game hours.</p>
         </section>
         <section class="menu-panel" id="panel-facilities" aria-label="Facility tools">
             <div class="menu-heading"><strong>Park facilities</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
@@ -223,7 +220,7 @@
                 <button class="tool-btn" type="button" disabled>🪓<span>Axe · Owned</span></button>
                 <button class="tool-btn" id="buy-shovel-btn" type="button" onclick="buyTool('shovel')">🪏<span>Shovel · £350</span></button>
             </div>
-            <p class="menu-description"><strong>Shovel unlocks:</strong> gravel hardstanding pitches and utility trenching for water, gas, electricity and waste lines.</p>
+            <p class="menu-description"><strong>Shovel unlocks:</strong> hardstanding pitches and utility trenching for water, gas, electricity and waste lines.</p>
             <p class="menu-description">More tools can be added later for advanced landscaping, construction and maintenance.</p>
         </section>
         <section class="menu-panel" id="panel-park" aria-label="Park management tools">
@@ -245,10 +242,21 @@
         <button id="menu-reopen" onclick="toggleBuildMenu(true)" aria-label="Open build menu" title="Open park menu">☰</button>
     </aside>
 
+    <section id="vendor-dialog" class="vendor-dialog" role="dialog" aria-modal="true" aria-labelledby="vendor-title" hidden>
+        <div class="vendor-card">
+            <header class="vendor-heading">
+                <h2 id="vendor-title"></h2>
+                <button id="vendor-close" class="menu-close" type="button" aria-label="Close shop">×</button>
+            </header>
+            <div id="vendor-content" class="vendor-content"></div>
+        </div>
+    </section>
+
     <div id="toast">Message</div>
 </div>
 
     <script src="src/park-services.js"></script>
+    <script src="src/static-caravans.js"></script>
     <script src="src/game-rules.js"></script>
     <script src="src/land-management.js"></script>
     <script src="src/game-state.js"></script>

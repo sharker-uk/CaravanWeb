@@ -4,11 +4,19 @@
         (typeof require === 'function' ? require('./park-services.js') : null);
     const facilityOperationsApi = globalScope.FacilityOperations ||
         (typeof require === 'function' ? require('./facility-operations.js') : null);
+    const staticCaravansApi = globalScope.StaticCaravans ||
+        (typeof require === 'function' ? require('./static-caravans.js') : null);
 
-    function getAccommodationTypes(pitch, hookups) {
+    function getAccommodationTypes(state, pitch, hookups) {
         if (pitch.type === 'grass') return ['tent', 'towed'];
         if (pitch.type === 'gravel') {
-            return ['towed', ...(UTILITY_TYPES.every(type => hookups[type]) ? ['static'] : [])];
+            const caravan = staticCaravansApi.findInstalledVan(state, pitch);
+            if (caravan) {
+                const hasSleepingCapacity = staticCaravansApi.getMaximumOccupancy(caravan) > 0;
+                return hasSleepingCapacity && UTILITY_TYPES.every(type => hookups[type])
+                    ? ['static'] : [];
+            }
+            return ['tent', 'towed'];
         }
         return [];
     }
@@ -26,11 +34,21 @@
 
     function deriveCapability(state, pitch, connectedUtilities) {
         const hookups = parkServicesApi.getPitchHookupsFromConnected(pitch, connectedUtilities);
+        const caravan = staticCaravansApi.findInstalledVan(state, pitch);
+        const staticEligible = pitch.type === 'gravel' &&
+            UTILITY_TYPES.every(type => hookups[type]);
+        const reserved = Boolean(pitch.constructionReserved || pitch.deliveryReserved ||
+            pitch.replacementReserved);
+        const availability = pitch.occupied ? 'occupied' : reserved ? 'reserved' : 'available';
         return {
             pitch,
-            accommodations: getAccommodationTypes(pitch, hookups),
+            accommodations: getAccommodationTypes(state, pitch, hookups),
             utilities: hookups,
-            services: getServicesForPitch(state, pitch)
+            services: getServicesForPitch(state, pitch),
+            staticEligible,
+            staticInstalled: Boolean(caravan),
+            staticCapacity: staticCaravansApi.getMaximumOccupancy(caravan),
+            availability
         };
     }
 
@@ -53,9 +71,16 @@
     }
 
     function canHost(index, state, pitch, requirements = {}) {
-        const capability = deriveCapability(state, pitch, index.connectedUtilities);
+        const connectedUtilities = Object.fromEntries(UTILITY_TYPES.map(type => [
+            type, parkServicesApi.getConnectedUtilityTiles(state.tiles || [], type)
+        ]));
+        const capability = deriveCapability(state, pitch, connectedUtilities);
         const headcount = Math.max(1, Number(requirements.headcount) || 1);
-        return capability.accommodations.includes(requirements.accommodation) &&
+        return !pitch.occupied && !pitch.constructionReserved && !pitch.deliveryReserved &&
+            !pitch.replacementReserved &&
+            capability.accommodations.includes(requirements.accommodation) &&
+            (requirements.accommodation !== 'static' ||
+                capability.staticCapacity >= headcount) &&
             (requirements.requiredUtilities || []).every(type => capability.utilities[type]) &&
             (requirements.requiredServices || []).every(type =>
                 (capability.services[type] || 0) >= headcount
@@ -69,12 +94,14 @@
         const requiredServices = requirements.requiredServices || [];
         return (index?.records || []).flatMap(record => {
             if (record.pitch.occupied || record.pitch.constructionReserved ||
+                record.pitch.deliveryReserved || record.pitch.replacementReserved ||
                 !requiredUtilities.every(type => record.utilities[type]) ||
                 !requiredServices.every(type => (record.services[type] || 0) >= headcount)) {
                 return [];
             }
             return accommodations
-                .filter(accommodation => record.accommodations.includes(accommodation))
+                .filter(accommodation => record.accommodations.includes(accommodation) &&
+                    (accommodation !== 'static' || record.staticCapacity >= headcount))
                 .map(accommodation => ({pitch: record.pitch, accommodation}));
         });
     }

@@ -21,14 +21,21 @@ function isFootprintUnderConstruction(footprint) {
         footprint.y + footprint.h > job.footprint.y);
 }
 
+function ensurePitchId(pitch) {
+    if (!pitch.id) pitch.id = `pitch-${pitch.x}-${pitch.y}-${pitch.w}-${pitch.h}`;
+    return pitch.id;
+}
+
 function completeConstruction(job) {
     if (job.kind === 'surface') {
         job.tiles.forEach(({x, y}) => { state.tiles[y][x][job.surface] = true; });
     } else if (job.kind === 'utility') {
         job.tiles.forEach(({x, y}) => { state.tiles[y][x].utilities[job.utility] = true; });
     } else if (job.kind === 'pitch') {
+        ensurePitchId(job.pitch);
         state.pitches.push(job.pitch);
     } else if (job.kind === 'pitches') {
+        job.pitches.forEach(ensurePitchId);
         state.pitches.push(...job.pitches);
     } else if (job.kind === 'facility') {
         state.facilities.push({...FacilityOperations.getFacilityDefaults(job.type), ...job.facility});
@@ -40,9 +47,12 @@ function completeConstruction(job) {
             console.error('Unable to complete caravan construction: its pitch is unavailable.', job);
             return false;
         }
-        const caravan = new Caravan(pitch, job.tier);
+        const caravan = new Caravan(pitch, job.tier, {
+            id: StaticCaravans.createInstanceId(state, 'static'),
+            pitchId: pitch.id
+        });
         delete pitch.constructionReserved;
-        pitch.occupied = true;
+        pitch.staticCaravanId = caravan.id;
         state.caravans.push(caravan);
     } else {
         console.error('Unknown construction type.', job);
@@ -58,6 +68,34 @@ function updateConstructions() {
     refreshPitchCapabilities();
     saveGame();
     showToast(`${completed} construction${completed === 1 ? '' : 's'} completed.`);
+}
+
+function updateStaticDeliveries() {
+    const pendingBefore = state.staticDeliveries.length;
+    const completed = StaticCaravans.completeDueDeliveries(
+        state,
+        (amount, category, description) => recordTransaction(amount, category, description),
+        (pitch, installedVan) => {
+            const index = state.caravans.indexOf(installedVan);
+            if (index >= 0) {
+                state.caravans[index] = Object.assign(
+                    new Caravan(pitch, installedVan.modelId, installedVan),
+                    installedVan,
+                    {pitch}
+                );
+            }
+            showToast('🚚 Static caravan delivered and installed.');
+        },
+        (order, reason) => {
+            console.warn('Static delivery was cancelled after validation failed.', order, reason);
+            showToast(`❌ ${reason}`);
+        }
+    );
+    if (completed || state.staticDeliveries.length !== pendingBefore) {
+        refreshPitchCapabilities();
+        saveGame();
+        updateUI();
+    }
 }
 
 const TILE_SIZE = 16;
@@ -76,6 +114,7 @@ const GameRulesApi = window.GameRules;
 const LandManagement = window.LandManagement;
 const Construction = window.Construction;
 const CharacterSystem = window.CharacterSystem;
+const StaticCaravans = window.StaticCaravans;
 
 const PALETTE = {
     grass: ['#556b2f', '#5c7433', '#4d612a'],
@@ -111,6 +150,9 @@ let state = GameStateApi ? GameStateApi.createGameState() : {
     tiles: [],
     pitches: [],
     caravans: [],
+    staticDeliveries: [],
+    accessoryInventory: {bbq: 0, patio: 0, firepit: 0, hot_tub: 0},
+    staticAssetSequence: 0,
     guests: [],
     guestArrivalProgress: 0,
     dailyGuestArrivals: 0,
@@ -183,7 +225,9 @@ function init() {
         !data.pitches.every(pitch => pitch && ['x', 'y', 'w', 'h'].every(key => Number.isFinite(pitch[key]))) ||
         !Array.isArray(data.caravans) ||
         !data.caravans.every(caravan => caravan && typeof caravan === 'object' &&
-            (caravan.tier === 1 || caravan.tier === 2)) ||
+            (caravan.tier === 1 || caravan.tier === 2 ||
+                ['basic', 'bronze', 'silver', 'gold', 'platinum'].includes(caravan.tier) ||
+                typeof caravan.modelId === 'string')) ||
         (data.facilities !== undefined && (!Array.isArray(data.facilities) ||
             !data.facilities.every(facility => facility &&
                 ['x', 'y', 'w', 'h'].every(key => Number.isFinite(facility[key]))))) ||
@@ -226,6 +270,18 @@ function init() {
     state.facilities = Array.isArray(data.facilities) ? data.facilities : [];
     state.landmarks = Array.isArray(data.landmarks) ? data.landmarks : [];
     state.constructions = Array.isArray(data.constructions) ? data.constructions : [];
+    state.staticDeliveries = Array.isArray(data.staticDeliveries) ? data.staticDeliveries : [];
+    state.accessoryInventory = data.accessoryInventory || {bbq: 0, patio: 0, firepit: 0, hot_tub: 0};
+    state.staticAssetSequence = Number.isInteger(data.staticAssetSequence)
+        ? data.staticAssetSequence : 0;
+    state.staticDeliveries.forEach(order => {
+        const pitch = state.pitches.find(item => item.id === order.pitchId);
+        if (pitch && !pitch.deliveryReserved) pitch.deliveryReserved = order.id;
+    });
+    state.constructions.filter(job => job.kind === 'caravan').forEach(job => {
+        const pitch = state.pitches[job.pitchIndex];
+        if (pitch) pitch.constructionReserved = true;
+    });
     state.facilities = state.facilities.filter(facility => {
         if (facility.type !== 'tree') return true;
         const tile = state.tiles[facility.y]?.[facility.x];
@@ -258,14 +314,22 @@ function init() {
         state.camera = {...state.camera, ...data.camera};
     }
     state.caravans = data.caravans.map(savedCaravan => {
-        const pitchIndex = Number.isInteger(savedCaravan.pitchIndex)
-            ? savedCaravan.pitchIndex
-            : state.pitches.findIndex(pitch => savedCaravan.pitch && pitch.x === savedCaravan.pitch.x &&
-                pitch.y === savedCaravan.pitch?.y && pitch.w === savedCaravan.pitch?.w &&
-                pitch.h === savedCaravan.pitch?.h);
+        const stablePitchIndex = typeof savedCaravan.pitchId === 'string'
+            ? state.pitches.findIndex(pitch => pitch.id === savedCaravan.pitchId)
+            : -1;
+        const pitchIndex = stablePitchIndex >= 0
+            ? stablePitchIndex
+            : Number.isInteger(savedCaravan.pitchIndex)
+                ? savedCaravan.pitchIndex
+                : state.pitches.findIndex(pitch => savedCaravan.pitch && pitch.x === savedCaravan.pitch.x &&
+                    pitch.y === savedCaravan.pitch?.y && pitch.w === savedCaravan.pitch?.w &&
+                    pitch.h === savedCaravan.pitch?.h);
         const pitch = state.pitches[pitchIndex];
-        pitch.occupied = true;
-        const caravan = Object.assign(new Caravan(pitch, savedCaravan.tier), savedCaravan, {pitch});
+        const caravan = Object.assign(
+            new Caravan(pitch, savedCaravan.modelId || savedCaravan.tier, savedCaravan),
+            savedCaravan,
+            {pitch, pitchId: pitch.id}
+        );
         caravan.smokeParticles = [];
         return caravan;
     });
@@ -273,8 +337,16 @@ function init() {
     const occupiedGuestPitches = new Set();
     state.guests = (Array.isArray(data.guests) ? data.guests : []).flatMap(guest => {
         const pitch = state.pitches[guest.pitchIndex];
-        if (!pitch || pitch.occupied || occupiedGuestPitches.has(guest.pitchIndex) ||
-            !isGuestAccommodationValid(pitch, guest.accommodation)) return [];
+        const headcount = guest.party?.headcount ||
+            (Number(guest.party?.adults) || 1) + (Number(guest.party?.children) || 0);
+        const savedStayAccommodationValid = guest.accommodation === 'static'
+            ? StaticCaravans.getMaximumOccupancy(
+                StaticCaravans.findInstalledVan(state, pitch)
+            ) >= headcount
+            : isGuestAccommodationValid(pitch, guest.accommodation, headcount);
+        if (!pitch || pitch.occupied || pitch.deliveryReserved || pitch.constructionReserved ||
+            occupiedGuestPitches.has(guest.pitchIndex) ||
+            !savedStayAccommodationValid) return [];
         const ratingAtArrival = Number.isFinite(guest.ratingAtArrival)
             ? guest.ratingAtArrival
             : state.rating;
@@ -306,10 +378,7 @@ function init() {
     });
     state.constructions.filter(job => job.kind === 'caravan').forEach(job => {
         const pitch = state.pitches[job.pitchIndex];
-        if (pitch && !pitch.occupied) {
-            pitch.occupied = true;
-            pitch.constructionReserved = true;
-        } else {
+        if (!pitch || pitch.occupied) {
             console.error('Saved caravan construction refers to an unavailable pitch.', job);
         }
     });
@@ -336,6 +405,9 @@ function generateNewMap() {
     state.overlayMode = 'none';
     state.pitches = [];
     state.caravans = [];
+    state.staticDeliveries = [];
+    state.accessoryInventory = {bbq: 0, patio: 0, firepit: 0, hot_tub: 0};
+    state.staticAssetSequence = 0;
     state.guests = [];
     state.facilities = [];
     state.landmarks = STARTING_LANDMARKS.map(landmark => ({...landmark}));
@@ -423,8 +495,14 @@ function isValidTileData(tile) {
                 typeof tile.utilities[type] === 'boolean')));
 }
 
-function isGuestAccommodationValid(pitch, accommodation) {
-    return GameRulesApi.isGuestAccommodationValid(pitch, accommodation, state.tiles);
+function isGuestAccommodationValid(pitch, accommodation, headcount = 1) {
+    const caravan = StaticCaravans.findInstalledVan(state, pitch);
+    if (caravan && accommodation !== 'static') return false;
+    if (!caravan && accommodation === 'static') return false;
+    if (!GameRulesApi.isGuestAccommodationValid(pitch, accommodation, state.tiles)) return false;
+    if (accommodation !== 'static') return true;
+    return Boolean(caravan && caravan.isOperational !== false && !caravan.isBroken &&
+        StaticCaravans.getMaximumOccupancy(caravan) >= headcount);
 }
 
 function getPitchHookups(pitch) {
@@ -527,6 +605,122 @@ function distanceToTarget(target) {
     return Math.hypot(dx, dy);
 }
 
+function formatGameTime(minutes) {
+    const day = Math.floor(minutes / 1440) + 1;
+    const minuteOfDay = ((minutes % 1440) + 1440) % 1440;
+    return `Day ${day}, ${String(Math.floor(minuteOfDay / 60)).padStart(2, '0')}:${String(minuteOfDay % 60).padStart(2, '0')}`;
+}
+
+function openVendor(title, renderer) {
+    document.getElementById('vendor-title').textContent = title;
+    document.getElementById('vendor-dialog').hidden = false;
+    renderer();
+    document.getElementById('vendor-close').focus();
+}
+
+function closeVendor() {
+    document.getElementById('vendor-dialog').hidden = true;
+}
+
+function renderRustyResales(selectedPitchId) {
+    const content = document.getElementById('vendor-content');
+    const oldSelect = content.querySelector('#rusty-pitch');
+    const selectedId = selectedPitchId || oldSelect?.value;
+    const hardstanding = state.pitches.filter(pitch => pitch.type === 'gravel');
+    const options = hardstanding.map(pitch => {
+        const installed = StaticCaravans.findInstalledVan(state, pitch);
+        const eligibility = StaticCaravans.getPitchEligibility(state, pitch, {
+            replacingVanId: installed?.id
+        });
+        return {pitch, installed, eligibility};
+    });
+    const eligible = options.filter(option => option.eligibility.eligible);
+    const selected = eligible.find(option => option.pitch.id === selectedId) || eligible[0] || null;
+    const van = selected?.installed;
+    const tradeIn = van
+        ? StaticCaravans.calculateResaleValue(van, StaticCaravans.gameTimeMinutes(state))
+        : 0;
+    const selectedSummary = selected
+        ? `<p>Pitch ${selected.pitch.id}: ${selected.installed ? 'replacement' : 'new installation'} · ` +
+            `trade-in ${van ? `£${tradeIn.toLocaleString()}` : '£0'} · catalogue prices shown below; net cost is price minus trade-in.</p>`
+        : '';
+    const pending = state.staticDeliveries || [];
+    const deliveryMarkup = pending.length
+        ? `<ul>${pending.map(order =>
+            `<li>${StaticCaravans.getModel(order.modelId)?.name || order.modelId} → pitch ${order.pitchId} · expected ${formatGameTime(order.deliveryAtMinutes)}</li>`
+        ).join('')}</ul>`
+        : '<p>No static deliveries are currently scheduled.</p>';
+    const installedMarkup = state.caravans.length
+        ? `<ul>${state.caravans.map(item => {
+            const model = StaticCaravans.getModel(item.modelId);
+            const ageDays = Math.floor(StaticCaravans.calculateAgeDays(
+                item, StaticCaravans.gameTimeMinutes(state)
+            ));
+            const value = StaticCaravans.calculateResaleValue(item, StaticCaravans.gameTimeMinutes(state));
+            return `<li>Pitch ${item.pitchId}: ${model?.name || item.modelId} · ${model?.tierName || item.tier} · ${item.bedrooms} bedroom(s) / ${StaticCaravans.getMaximumOccupancy(item)} people · ${ageDays} in-game day(s) old · trade-in £${value.toLocaleString()}</li>`;
+        }).join('')}</ul>`
+        : '<p>No static caravans are installed yet.</p>';
+    const blockers = options.filter(option => !option.eligibility.eligible).map(option =>
+        `<li>Pitch ${option.pitch.id}: ${option.eligibility.reason}</li>`
+    );
+    const modelCards = StaticCaravans.CATALOGUE.map(model => {
+        const netCost = model.purchasePrice - tradeIn;
+        return `<article class="vendor-item"><strong>${model.name} · £${model.purchasePrice.toLocaleString()}</strong>` +
+            `<p>${model.tierName} · ${model.conditionCategory} · ${model.bedrooms} bedroom(s), up to ${model.maxOccupancy} people · ${model.interiorQuality} interior</p>` +
+            `<button type="button" data-vendor-buy="${model.id}" ${!selected || state.cash < netCost ? 'disabled' : ''}>` +
+            `${netCost < 0 ? `Net credit £${Math.abs(netCost).toLocaleString()}` : `Net cost £${netCost.toLocaleString()}`}</button></article>`;
+    }).join('');
+    const deckingPitches = state.pitches.filter(pitch => {
+        const installed = StaticCaravans.findInstalledVan(state, pitch);
+        return pitch.type === 'gravel' && installed &&
+            (!pitch.decking || pitch.decking.condition <= 0) && !pitch.occupied &&
+            !pitch.constructionReserved && !pitch.deliveryReserved && !pitch.replacementReserved;
+    });
+    const deckingMarkup = deckingPitches.length
+        ? `<div class="vendor-list">${deckingPitches.map(pitch =>
+            `<article class="vendor-item"><strong>Pitch ${pitch.id}</strong><p>Hardstanding with a static caravan · decking lasts ${StaticCaravans.DECKING.lifespanDays.toLocaleString()} in-game days.</p>` +
+            `<button type="button" data-install-decking="${pitch.id}" ${state.cash < StaticCaravans.DECKING.price ? 'disabled' : ''}>${pitch.decking ? 'Replace end-of-life decking' : 'Install decking'} · £${StaticCaravans.DECKING.price.toLocaleString()}</button></article>`
+        ).join('')}</div>`
+        : '<p>No unoccupied, unreserved static pitches currently qualify for decking.</p>';
+    const deckingStatus = state.pitches.filter(pitch => pitch.decking).map(pitch => {
+        const ageDays = Math.max(0, (StaticCaravans.gameTimeMinutes(state) -
+            pitch.decking.installedAtMinutes) / 1440);
+        const remaining = Math.max(0, StaticCaravans.DECKING.lifespanDays - ageDays);
+        return `<li>Pitch ${pitch.id}: ${Math.round(pitch.decking.condition)}% condition · ${Math.floor(remaining).toLocaleString()} in-game day(s) remaining${pitch.decking.operational === false ? ' · End of life' : ''}</li>`;
+    });
+    content.innerHTML =
+        `<p class="vendor-note">Available cash: £${Math.floor(state.cash).toLocaleString()}. Time continues while browsing. Delivery takes six in-game hours and is limited to 08:00–20:00.</p>` +
+        `<h3>Choose a pitch</h3>` +
+        (eligible.length
+            ? `<select id="rusty-pitch" class="vendor-select">${eligible.map(option =>
+                `<option value="${option.pitch.id}" ${option.pitch.id === selected?.pitch.id ? 'selected' : ''}>` +
+                `Pitch ${option.pitch.id} · ${option.installed ? `replace ${StaticCaravans.getModel(option.installed.modelId)?.name || 'installed static'}` : 'empty hardstanding'}</option>`
+            ).join('')}</select>${selectedSummary}`
+            : '<p>No eligible empty or replacement pitches. A pitch needs connected gas, water, electricity and waste; it must be unoccupied and unreserved.</p>') +
+        `<h3>Installed statics</h3>${installedMarkup}` +
+        `<h3>Pitch availability</h3>${blockers.length ? `<ul>${blockers.join('')}</ul>` : '<p>All hardstanding pitches are eligible.</p>'}` +
+        `<h3>Van catalogue</h3><div class="vendor-list">${modelCards}</div>` +
+        `<h3>Decking</h3>${deckingMarkup}${deckingStatus.length ? `<ul>${deckingStatus.join('')}</ul>` : ''}` +
+        `<h3>Pending deliveries</h3>${deliveryMarkup}`;
+}
+
+function openRustyResales() {
+    openVendor('Rusty Resales · Static Caravans', () => renderRustyResales());
+}
+
+function renderFiddlShop() {
+    const content = document.getElementById('vendor-content');
+    content.innerHTML = `<p class="vendor-note">Available cash: £${Math.floor(state.cash).toLocaleString()}. Buy an item here, then click a tile inside an eligible pitch to place it. Time continues while browsing.</p>` +
+        `<div class="vendor-list">${Object.values(StaticCaravans.ACCESSORIES).map(item =>
+            `<article class="vendor-item"><strong>${item.name} · £${item.price.toLocaleString()}</strong><p>${item.description} Eligible: ${item.pitches.map(type => type === 'gravel' ? 'Hardstanding' : 'Grass').join(', ')}. Owned: ${state.accessoryInventory?.[item.id] || 0}</p>` +
+            `<button type="button" data-buy-accessory="${item.id}" ${state.cash < item.price ? 'disabled' : ''}>Buy and place · £${item.price.toLocaleString()}</button></article>`
+        ).join('')}</div>`;
+}
+
+function openFiddlShop() {
+    openVendor('Fiddl · Pitch Accessories', renderFiddlShop);
+}
+
 function interactWith(target) {
     if (target.kind === 'tree' || target.kind === 'debris') {
         const tile = state.tiles[target.y]?.[target.x];
@@ -571,19 +765,14 @@ function interactWith(target) {
             }
             return;
         }
-        const panel = {
-            rusty_resales: 'accommodation',
-            fiddl_shop: 'facilities',
-            job_centre: 'park'
-        }[target.entity.type];
-        if (panel) {
+        if (target.entity.type === 'rusty_resales') {
+            openRustyResales();
+        } else if (target.entity.type === 'fiddl_shop') {
+            openFiddlShop();
+        } else if (target.entity.type === 'job_centre') {
+            const panel = 'park';
             showMenuPanel(panel, document.querySelector(`[data-panel="${panel}"]`));
-            const message = {
-                rusty_resales: 'Rusty Resales: browse new and pre-loved caravans here. Sell a selected caravan from its inspector.',
-                fiddl_shop: 'Fiddl: park facilities and improvements are available in the build menu.',
-                job_centre: 'Job Centre: hire park staff from the management menu as your park grows.'
-            }[target.entity.type];
-            showToast(message);
+            showToast('Job Centre: hire park staff from the management menu as your park grows.');
         } else {
             showToast('Home sweet (if slightly run-down) home.');
         }
@@ -594,7 +783,7 @@ function interactWith(target) {
         return;
     }
     if (target.kind === 'pitch') {
-        showToast(`Empty ${target.entity.type} pitch`);
+        showToast(`Empty ${target.entity.type === 'gravel' ? 'Hardstanding' : 'Grass'} pitch`);
     }
 }
 
@@ -633,6 +822,7 @@ async function sleepThroughNight() {
 
     SimulationClock.advanceToHour(state, 8, {onHourly, onDaily});
     updateConstructions();
+    updateStaticDeliveries();
     saveGame();
     updateUI();
     transition.classList.remove('active');
@@ -647,7 +837,9 @@ function interactNearby() {
     const target = state.interactionTarget &&
         distanceToTarget(state.interactionTarget) <= 1.25
         ? state.interactionTarget
-        : [...state.caravans.map(entity => ({kind: 'caravan', entity, ...entity.pitch})),
+        : [...state.caravans.map(entity => ({
+            kind: 'caravan', entity, ...StaticCaravans.getStaticFootprint(entity.pitch)
+        })),
             ...state.guests.map(entity => ({kind: 'guest', entity, ...entity.pitch})),
             ...state.facilities.map(entity => ({kind: 'facility', entity, ...entity})),
             ...state.tiles.flatMap((row, y) => row.map((tile, x) =>
@@ -672,12 +864,18 @@ function updateInteractionHint() {
     const hint = document.getElementById('interaction-hint');
     if (!hint) return;
     const target = state.interactionTarget;
-    let message = 'WASD / Arrows: Move · Click ground: Walk · Click overgrowth, approach, then E to clear';
+    let message = state.activeTool.startsWith('place_accessory_')
+        ? 'Click a tile inside an eligible pitch to place the selected accessory'
+        : 'WASD / Arrows: Move · Click ground: Walk · Click overgrowth, approach, then E to clear';
     if (target && distanceToTarget(target) <= 1.25) {
         message = target.kind === 'tree' ? 'Press E to fell tree and collect timber'
             : target.kind === 'debris' ? 'Press E to clear brush and debris'
             : target.kind === 'landmark' && target.entity.type === 'farmhouse'
                 ? 'Old Farm House · sleep available from 8pm to 5am'
+            : target.kind === 'landmark' && target.entity.type === 'rusty_resales'
+                ? 'Press E to browse static caravans and decking'
+            : target.kind === 'landmark' && target.entity.type === 'fiddl_shop'
+                ? 'Press E to browse pitch accessories'
             : 'Press E to interact';
     } else if (target) {
         message = target.kind === 'tree' ? 'Approaching tree... · E: Fell when nearby'
@@ -746,7 +944,7 @@ function saveGame() {
         localStorage.setItem('caravan_tycoon_save', JSON.stringify({
             schemaVersion: SaveMigrations && SaveMigrations.CURRENT_SAVE_SCHEMA
                 ? SaveMigrations.CURRENT_SAVE_SCHEMA
-                : 11,
+                : 12,
             cash: state.cash,
             initialBalance: state.initialBalance,
             wood: state.wood,
@@ -754,6 +952,9 @@ function saveGame() {
             transactions: state.transactions,
             tiles: state.tiles,
             pitches: state.pitches,
+            staticDeliveries: state.staticDeliveries,
+            accessoryInventory: state.accessoryInventory,
+            staticAssetSequence: state.staticAssetSequence,
             guests: state.guests.map(guest => ({
                 pitchIndex: state.pitches.indexOf(guest.pitch),
                 accommodation: guest.accommodation,
@@ -812,22 +1013,22 @@ function saveGame() {
 }
 
 class Caravan {
-    constructor(pitch, tier) {
+    constructor(pitch, tier, options = {}) {
+        const modelId = typeof tier === 'string' ? tier : tier === 2 ? 'gold-2br' : 'basic-1br';
+        const model = StaticCaravans.createVan(modelId, {
+            ...options,
+            pitchId: pitch?.id || options.pitchId
+        });
+        if (!model) throw new Error(`Unknown static caravan model: ${modelId}`);
+        Object.assign(this, model);
         this.pitch = pitch;
-        this.tier = tier;
-        this.condition = 100;
-        this.isBroken = false;
-        this.hasDecking = false;
-        this.hasSkirting = false;
-        this.smokeParticles = [];
+        this.id ||= null;
     }
     getDailyRent() {
-        let val = this.tier === 1 ? 75 : 190;
-        if (this.hasDecking) val += 40;
-        return val;
+        return StaticCaravans.getModel(this.modelId)?.dailyRent || 0;
     }
     isRentalReady() {
-        return this.tier === 1 || isPitchReadyForStatic(this.pitch);
+        return this.isOperational && !this.isBroken && isPitchReadyForStatic(this.pitch);
     }
 }
 
@@ -854,7 +1055,11 @@ function update(dt) {
         GuestActivities.updateGuestSatisfaction(state);
     }
 
-    if (!state.isPaused) updateConstructions();
+    StaticCaravans.updateDeckingCondition(state);
+    if (!state.isPaused) {
+        updateConstructions();
+        updateStaticDeliveries();
+    }
     updateUI();
 }
 
@@ -929,12 +1134,13 @@ function arriveGuest(candidate) {
     const facilityCheck = FacilityOperations.canHostParty(state, accommodation, party.headcount);
     const serviceCheck = ParkServices.getPitchServiceCheck(state, pitch, accommodation, party.headcount);
     if (!facilityCheck.valid || !serviceCheck.valid || pitch.occupied ||
-        pitch.constructionReserved || !state.pitches.includes(pitch) ||
+        pitch.constructionReserved || pitch.deliveryReserved || pitch.replacementReserved ||
+        !state.pitches.includes(pitch) ||
         !PitchCapabilities.canHost(pitchCapabilityIndex, state, pitch, {
             accommodation,
             headcount: party.headcount,
             requiredServices: ['toilets']
-        })) return false;
+        }) || !isGuestAccommodationValid(pitch, accommodation, party.headcount)) return false;
     const ratingAtArrival = state.rating;
     const maximumStayDays = accommodation === 'static'
         ? 14
@@ -1102,6 +1308,16 @@ function handleGridClick(gx, gy) {
         return;
     }
 
+    if (state.activeTool.startsWith('place_accessory_')) {
+        placePitchAccessory(gx, gy, state.activeTool.slice('place_accessory_'.length));
+        return;
+    }
+    if (state.activeTool.startsWith('buy_')) {
+        showToast('Static caravans are ordered at Rusty Resales.');
+        openRustyResales();
+        return;
+    }
+
     if (state.activeTool.startsWith('utility_')) {
         const utility = state.activeTool.slice('utility_'.length);
         if (!tile.road && !tile.path) {
@@ -1119,34 +1335,52 @@ function handleGridClick(gx, gy) {
     if (state.activeTool === 'pitch_grass') createPitch(gx, gy, 4, 6, 'grass', 100);
     if (state.activeTool === 'pitch_gravel') createPitch(gx, gy, 4, 8, 'gravel', 250);
     
-    if (state.activeTool.startsWith('buy_')) {
-        const p = state.pitches.find(p => gx >= p.x && gx < p.x+p.w && gy >= p.y && gy < p.y+p.h);
-        if (p) {
-            const tier = state.activeTool === 'buy_tin' ? 1 : 2;
-            const cost = tier === 1 ? 600 : 2000;
-            const placement = GameRulesApi.validateAccommodationPlacement(
-                p, tier === 1 ? 'towed' : 'static', state.tiles, p.occupied
-            );
-            if (!placement.valid) {
-                showToast(`❌ ${placement.reason}`);
-            } else if (!isFootprintUnderConstruction(p)) {
-                const pitchIndex = state.pitches.indexOf(p);
-                startConstruction('caravan', {pitchIndex, tier}, p, cost,
-                    `Purchased tier ${tier} caravan`, 'accommodation');
-            } else {
-                showToast('That pitch already has construction in progress.');
-            }
-        } else {
-            showToast('❌ There is no pitch under the selected tile.');
-        }
-    }
-
     const facilityTool = state.activeTool.startsWith('build_')
         ? state.activeTool.slice('build_'.length)
         : null;
     const facility = facilityTool && FACILITY_BUILDINGS[facilityTool];
     if (facility) {
         placeFacility(gx, gy, facility.w, facility.h, facilityTool, facility.cost);
+    }
+
+    function placePitchAccessory(x, y, accessoryId) {
+        const pitch = state.pitches.find(item =>
+            x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
+        );
+        if (!pitch) {
+            showToast('❌ Accessories must be placed inside a pitch.');
+            return false;
+        }
+        if (!(state.accessoryInventory?.[accessoryId] > 0)) {
+            console.error('Accessory placement was requested without owned stock.', {accessoryId});
+            showToast('❌ You do not own this accessory.');
+            state.activeTool = 'select';
+            return false;
+        }
+        const validation = StaticCaravans.canPlaceAccessory(state, pitch, accessoryId, x, y);
+        if (!validation.valid) {
+            showToast(`❌ ${validation.reason}`);
+            return false;
+        }
+        const definition = StaticCaravans.ACCESSORIES[accessoryId];
+        pitch.accessories ||= [];
+        pitch.accessories.push({
+            id: StaticCaravans.createInstanceId(state, 'accessory'),
+            type: accessoryId,
+            x,
+            y,
+            w: definition.w,
+            h: definition.h,
+            condition: 100,
+            installedAtMinutes: StaticCaravans.gameTimeMinutes(state)
+        });
+        state.accessoryInventory[accessoryId]--;
+        state.activeTool = 'select';
+        document.querySelectorAll('.tool-btn').forEach(button => button.classList.remove('active'));
+        saveGame();
+        updateUI();
+        showToast(`${definition.name} placed on pitch ${pitch.id}.`);
+        return true;
     }
     if (state.activeTool === 'build_tree') plantTree(gx, gy);
 }
@@ -1678,21 +1912,60 @@ function draw(timestamp = 0) {
         ctx.fillText('BUILDING', x * TILE_SIZE + 3, y * TILE_SIZE + 10);
     });
 
-    // Caravans occupy their pitch footprint and belong to the placed-object layer
+    state.pitches.filter(pitch => pitch.decking).forEach(pitch => {
+        const {x, y, w, h} = StaticCaravans.getDeckingFootprint(pitch);
+        ctx.fillStyle = pitch.decking.operational === false ? '#62584d' : '#a67c52';
+        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, w * TILE_SIZE, h * TILE_SIZE);
+        ctx.strokeStyle = '#3e3024';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x * TILE_SIZE, y * TILE_SIZE, w * TILE_SIZE, h * TILE_SIZE);
+        ctx.fillStyle = '#f3e5d0';
+        ctx.font = 'bold 7px Arial';
+        ctx.fillText(pitch.decking.operational === false ? 'DECK · WORN OUT' : 'DECK',
+            x * TILE_SIZE + 3, y * TILE_SIZE + 9);
+    });
+
     state.caravans.forEach(c => {
-        const px = c.pitch.x*TILE_SIZE + 4; const py = c.pitch.y*TILE_SIZE + 4;
-        const pw = (c.pitch.w*TILE_SIZE)-8; const ph = (c.pitch.h*TILE_SIZE)-8;
+        const footprint = StaticCaravans.getStaticFootprint(c.pitch);
+        const px = footprint.x * TILE_SIZE + 2;
+        const py = footprint.y * TILE_SIZE + 2;
+        const pw = footprint.w * TILE_SIZE - 4;
+        const ph = footprint.h * TILE_SIZE - 4;
         
-        drawAsset(c.tier === 1 ? 'accommodation.tin' : 'accommodation.static',
+        drawAsset('accommodation.static',
             px, py, pw, ph, () => {
-                ctx.fillStyle = c.tier === 1 ? '#d8cfbe' : '#ded495';
+                ctx.fillStyle = '#ded495';
                 ctx.fillRect(px, py, pw, ph);
                 ctx.strokeStyle = '#000'; ctx.lineWidth=1; ctx.strokeRect(px, py, pw, ph);
                 // Windows
                 ctx.fillStyle = '#85c1e9'; ctx.fillRect(px+4, py+2, pw-8, 6);
             });
+        ctx.fillStyle = '#795548';
+        ctx.fillRect(px + pw / 2 - 3, py + ph - 8, 6, 8);
         if (c.isBroken) { ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(px+pw/2, py+ph/2, 4, 0, Math.PI*2); ctx.fill(); }
     });
+
+    state.pitches.forEach(pitch => (pitch.accessories || []).forEach(accessory => {
+        const palette = {
+            bbq: '#424949',
+            patio: '#8e6e53',
+            firepit: '#d35400',
+            hot_tub: '#2874a6'
+        };
+        const x = accessory.x * TILE_SIZE + 2;
+        const y = accessory.y * TILE_SIZE + 2;
+        const w = accessory.w * TILE_SIZE - 4;
+        const h = accessory.h * TILE_SIZE - 4;
+        ctx.fillStyle = palette[accessory.type] || '#7f8c8d';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#17232d';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 7px Arial';
+        ctx.fillText(accessory.type === 'hot_tub' ? 'TUB' : accessory.type.toUpperCase(),
+            x + 2, y + 9);
+    }));
 
     // Guest accommodation and residents
     state.guests.forEach(guest => {
@@ -1713,7 +1986,7 @@ function draw(timestamp = 0) {
                 ctx.fillStyle = '#f2d7a0';
                 ctx.fillRect(px + width * 0.47, py + height * 0.43, width * 0.06, height * 0.15);
             });
-        } else {
+        } else if (guest.accommodation === 'towed') {
             drawAsset(guest.accommodation === 'static' ? 'accommodation.static' : 'accommodation.tin',
                 px + width * 0.16, py + height * 0.24, width * 0.68, height * 0.42, () => {
                     ctx.fillStyle = guest.accommodation === 'static' ? '#ded495' : '#d8cfbe';
@@ -1793,7 +2066,8 @@ function updateUI() {
         (demand.score >= 34 ? '#f1c40f' : '#e67e22');
     document.getElementById('demand-level').innerText = `${demand.level} ${demand.score}%`;
     demandTrack.setAttribute('aria-valuenow', demand.score);
-    const availablePitches = state.pitches.filter(pitch => !pitch.occupied).length;
+    const availablePitches = state.pitches.filter(pitch => !pitch.occupied &&
+        !pitch.constructionReserved && !pitch.deliveryReserved && !pitch.replacementReserved).length;
     const demandCapacity = document.getElementById('demand-capacity');
     demandCapacity.innerText = state.pitches.length === 0
         ? 'No pitches — guests cannot stay'
@@ -1837,7 +2111,8 @@ function updateUI() {
     if (state.selectedEntity) {
         ins.style.display = 'block';
         const c = state.selectedEntity;
-        if (typeof c.tier !== 'number' && typeof c.type === 'string') {
+        const selectedIsVan = state.caravans.includes(c) || Boolean(StaticCaravans.getModel(c.modelId));
+        if (!selectedIsVan && typeof c.type === 'string') {
             document.getElementById('ins-name').innerText =
                 `${c.type.replaceAll('_', ' ')} facility`;
             const isToiletBlock = c.type === 'toilets';
@@ -1885,15 +2160,37 @@ function updateUI() {
         const hookups = getPitchHookups(c.pitch);
         const hookupStatus = UTILITY_TYPES.map(type =>
             `${type}: ${hookups[type] ? 'connected' : 'not connected'}`).join('<br>');
-        document.getElementById('ins-name').innerText = c.tier === 1 ? 'Retro Tin Unit' : 'Luxury Static';
-        document.getElementById('ins-content').innerHTML = `Condition: ${Math.floor(c.condition)}%<br>Rent: £${c.getDailyRent()}/day<br>Status: ${c.isBroken ? '⚠️ BROKEN' : 'OK'}${c.tier === 2 ? `<br>Rental: ${c.isRentalReady() ? 'Ready' : 'Needs all hookups'}<br>${hookupStatus}` : ''}`;
+        const model = StaticCaravans.getModel(c.modelId);
+        const ageDays = Math.floor(StaticCaravans.calculateAgeDays(
+            c, StaticCaravans.gameTimeMinutes(state)
+        ));
+        const decking = c.pitch.decking;
+        const deckingAgeDays = decking
+            ? Math.max(0, (StaticCaravans.gameTimeMinutes(state) -
+                decking.installedAtMinutes) / 1440)
+            : 0;
+        const deckingText = decking
+            ? `<br>Decking: ${Math.round(decking.condition)}% condition · ${decking.operational === false ? 'end of life; replacement required' : `${Math.max(0, Math.floor(StaticCaravans.DECKING.lifespanDays - deckingAgeDays))} day(s) remaining`}`
+            : '<br>Decking: not installed';
+        document.getElementById('ins-name').innerText = model?.name || 'Static caravan';
+        document.getElementById('ins-content').innerHTML =
+            `Tier: ${model?.tierName || c.tier} · ${c.bedrooms} bedroom(s) · maximum ${StaticCaravans.getMaximumOccupancy(c)} people` +
+            `<br>Interior: ${model?.interiorQuality || 'legacy'} · Condition: ${Math.floor(c.condition)}%` +
+            `<br>Age: ${ageDays} in-game day(s) · Purchase price: £${c.purchasePrice.toLocaleString()}` +
+            `<br>Rent: £${c.getDailyRent()}/day · Status: ${c.isBroken ? '⚠️ BROKEN' : c.isOperational === false ? 'Out of service' : 'Operational'}` +
+            `<br>Rental: ${c.isRentalReady() ? 'Ready' : 'Needs connected hookups or repair'}<br>${hookupStatus}` +
+            deckingText;
         actionButtons.forEach(button => {
             button.style.display = 'block';
         });
+        document.getElementById('btn-upgrade').style.display = 'none';
         document.getElementById('btn-repair').disabled = !c.isBroken || state.cash < 40;
-        document.getElementById('btn-upgrade').disabled = c.hasDecking || state.cash < 400;
         document.getElementById('btn-skirting').disabled = c.hasSkirting || state.cash < 150;
-        document.getElementById('btn-sell').disabled = false;
+        const saleValue = StaticCaravans.calculateResaleValue(c, StaticCaravans.gameTimeMinutes(state));
+        const pitchUnavailable = c.pitch.occupied || c.pitch.deliveryReserved ||
+            c.pitch.replacementReserved || c.pitch.constructionReserved;
+        document.getElementById('btn-sell').textContent = `💰 Sell · £${saleValue.toLocaleString()}`;
+        document.getElementById('btn-sell').disabled = pitchUnavailable;
     } else {
         facilityToggle.style.display = 'none';
         ins.style.display = 'block';
@@ -1949,11 +2246,7 @@ function repairSelectedCaravan() {
 }
 
 function upgradeSelectedCaravan() {
-    const caravan = state.selectedEntity;
-    if (!caravan || caravan.hasDecking || !spend(400, 'upgrades', 'Added caravan decking')) return;
-    caravan.hasDecking = true;
-    saveGame();
-    updateUI();
+    showToast('Decking is installed through Rusty Resales.');
 }
 
 function fitSelectedSkirting() {
@@ -1967,12 +2260,22 @@ function fitSelectedSkirting() {
 function sellSelectedCaravan() {
     const caravan = state.selectedEntity;
     if (!caravan) return;
-    const salePrice = caravan.tier === 1 ? 300 : 1000;
-    recordTransaction(salePrice, 'asset sale', 'Sold caravan');
+    if (caravan.pitch.occupied || caravan.pitch.deliveryReserved ||
+        caravan.pitch.replacementReserved || caravan.pitch.constructionReserved) {
+        showToast('This static cannot be sold while its pitch is occupied or reserved.');
+        return;
+    }
+    const salePrice = StaticCaravans.calculateResaleValue(
+        caravan, StaticCaravans.gameTimeMinutes(state)
+    );
+    if (!window.confirm(`Sell ${StaticCaravans.getModel(caravan.modelId)?.name || 'static caravan'} for £${salePrice.toLocaleString()}?`)) {
+        return;
+    }
+    if (salePrice > 0 && !recordTransaction(salePrice, 'asset sale', `Sold ${caravan.modelId}`)) return;
     state.caravans = state.caravans.filter(item => item !== caravan);
-    caravan.pitch.occupied = false;
     state.selectedEntity = null;
     state.interactionTarget = null;
+    refreshPitchCapabilities();
     saveGame();
     updateUI();
     showToast(`💰 Unit sold for £${salePrice}.`);
@@ -2295,6 +2598,11 @@ canvas.addEventListener('mousedown', event => {
 window.addEventListener('keydown', e => {
     if (!document.getElementById('start-screen').hidden) return;
     const key = e.key.toLowerCase();
+    const vendorDialog = document.getElementById('vendor-dialog');
+    if (!vendorDialog.hidden) {
+        if (key === 'escape') closeVendor();
+        return;
+    }
     if (!document.getElementById('sleep-prompt').hidden) {
         if (key === 'escape') dismissSleepPrompt();
         return;
@@ -2357,6 +2665,85 @@ window.onload = () => {
         .forEach(id => document.getElementById(id).addEventListener('input', renderAvatarPreview));
     document.getElementById('sleep-confirm').addEventListener('click', sleepThroughNight);
     document.getElementById('sleep-cancel').addEventListener('click', dismissSleepPrompt);
+    document.getElementById('vendor-close').addEventListener('click', closeVendor);
+    document.getElementById('vendor-content').addEventListener('change', event => {
+        if (event.target.id === 'rusty-pitch') renderRustyResales(event.target.value);
+    });
+    document.getElementById('vendor-content').addEventListener('click', event => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        if (button.dataset.vendorBuy) {
+            const pitch = state.pitches.find(item =>
+                item.id === document.getElementById('rusty-pitch')?.value
+            );
+            const model = StaticCaravans.getModel(button.dataset.vendorBuy);
+            if (!pitch || !model) {
+                showToast('❌ Select an eligible pitch and static model.');
+                return;
+            }
+            const oldVan = StaticCaravans.findInstalledVan(state, pitch);
+            const tradeIn = oldVan
+                ? StaticCaravans.calculateResaleValue(oldVan, StaticCaravans.gameTimeMinutes(state))
+                : 0;
+            const netCost = model.purchasePrice - tradeIn;
+            const confirmation =
+                `Purchase ${model.name} for £${model.purchasePrice.toLocaleString()}?` +
+                (oldVan ? `\nTrade-in credit: £${tradeIn.toLocaleString()}.` : '') +
+                `\nNet ${netCost < 0 ? 'credit' : 'cost'}: £${Math.abs(netCost).toLocaleString()}.` +
+                `\nDelivery expected ${formatGameTime(StaticCaravans.scheduleDelivery(state))}.`;
+            if (!window.confirm(confirmation)) return;
+            const result = StaticCaravans.queuePurchase(state, pitch, model.id,
+                (amount, category, description) => recordTransaction(amount, category, description));
+            if (!result.ok) {
+                showToast(`❌ ${result.reason}`);
+                renderRustyResales(pitch.id);
+                return;
+            }
+            refreshPitchCapabilities();
+            saveGame();
+            updateUI();
+            renderRustyResales(pitch.id);
+            showToast(`✅ ${model.name} ordered. Delivery expected ${formatGameTime(result.order.deliveryAtMinutes)}.`);
+            return;
+        }
+        if (button.dataset.installDecking) {
+            const pitch = state.pitches.find(item => item.id === button.dataset.installDecking);
+            if (!pitch || !window.confirm(
+                `Install decking on pitch ${pitch?.id || ''} for £${StaticCaravans.DECKING.price.toLocaleString()}?`
+            )) return;
+            const result = StaticCaravans.installDecking(
+                state, pitch, (amount, category, description) =>
+                    recordTransaction(amount, category, description)
+            );
+            if (!result.ok) {
+                showToast(`❌ ${result.reason}`);
+                renderRustyResales(pitch?.id);
+                return;
+            }
+            saveGame();
+            updateUI();
+            renderRustyResales(pitch.id);
+            showToast(`✅ Decking installed. Its ${StaticCaravans.DECKING.lifespanDays.toLocaleString()}-day lifespan has started.`);
+            return;
+        }
+        if (button.dataset.buyAccessory) {
+            const item = StaticCaravans.ACCESSORIES[button.dataset.buyAccessory];
+            if (!item || !window.confirm(`Buy ${item.name} for £${item.price.toLocaleString()}?`)) return;
+            const result = StaticCaravans.purchaseAccessory(
+                state, item.id, (amount, category, description) =>
+                    recordTransaction(amount, category, description)
+            );
+            if (!result.ok) {
+                showToast(`❌ ${result.reason}`);
+                return;
+            }
+            saveGame();
+            closeVendor();
+            setTool(`place_accessory_${item.id}`);
+            showToast(`${item.name} purchased. Click a tile inside an eligible pitch to place it.`);
+            updateUI();
+        }
+    });
     document.getElementById('btn-repair').addEventListener('click', repairSelectedCaravan);
     document.getElementById('btn-upgrade').addEventListener('click', upgradeSelectedCaravan);
     document.getElementById('btn-skirting').addEventListener('click', fitSelectedSkirting);

@@ -44,7 +44,9 @@ test('migrateSave upgrades legacy save payloads to the current schema', () => {
   assert.equal(migrated.tiles[0][0].terrain, 'grass');
   assert.equal(migrated.pitches[0].type, 'grass');
   assert.equal(migrated.guests[0].accommodation, 'tent');
-  assert.equal(migrated.caravans[0].tier, 1);
+  assert.equal(migrated.caravans[0].tier, 'basic');
+  assert.equal(migrated.caravans[0].modelId, 'basic-1br');
+  assert.equal(migrated.caravans[0].maxOccupancy, undefined);
   assert.equal(migrated.camera.zoom, 1.7);
   assert.equal(migrated.player.x, 3.5);
   assert.equal(migrated.initialBalance, 1500);
@@ -55,6 +57,91 @@ test('migrateSave upgrades legacy save payloads to the current schema', () => {
   assert.equal(migrated.guests[0].booking.status, 'checked-in');
   assert.equal(migrated.facilities[0].isOperational, true);
   assert.equal(migrated.facilities[0].capacity, 10);
+});
+
+test('schema-11 static assets migrate to stable catalogue records without losing cash or guests', () => {
+  const save = buildLegacySave();
+  save.cash = 17325;
+  save.day = 24;
+  save.pitches = [
+    {x: 2, y: 2, w: 4, h: 8, type: 'gravel', occupied: false}
+  ];
+  save.caravans = [{
+    tier: 2,
+    pitchIndex: 0,
+    condition: 71,
+    isBroken: false,
+    hasDecking: true,
+    hasSkirting: true
+  }];
+  save.guests = [{
+    pitchIndex: 0,
+    accommodation: 'static',
+    party: {type: 'couple', adults: 2, children: 0},
+    stayDaysRemaining: 2,
+    booking: {id: 'kept-booking'}
+  }];
+  const migrated = migrateSave(save);
+  const pitch = migrated.pitches[0];
+  const van = migrated.caravans[0];
+
+  assert.equal(migrated.cash, 17325);
+  assert.equal(migrated.guests[0].booking.id, 'kept-booking');
+  assert.equal(van.modelId, 'gold-2br');
+  assert.equal(van.tier, 'gold');
+  assert.equal(van.bedrooms, 2);
+  assert.equal(van.pitchId, pitch.id);
+  assert.equal(van.purchasePrice, 40000);
+  assert.equal(van.purchasedAtMinutes, 0);
+  assert.equal(van.hasDecking, true);
+  assert.equal(van.hasSkirting, true);
+  assert.equal(pitch.decking.id, `legacy-decking-${pitch.id}`);
+  assert.ok(pitch.decking.condition < 100);
+  assert.equal(migrated.schemaVersion, 12);
+});
+
+test('static caravan migration prefers its stable pitch ID over a stale array index', () => {
+  const save = buildLegacySave();
+  save.pitches = [
+    {id: 'pitch-first', x: 2, y: 2, w: 4, h: 8, type: 'gravel'},
+    {id: 'pitch-second', x: 10, y: 2, w: 4, h: 8, type: 'gravel'}
+  ];
+  save.caravans = [{
+    modelId: 'silver-2br',
+    pitchId: 'pitch-second',
+    pitchIndex: 0
+  }];
+
+  const migrated = migrateSave(save);
+  assert.equal(migrated.caravans[0].pitchId, 'pitch-second');
+  assert.equal(migrated.caravans[0].pitchIndex, 1);
+});
+
+test('static catalogue, accessory stock, and pending delivery data normalize deterministically', () => {
+  const save = buildLegacySave();
+  save.staticDeliveries = [{
+    id: 'delivery-8',
+    vanId: 'static-9',
+    pitchId: 'pitch-2-2-4-8',
+    modelId: 'bronze-3br',
+    purchasePrice: 22000,
+    purchasedAtMinutes: 120,
+    deliveryAtMinutes: 480,
+    tradeInVanId: null,
+    tradeInValue: 0
+  }];
+  save.accessoryInventory = {bbq: 2, patio: -1, unknown: 4};
+  save.staticAssetSequence = 8;
+  save.pitches = [{x: 2, y: 2, w: 4, h: 8, type: 'gravel'}];
+  const migrated = migrateSave(save);
+
+  assert.equal(migrated.staticDeliveries.length, 1);
+  assert.equal(migrated.pitches[0].deliveryReserved, 'delivery-8');
+  assert.equal(migrated.accessoryInventory.bbq, 2);
+  assert.equal(migrated.accessoryInventory.patio, 0);
+  assert.equal(migrated.accessoryInventory.unknown, undefined);
+  assert.equal(migrated.staticAssetSequence, 9);
+  assert.equal(migrateSave(save).pitches[0].id, migrated.pitches[0].id);
 });
 
 test('migrateSave preserves guest world state and transaction history', () => {

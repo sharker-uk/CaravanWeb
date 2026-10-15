@@ -67,7 +67,8 @@
     function shouldAcceptGuest(state, options = {}) {
         if (options.eligible === false) return false;
         const pitches = state?.pitches || [];
-        const vacancies = pitches.filter(pitch => !pitch.occupied).length;
+        const vacancies = pitches.filter(pitch => !pitch.occupied && !pitch.constructionReserved &&
+            !pitch.deliveryReserved && !pitch.replacementReserved).length;
         const demand = getGuestDemand(state).score;
         const dailyCapacity = Math.min(pitches.length, 24);
         const dailyArrivals = state.dailyGuestArrivals || 0;

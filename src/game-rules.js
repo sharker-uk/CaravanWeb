@@ -44,7 +44,9 @@
             return false;
         }
         if (!data.caravans.every(caravan => caravan && typeof caravan === 'object' &&
-            (caravan.tier === 1 || caravan.tier === 2))) {
+            (caravan.tier === 1 || caravan.tier === 2 ||
+                ['basic', 'bronze', 'silver', 'gold', 'platinum'].includes(caravan.tier) ||
+                typeof caravan.modelId === 'string'))) {
             return false;
         }
         if (data.facilities !== undefined && (!Array.isArray(data.facilities) ||
@@ -72,7 +74,7 @@
         if (!pitch || !accommodation) return false;
         if (pitch.type === 'grass') return accommodation === 'tent' || accommodation === 'towed';
         if (pitch.type === 'gravel') {
-            return accommodation === 'towed' ||
+            return accommodation === 'tent' || accommodation === 'towed' ||
                 (accommodation === 'static' && isPitchReadyForStatic(pitch, tileMap));
         }
         return false;
@@ -93,7 +95,7 @@
             }
             return {
                 valid: false,
-                reason: `${accommodation === 'static' ? 'Static caravans' : 'This accommodation'} cannot be placed on a ${pitch.type} pitch.`
+                reason: `${accommodation === 'static' ? 'Static caravans' : 'This accommodation'} cannot be placed on a ${pitch.type === 'gravel' ? 'Hardstanding' : 'Grass'} pitch.`
             };
         }
         return {valid: true, reason: ''};

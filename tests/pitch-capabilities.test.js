@@ -1,8 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const PitchCapabilities = require('../src/pitch-capabilities.js');
+const StaticCaravans = require('../src/static-caravans.js');
 
-function createState(pitchType = 'gravel') {
+function createState(pitchType = 'gravel', installStatic = true) {
   const tiles = Array.from({length: 8}, () => Array.from({length: 8}, () => ({
     terrain: 'grass',
     road: false,
@@ -16,14 +17,26 @@ function createState(pitchType = 'gravel') {
     }
   }
   const pitch = {x: 2, y: 2, w: 2, h: 2, type: pitchType, occupied: false};
-  return {
+  const state = {
     tiles,
     pitches: [pitch],
+    caravans: [],
+    guests: [],
+    constructions: [],
     facilities: [{
       type: 'toilets', x: 2, y: 4, w: 3, h: 3,
       capacity: 8, isOperational: true
     }]
   };
+  if (pitchType === 'gravel' && installStatic) {
+    const caravan = StaticCaravans.createVan('basic-1br', {
+      id: 'test-static', pitchId: 'test-pitch'
+    });
+    pitch.id = 'test-pitch';
+    caravan.pitch = pitch;
+    state.caravans.push(caravan);
+  }
+  return state;
 }
 
 test('pitch index derives physical accommodation, utility, and local service capabilities', () => {
@@ -31,13 +44,28 @@ test('pitch index derives physical accommodation, utility, and local service cap
   const index = PitchCapabilities.rebuild(state);
   const [record] = index.records;
 
-  assert.deepEqual(record.accommodations, ['towed', 'static']);
+  assert.deepEqual(record.accommodations, ['static']);
   assert.deepEqual(record.utilities, {
     gas: true, water: true, electricity: true, waste: true
   });
   assert.equal(record.services.toilets, 8);
-  assert.equal(Object.hasOwn(record, 'occupied'), false);
-  assert.equal(Object.hasOwn(record, 'availability'), false);
+  assert.equal(record.staticEligible, true);
+  assert.equal(record.staticInstalled, true);
+  assert.equal(record.staticCapacity, 4);
+  assert.equal(record.availability, 'available');
+});
+
+test('empty hardstanding pitches remain static-eligible but do not have static accommodation capacity', () => {
+  const state = createState('gravel', false);
+  const record = PitchCapabilities.rebuild(state).records[0];
+  assert.equal(record.staticEligible, true);
+  assert.equal(record.staticInstalled, false);
+  assert.equal(record.staticCapacity, 0);
+  assert.deepEqual(record.accommodations, ['tent', 'towed']);
+  const grass = createState('grass');
+  const grassRecord = PitchCapabilities.rebuild(grass).records[0];
+  assert.equal(grassRecord.staticEligible, false);
+  assert.equal(grassRecord.accommodations.includes('static'), false);
 });
 
 test('candidate queries filter cached capabilities and read current pitch availability', () => {

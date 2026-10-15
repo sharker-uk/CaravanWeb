@@ -1,8 +1,10 @@
 (function (globalScope) {
-    const CURRENT_SAVE_SCHEMA = 11;
+    const CURRENT_SAVE_SCHEMA = 12;
     const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
     const facilityApi = globalScope.FacilityOperations ||
         (typeof require === 'function' ? require('./facility-operations.js') : null);
+    const staticCaravansApi = globalScope.StaticCaravans ||
+        (typeof require === 'function' ? require('./static-caravans.js') : null);
 
     function createEmptyUtilities() {
         return {gas: false, water: false, electricity: false, waste: false};
@@ -42,13 +44,42 @@
         if (!Array.isArray(pitches)) return [];
         return pitches.map(pitch => {
             if (!pitch || typeof pitch !== 'object') return null;
+            const stablePitchId = typeof pitch.id === 'string' && pitch.id
+                ? pitch.id
+                : `pitch-${pitch.x}-${pitch.y}-${pitch.w}-${pitch.h}`;
             const normalized = {
+                id: stablePitchId,
                 x: Number(pitch.x),
                 y: Number(pitch.y),
                 w: Number(pitch.w),
                 h: Number(pitch.h),
                 type: pitch.type === 'gravel' ? 'gravel' : 'grass',
-                occupied: Boolean(pitch.occupied)
+                occupied: Boolean(pitch.occupied),
+                accessories: Array.isArray(pitch.accessories)
+                    ? pitch.accessories.filter(item => item && staticCaravansApi.ACCESSORIES[item.type] &&
+                        Number.isInteger(item.x) && Number.isInteger(item.y) &&
+                        Number.isInteger(item.w) && Number.isInteger(item.h))
+                        .map((item, index) => ({
+                            ...item,
+                            id: typeof item.id === 'string' ? item.id : `accessory-${stablePitchId}-${index + 1}`,
+                            condition: Number.isFinite(item.condition)
+                                ? Math.min(100, Math.max(0, item.condition)) : 100,
+                            installedAtMinutes: Number.isFinite(item.installedAtMinutes)
+                                ? Math.max(0, item.installedAtMinutes) : 0
+                        }))
+                    : [],
+                decking: pitch.decking && typeof pitch.decking === 'object'
+                    ? {
+                        ...pitch.decking,
+                        id: typeof pitch.decking.id === 'string' ? pitch.decking.id :
+                            `decking-${stablePitchId}`,
+                        installedAtMinutes: Number.isFinite(pitch.decking.installedAtMinutes)
+                            ? Math.max(0, pitch.decking.installedAtMinutes) : 0,
+                        condition: Number.isFinite(pitch.decking.condition)
+                            ? Math.min(100, Math.max(0, pitch.decking.condition)) : 100,
+                        operational: pitch.decking.operational !== false
+                    }
+                    : null
             };
             if (!Number.isFinite(normalized.x) || !Number.isFinite(normalized.y) ||
                 !Number.isFinite(normalized.w) || !Number.isFinite(normalized.h)) {
@@ -185,20 +216,50 @@
             Number.isFinite(transaction.balance)).slice(-1000);
     }
 
-    function normalizeCaravans(caravans) {
+    function normalizeCaravans(caravans, pitches, currentDay) {
         if (!Array.isArray(caravans)) return [];
-        return caravans.map(caravan => {
+        return caravans.map((caravan, index) => {
             if (!caravan || typeof caravan !== 'object') return null;
-            return {
-                ...caravan,
-                tier: caravan.tier === 2 ? 2 : 1,
-                pitchIndex: Number.isInteger(caravan.pitchIndex) ? caravan.pitchIndex : 0,
-                condition: Number.isFinite(caravan.condition) ? caravan.condition : 100,
-                isBroken: Boolean(caravan.isBroken),
-                hasDecking: Boolean(caravan.hasDecking),
-                hasSkirting: Boolean(caravan.hasSkirting)
-            };
+            const stablePitchIndex = typeof caravan.pitchId === 'string'
+                ? pitches.findIndex(pitch => pitch.id === caravan.pitchId)
+                : -1;
+            const pitchIndex = stablePitchIndex >= 0
+                ? stablePitchIndex
+                : Number.isInteger(caravan.pitchIndex) ? caravan.pitchIndex : index;
+            const pitch = pitches[pitchIndex];
+            if (!pitch) return null;
+            const normalized = staticCaravansApi.normalizeLegacyVan(caravan, pitch.id);
+            normalized.id ||= `legacy-static-${pitch.id}`;
+            normalized.pitchIndex = pitchIndex;
+            if (caravan.hasDecking && !pitch.decking) {
+                const installedAtMinutes = Number.isFinite(caravan.deckingInstalledAtMinutes)
+                    ? Math.max(0, caravan.deckingInstalledAtMinutes) : 0;
+                const ageDays = Math.max(0, (((currentDay - 1) * 1440) - installedAtMinutes) / 1440);
+                pitch.decking = {
+                    id: `legacy-decking-${pitch.id}`,
+                    installedAtMinutes,
+                    condition: Math.max(0, (1 - ageDays / staticCaravansApi.DECKING.lifespanDays) * 100),
+                    operational: ageDays < staticCaravansApi.DECKING.lifespanDays
+                };
+            }
+            normalized.hasDecking = Boolean(pitch.decking);
+            return normalized;
         }).filter(Boolean);
+    }
+
+    function normalizeStaticDeliveries(deliveries, pitches) {
+        if (!Array.isArray(deliveries)) return [];
+        return deliveries.filter(order => order && typeof order.id === 'string' &&
+            typeof order.vanId === 'string' && typeof order.pitchId === 'string' &&
+            staticCaravansApi.getModel(order.modelId) &&
+            Number.isFinite(order.purchasePrice) && Number.isFinite(order.purchasedAtMinutes) &&
+            Number.isFinite(order.deliveryAtMinutes) &&
+            pitches.some(pitch => pitch.id === order.pitchId))
+            .map(order => ({
+                ...order,
+                tradeInVanId: typeof order.tradeInVanId === 'string' ? order.tradeInVanId : null,
+                tradeInValue: Number.isFinite(order.tradeInValue) ? Math.max(0, order.tradeInValue) : 0
+            }));
     }
 
     function normalizeFacilities(facilities) {
@@ -251,10 +312,22 @@
 
     function migrateSave(saveData) {
         if (!saveData || typeof saveData !== 'object') return null;
+        const currentDay = Number.isFinite(saveData.day) ? saveData.day : 1;
 
         const normalizedTiles = Array.isArray(saveData.tiles)
             ? saveData.tiles.map(row => Array.isArray(row) ? row.map(normalizeTile) : [])
             : [];
+        const pitches = normalizePitches(saveData.pitches);
+        const caravans = normalizeCaravans(saveData.caravans, pitches, currentDay);
+        const staticDeliveries = normalizeStaticDeliveries(saveData.staticDeliveries, pitches);
+        staticDeliveries.forEach(order => {
+            const pitch = pitches.find(item => item.id === order.pitchId);
+            if (pitch && !pitch.deliveryReserved) pitch.deliveryReserved = order.id;
+        });
+        const inferredAssetSequence = [...caravans, ...staticDeliveries]
+            .flatMap(asset => [asset.id, asset.vanId])
+            .map(id => Number((id || '').match(/-(\d+)$/)?.[1]) || 0)
+            .reduce((max, value) => Math.max(max, value), 0);
 
         const migrated = {
             ...saveData,
@@ -276,9 +349,16 @@
                 ? Math.max(0, saveData.dailyGuestArrivals)
                 : 0,
             tiles: normalizedTiles,
-            pitches: normalizePitches(saveData.pitches),
-            guests: normalizeGuests(saveData.guests, Number.isFinite(saveData.day) ? saveData.day : 1),
-            caravans: normalizeCaravans(saveData.caravans),
+            pitches,
+            guests: normalizeGuests(saveData.guests, currentDay),
+            caravans,
+            staticDeliveries,
+            accessoryInventory: Object.fromEntries(Object.keys(staticCaravansApi.ACCESSORIES)
+                .map(id => [id, Number.isInteger(saveData.accessoryInventory?.[id])
+                    ? Math.max(0, saveData.accessoryInventory[id]) : 0])),
+            staticAssetSequence: Number.isInteger(saveData.staticAssetSequence)
+                ? Math.max(inferredAssetSequence, saveData.staticAssetSequence)
+                : inferredAssetSequence,
             facilities: normalizeFacilities(saveData.facilities),
             overlayMode: ['none', 'services', 'utilities', 'entertainment'].includes(saveData.overlayMode)
                 ? saveData.overlayMode : 'none',
@@ -305,7 +385,7 @@
                         conditionAtStart: Number.isFinite(saveData.maintenanceTask.conditionAtStart)
                             ? saveData.maintenanceTask.conditionAtStart : null}
                     : null,
-            day: Number.isFinite(saveData.day) ? saveData.day : 1,
+            day: currentDay,
             hour: Number.isFinite(saveData.hour) ? saveData.hour : 9,
             minute: Number.isFinite(saveData.minute) ? saveData.minute : 0,
             satisfaction: Number.isFinite(saveData.satisfaction) ? saveData.satisfaction : 60,

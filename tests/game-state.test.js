@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createGameState, canOccupyPlayer, findPathToAny, getTileProperties, findInteractableAt } = require('../src/game-state.js');
+const StaticCaravans = require('../src/static-caravans.js');
 
 test('game state exposes a minimal explicit structure and default player state', () => {
   const state = createGameState();
@@ -31,6 +32,25 @@ test('walkability and pathfinding use the state contract instead of global data'
   assert.ok(path);
   assert.equal(path[path.length - 1].x, 4.5);
   assert.equal(path[path.length - 1].y, 4.5);
+});
+
+test('static caravan collision and interaction use the shared footprint, not the whole pitch', () => {
+  const pitch = {id: 'pitch-1', x: 2, y: 2, w: 4, h: 8, type: 'gravel'};
+  const caravan = StaticCaravans.createVan('basic-1br', {
+    id: 'static-1', pitchId: pitch.id
+  });
+  caravan.pitch = pitch;
+  const state = createGameState({
+    tiles: Array.from({length: 12}, () => Array.from({length: 12}, () => ({
+      terrain: 'grass', road: false, path: false
+    }))),
+    pitches: [pitch],
+    caravans: [caravan]
+  });
+
+  assert.equal(getTileProperties(state, 2, 2).walkable, true);
+  assert.equal(getTileProperties(state, 2, 3).walkable, false);
+  assert.equal(findInteractableAt(state, 2, 3).kind, 'caravan');
 });
 
 test('landmarks and construction reserve build areas without blocking the beach', () => {

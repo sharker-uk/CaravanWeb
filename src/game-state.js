@@ -1,4 +1,7 @@
 (function (globalScope) {
+    const staticCaravansApi = globalScope.StaticCaravans ||
+        (typeof require === 'function' ? require('./static-caravans.js') : null);
+
     const DEFAULT_STATE = {
         cash: 1500,
         initialBalance: 1500,
@@ -18,6 +21,9 @@
         tiles: [],
         pitches: [],
         caravans: [],
+        staticDeliveries: [],
+        accessoryInventory: {bbq: 0, patio: 0, firepit: 0, hot_tub: 0},
+        staticAssetSequence: 0,
         guests: [],
         guestArrivalProgress: 0,
         dailyGuestArrivals: 0,
@@ -69,10 +75,11 @@
         const facility = state.facilities.find(item =>
             x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
         );
-        const caravan = state.caravans.find(item =>
-            x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
-            y >= item.pitch.y && y < item.pitch.y + item.pitch.h
-        );
+        const caravan = state.caravans.find(item => {
+            const footprint = staticCaravansApi?.getStaticFootprint(item.pitch) || item.pitch;
+            return x >= footprint.x && x < footprint.x + footprint.w &&
+                y >= footprint.y && y < footprint.y + footprint.h;
+        });
         const guest = state.guests.find(item =>
             x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
             y >= item.pitch.y && y < item.pitch.y + item.pitch.h
@@ -162,11 +169,15 @@
             return { kind: tile.nature, entity: tile, x, y, w: 1, h: 1 };
         }
 
-        const caravan = state.caravans.find(item =>
-            x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
-            y >= item.pitch.y && y < item.pitch.y + item.pitch.h
-        );
-        if (caravan) return { kind: 'caravan', entity: caravan, x: caravan.pitch.x, y: caravan.pitch.y, w: caravan.pitch.w, h: caravan.pitch.h };
+        const caravan = state.caravans.find(item => {
+            const footprint = staticCaravansApi?.getStaticFootprint(item.pitch) || item.pitch;
+            return x >= footprint.x && x < footprint.x + footprint.w &&
+                y >= footprint.y && y < footprint.y + footprint.h;
+        });
+        if (caravan) {
+            const footprint = staticCaravansApi?.getStaticFootprint(caravan.pitch) || caravan.pitch;
+            return {kind: 'caravan', entity: caravan, ...footprint};
+        }
 
         const guest = state.guests.find(item =>
             x >= item.pitch.x && x < item.pitch.x + item.pitch.w &&
