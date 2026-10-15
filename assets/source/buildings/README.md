@@ -1,0 +1,1 @@
+Source artwork for park landmarks and facilities. Start with the toilet block (`facility.toilets`). Later assets include the farmhouse, Rusty Resales, Fiddl, Job Centre and other facility types documented in `../../README.md`.
