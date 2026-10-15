@@ -125,7 +125,18 @@
 
     function getUtilityOverlay(tileMap = [], type) {
         const connected = getConnectedUtilityTiles(tileMap, type);
-        return {connected, disconnected: new Set()};
+        const disconnected = new Set();
+        if (UTILITY_TYPES.includes(type) && Array.isArray(tileMap)) {
+            tileMap.forEach((row, y) => {
+                (row || []).forEach((tile, x) => {
+                    if (tile && isRoute(tile) && tile.utilities?.[type] &&
+                        !connected.has(`${x},${y}`)) {
+                        disconnected.add(`${x},${y}`);
+                    }
+                });
+            });
+        }
+        return {connected, disconnected};
     }
 
     const api = {
