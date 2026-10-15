@@ -904,16 +904,21 @@ function createArrivalCandidate() {
             ? ['tent', 'towed']
             : ['towed', ...(isPitchReadyForStatic(pitch) ? ['static'] : [])])
             .filter(accommodation => GuestParties.isArrivalTimeAllowed(accommodation, state.hour)),
-        (accommodation, headcount) =>
-            FacilityOperations.canHostParty(state, accommodation, headcount).valid
+        (accommodation, headcount, pitch) =>
+            FacilityOperations.canHostParty(state, accommodation, headcount).valid &&
+            ParkServices.getPitchServiceCheck(state, pitch, accommodation, headcount).valid
     );
 }
 
 function arriveGuest(candidate) {
     if (!candidate) return false;
     const {pitch, accommodation, party} = candidate;
+    // Revalidate spatial coverage and capacity immediately before committing the booking.
+    // This keeps arrival selection and arrival acceptance governed by the same rules.
     const facilityCheck = FacilityOperations.canHostParty(state, accommodation, party.headcount);
-    if (!facilityCheck.valid) return false;
+    const serviceCheck = ParkServices.getPitchServiceCheck(state, pitch, accommodation, party.headcount);
+    if (!facilityCheck.valid || !serviceCheck.valid || pitch.occupied ||
+        !state.pitches.includes(pitch)) return false;
     const ratingAtArrival = state.rating;
     const maximumStayDays = accommodation === 'static'
         ? 14
