@@ -70,13 +70,10 @@
         return index;
     }
 
-    function canHost(index, state, pitch, requirements = {}) {
-        const connectedUtilities = Object.fromEntries(UTILITY_TYPES.map(type => [
-            type, parkServicesApi.getConnectedUtilityTiles(state.tiles || [], type)
-        ]));
-        const capability = deriveCapability(state, pitch, connectedUtilities);
+    function satisfiesHostingRequirements(state, pitch, capability, requirements) {
         const headcount = Math.max(1, Number(requirements.headcount) || 1);
-        return !pitch.occupied && !pitch.constructionReserved && !pitch.deliveryReserved &&
+        return Boolean(pitch && state.pitches?.includes(pitch)) &&
+            !pitch.occupied && !pitch.constructionReserved && !pitch.deliveryReserved &&
             !pitch.replacementReserved &&
             capability.accommodations.includes(requirements.accommodation) &&
             (requirements.accommodation !== 'static' ||
@@ -85,6 +82,20 @@
             (requirements.requiredServices || []).every(type =>
                 (capability.services[type] || 0) >= headcount
             );
+    }
+
+    function canHost(index, state, pitch, requirements = {}) {
+        const capability = index?.records.find(record => record.pitch === pitch);
+        return Boolean(capability &&
+            satisfiesHostingRequirements(state, pitch, capability, requirements));
+    }
+
+    function canHostCurrent(state, pitch, requirements = {}) {
+        const connectedUtilities = Object.fromEntries(UTILITY_TYPES.map(type => [
+            type, parkServicesApi.getConnectedUtilityTiles(state.tiles || [], type)
+        ]));
+        const capability = deriveCapability(state, pitch, connectedUtilities);
+        return satisfiesHostingRequirements(state, pitch, capability, requirements);
     }
 
     function findCandidates(index, requirements = {}) {
@@ -106,7 +117,7 @@
         });
     }
 
-    const api = {createIndex, rebuild, canHost, findCandidates};
+    const api = {createIndex, rebuild, canHost, canHostCurrent, findCandidates};
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     globalScope.PitchCapabilities = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

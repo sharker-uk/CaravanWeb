@@ -1136,7 +1136,7 @@ function arriveGuest(candidate) {
     if (!facilityCheck.valid || !serviceCheck.valid || pitch.occupied ||
         pitch.constructionReserved || pitch.deliveryReserved || pitch.replacementReserved ||
         !state.pitches.includes(pitch) ||
-        !PitchCapabilities.canHost(pitchCapabilityIndex, state, pitch, {
+        !PitchCapabilities.canHostCurrent(state, pitch, {
             accommodation,
             headcount: party.headcount,
             requiredServices: ['toilets']

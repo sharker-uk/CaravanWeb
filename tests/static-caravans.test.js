@@ -113,6 +113,30 @@ test('delivery uses the game clock, the operating window, and freezes while paus
   assert.equal(state.staticDeliveries.length, 1);
 });
 
+test('delivery schedule has explicit inclusive operating-window boundaries', () => {
+  const state = createState();
+
+  state.hour = 8;
+  state.minute = 0;
+  assert.equal(StaticCaravans.scheduleDelivery(state), 14 * 60);
+
+  state.hour = 14;
+  state.minute = 0;
+  assert.equal(StaticCaravans.scheduleDelivery(state), 20 * 60);
+
+  state.hour = 19;
+  state.minute = 59;
+  assert.equal(StaticCaravans.scheduleDelivery(state), 1440 + 8 * 60);
+
+  state.hour = 20;
+  state.minute = 0;
+  assert.equal(StaticCaravans.scheduleDelivery(state), 1440 + 8 * 60);
+
+  state.hour = 20;
+  state.minute = 1;
+  assert.equal(StaticCaravans.scheduleDelivery(state), 1440 + 14 * 60);
+});
+
 test('insufficient funds leave cash, inventory, reservations, and ledger untouched', () => {
   const state = createState();
   state.cash = 100;

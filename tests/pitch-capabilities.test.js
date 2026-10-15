@@ -87,7 +87,7 @@ test('candidate queries filter cached capabilities and read current pitch availa
   assert.deepEqual(PitchCapabilities.findCandidates(index, requirements), []);
 });
 
-test('rebuilding reflects facility changes and final validation catches stale candidates', () => {
+test('cached validation avoids rebuilding utility connectivity while current validation catches stale data', () => {
   const state = createState('grass');
   const pitch = state.pitches[0];
   const index = PitchCapabilities.rebuild(state);
@@ -98,8 +98,18 @@ test('rebuilding reflects facility changes and final validation catches stale ca
   };
 
   assert.equal(PitchCapabilities.canHost(index, state, pitch, requirements), true);
+  state.tiles[1][0].utilities.water = false;
+  const utilityRequirements = {...requirements, requiredUtilities: ['water']};
+  assert.equal(PitchCapabilities.canHost(index, state, pitch, utilityRequirements), true);
+  assert.equal(PitchCapabilities.canHostCurrent(state, pitch, utilityRequirements), false);
+
   state.facilities[0].isOperational = false;
+  assert.equal(PitchCapabilities.canHost(index, state, pitch, requirements), true);
+  assert.equal(PitchCapabilities.canHostCurrent(state, pitch, requirements), false);
+
+  pitch.occupied = true;
   assert.equal(PitchCapabilities.canHost(index, state, pitch, requirements), false);
+  pitch.occupied = false;
   PitchCapabilities.rebuild(state, index);
   assert.deepEqual(index.records[0].services, {});
   assert.deepEqual(PitchCapabilities.findCandidates(index, {
