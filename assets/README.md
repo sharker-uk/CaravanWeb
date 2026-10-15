@@ -4,14 +4,23 @@ This browser prototype uses a **16 × 16 logical world tile**. Keep that gamepla
 
 ## Technical delivery
 
-- **Style:** cohesive pixel art suited to a British, slightly shabby coastal caravan park; readable at the game's current zoom levels.
-- **Perspective:** the current browser renderer is straight top-down. Design the first pack for that view. If the intended final look is 3/4 / Stardew-style, confirm that before drawing the full pack; the renderer's object-depth ordering will need a deliberate update first.
+- **Style:** illustrated 3/4 diorama, with clean dark outlines, restrained painted texture and a warm, muted, slightly weathered British coastal holiday-park palette. Keep ground quiet and hero objects more detailed.
+- **Perspective:** 3/4 is the intended art direction. The current renderer does not yet depth-sort all objects for a full 3/4 scene, so the first sprites should keep their ground-contact point clear and we should add/verify depth ordering before a broad world-art rollout. NPC/player sprites remain unchanged for the first slice.
 - **Atlas:** one transparent PNG, recommended starting size **512 × 512 px**, arranged on a 16 px source grid. Larger sprites may occupy multiples of that grid.
 - **Filtering:** nearest-neighbour / no smoothing. Do not pre-scale sprites.
 - **Transparency:** PNG with alpha for trees and objects. Ground and connected road/path tiles should be opaque.
 - **Alignment:** buildings fit their existing footprint exactly; trees are bottom-anchored and may extend above their tile. Keep consistent door/front orientation.
 - **No baked-in text:** building names, prices, condition, selection outlines and management overlays are rendered by the game UI, not painted into sprites.
 - **Naming:** atlas keys below are logical names in `tileset.json`, not filenames.
+
+## First implementation slice
+
+Build and test these three assets first, before producing the full pack:
+- `facility.toilets` — 48 × 48 px destination, 3 × 3 tiles.
+- `accommodation.tent` — rendered to the existing guest pitch footprint.
+- `accommodation.tin` — rendered to the existing guest pitch footprint.
+
+The starter rectangles are reserved in `tileset.json`. The PNG atlas is intentionally not committed yet; until artwork exists, the renderer falls back to procedural art.
 
 ## Minimum set for this version
 
