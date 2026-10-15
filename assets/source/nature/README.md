@@ -1,0 +1,1 @@
+Source artwork for trees, debris and later park decoration. Trees need transparent backgrounds and a consistent base/ground-contact point; avoid baked-in shadows that would look wrong across different terrain.
