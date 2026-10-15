@@ -55,6 +55,7 @@ function completeConstruction(job) {
 function updateConstructions() {
     const completed = Construction.completeDueConstructions(state, completeConstruction);
     if (!completed) return;
+    refreshPitchCapabilities();
     saveGame();
     showToast(`${completed} construction${completed === 1 ? '' : 's'} completed.`);
 }
@@ -69,6 +70,7 @@ const SimulationApi = window.Simulation;
 const Economy = window.Economy;
 const GuestParties = window.GuestParties;
 const FacilityOperations = window.FacilityOperations;
+const PitchCapabilities = window.PitchCapabilities;
 const GuestActivities = window.GuestActivities;
 const GameRulesApi = window.GameRules;
 const LandManagement = window.LandManagement;
@@ -128,6 +130,11 @@ let state = GameStateApi ? GameStateApi.createGameState() : {
     playerPath: [],
     interactionTarget: null
 };
+const pitchCapabilityIndex = PitchCapabilities.createIndex();
+function refreshPitchCapabilities() {
+    PitchCapabilities.rebuild(state, pitchCapabilityIndex);
+}
+
 const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
 const UTILITY_COSTS = {gas: 25, water: 20, electricity: 30, waste: 35};
 const FACILITY_BUILDINGS = {
@@ -317,6 +324,7 @@ function init() {
     updateVisitorCount();
     state.playerPath = [];
     state.interactionTarget = null;
+    refreshPitchCapabilities();
     // Upgrade older saves to use booked guests and persist a one-time random player avatar.
     if (!Array.isArray(data.guestProfilePool) || !data.playerAvatar ||
         (Array.isArray(data.parkNpcs) && data.parkNpcs.length)) saveGame();
@@ -368,6 +376,7 @@ function generateNewMap() {
     updateAvatarEditor();
     updateVisitorCount();
     updateTutorialVisibility();
+    refreshPitchCapabilities();
 }
 
 function normalizeTile(tile) {
@@ -850,10 +859,10 @@ function update(dt) {
 }
 
 function onHourly() {
-    advanceMaintenanceTask();
+    let pitchCapabilitiesChanged = advanceMaintenanceTask();
     if (state.handymanContractHoursRemaining > 0) {
         state.handymanContractHoursRemaining--;
-        maintainToiletBlocks(1, 2);
+        pitchCapabilitiesChanged = maintainToiletBlocks(1, 2) || pitchCapabilitiesChanged;
         state.caravans.forEach(caravan => {
             if (caravan.isBroken && state.cash >= 40) {
                 recordTransaction(-40, 'repairs', 'Day handyman caravan repair');
@@ -865,7 +874,9 @@ function onHourly() {
     }
     if (state.groundsStaff > 0) {
         recordTransaction(-(state.groundsStaff * 1), 'wages', 'Grounds staff hourly wages');
-        maintainToiletBlocks(state.groundsStaff * 1.5, state.groundsStaff * 0.25);
+        pitchCapabilitiesChanged = maintainToiletBlocks(
+            state.groundsStaff * 1.5, state.groundsStaff * 0.25
+        ) || pitchCapabilitiesChanged;
     }
     if (state.handymen > 0) {
         recordTransaction(-(state.handymen * 2), 'wages', 'Handyman hourly wages');
@@ -876,7 +887,9 @@ function onHourly() {
             }
         });
     }
-    FacilityOperations.processHourlyFacilities(state, recordTransaction);
+    FacilityOperations.processHourlyFacilities(state, recordTransaction, () => {
+        pitchCapabilitiesChanged = true;
+    });
     if (state.hour >= 12) {
         const departingStaticGuests = state.guests.filter(guest =>
             GuestParties.isStaticCheckoutDue(guest, state.day, state.hour)
@@ -886,6 +899,7 @@ function onHourly() {
             showToast(`${checkedOut} static renter${checkedOut === 1 ? '' : 's'} checked out.`);
         }
     }
+    if (pitchCapabilitiesChanged) refreshPitchCapabilities();
     const candidate = createArrivalCandidate();
     const demand = GuestParties.getDemandProfile(state.day);
     if (Economy.shouldAcceptGuest(state, {
@@ -897,28 +911,30 @@ function onHourly() {
 
 function createArrivalCandidate() {
     const party = GuestParties.createGuestParty(state.day);
-    return GuestParties.selectEligibleBooking(
-        state.pitches,
-        party,
-        pitch => (pitch.type === 'grass'
-            ? ['tent', 'towed']
-            : ['towed', ...(isPitchReadyForStatic(pitch) ? ['static'] : [])])
-            .filter(accommodation => GuestParties.isArrivalTimeAllowed(accommodation, state.hour)),
-        (accommodation, headcount, pitch) =>
-            FacilityOperations.canHostParty(state, accommodation, headcount).valid &&
-            ParkServices.getPitchServiceCheck(state, pitch, accommodation, headcount).valid
+    const accommodations = ['tent', 'towed', 'static'].filter(accommodation =>
+        GuestParties.isArrivalTimeAllowed(accommodation, state.hour)
     );
+    const candidates = PitchCapabilities.findCandidates(pitchCapabilityIndex, {
+        accommodations,
+        headcount: party.headcount,
+        requiredServices: ['toilets']
+    });
+    if (!candidates.length) return null;
+    return {...candidates[Math.floor(Math.random() * candidates.length)], party};
 }
 
 function arriveGuest(candidate) {
     if (!candidate) return false;
     const {pitch, accommodation, party} = candidate;
-    // Revalidate spatial coverage and capacity immediately before committing the booking.
-    // This keeps arrival selection and arrival acceptance governed by the same rules.
     const facilityCheck = FacilityOperations.canHostParty(state, accommodation, party.headcount);
     const serviceCheck = ParkServices.getPitchServiceCheck(state, pitch, accommodation, party.headcount);
     if (!facilityCheck.valid || !serviceCheck.valid || pitch.occupied ||
-        !state.pitches.includes(pitch)) return false;
+        pitch.constructionReserved || !state.pitches.includes(pitch) ||
+        !PitchCapabilities.canHost(pitchCapabilityIndex, state, pitch, {
+            accommodation,
+            headcount: party.headcount,
+            requiredServices: ['toilets']
+        })) return false;
     const ratingAtArrival = state.rating;
     const maximumStayDays = accommodation === 'static'
         ? 14
@@ -1963,18 +1979,25 @@ function sellSelectedCaravan() {
 }
 
 function maintainToiletBlocks(cleanlinessGain, wearGain) {
+    let capabilitiesChanged = false;
     state.facilities.filter(facility => facility.type === 'toilets').forEach(facility => {
+        const wasOperational = FacilityOperations.isFacilityOperational(facility);
         facility.cleanliness = Math.min(100, Number(facility.cleanliness ?? 100) + cleanlinessGain);
         facility.wear = Math.min(100, Number(facility.wear ?? 100) + wearGain);
         FacilityOperations.refreshFacilityOperationalStatus(facility);
+        if (wasOperational !== FacilityOperations.isFacilityOperational(facility)) {
+            capabilitiesChanged = true;
+        }
     });
+    return capabilitiesChanged;
 }
 function advanceMaintenanceTask() {
     const task = state.maintenanceTask;
-    if (!task) return;
+    if (!task) return false;
     task.hoursRemaining--;
-    if (task.hoursRemaining > 0) { saveGame(); return; }
+    if (task.hoursRemaining > 0) { saveGame(); return false; }
     const facility = state.facilities[task.facilityIndex];
+    const wasOperational = FacilityOperations.isFacilityOperational(facility);
     if (facility?.type === 'toilets') {
         if (task.action === 'clean') facility.cleanliness = Math.min(100, Number(facility.cleanliness ?? 100) + 50);
         else facility.wear = Math.min(100, Number(facility.wear ?? 100) + 50);
@@ -1986,6 +2009,7 @@ function advanceMaintenanceTask() {
     state.maintenanceTask = null;
     saveGame();
     updateUI();
+    return wasOperational !== FacilityOperations.isFacilityOperational(facility);
 }
 function startToiletMaintenance(action) {
     const facility = state.selectedEntity;
@@ -2021,6 +2045,7 @@ function toggleSelectedFacility() {
         return;
     }
     facility.isOperational = facility.isOperational === false;
+    refreshPitchCapabilities();
     saveGame();
     updateUI();
     showToast(`${facility.type.replaceAll('_', ' ')} ${facility.isOperational ? 'reopened' : 'closed'}.`);

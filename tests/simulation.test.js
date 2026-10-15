@@ -10,6 +10,7 @@ test('browser loads the simulation clock before the simulation module', () => {
   const simulationIndex = html.indexOf('src="src/simulation.js"');
   const partyIndex = html.indexOf('src="src/guest-parties.js"');
   const facilityIndex = html.indexOf('src="src/facility-operations.js"');
+  const capabilitiesIndex = html.indexOf('src="src/pitch-capabilities.js"');
   const migrationIndex = html.indexOf('src="src/save-migrations.js"');
   const constructionIndex = html.indexOf('src="src/construction.js"');
   const mainIndex = html.indexOf('src="src/main.js"');
@@ -19,6 +20,8 @@ test('browser loads the simulation clock before the simulation module', () => {
   assert.ok(clockIndex < simulationIndex, 'simulation clock must load first');
   assert.ok(partyIndex < mainIndex, 'guest party logic must load before the game');
   assert.ok(facilityIndex < migrationIndex, 'facility defaults must load before save migrations');
+  assert.ok(facilityIndex < capabilitiesIndex, 'facility operations must load before pitch capabilities');
+  assert.ok(capabilitiesIndex < mainIndex, 'pitch capabilities must load before the game');
   assert.ok(migrationIndex < mainIndex, 'save migrations must load before the game');
   assert.ok(constructionIndex < mainIndex, 'construction queue must load before the game');
   assert.match(html, /id="start-screen"/, 'new players must see a controls screen');

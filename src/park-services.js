@@ -29,12 +29,9 @@
         return connected;
     }
 
-    function getPitchHookups(pitch, tileMap = []) {
+    function getPitchHookupsFromConnected(pitch, connected) {
         const hookups = Object.fromEntries(UTILITY_TYPES.map(type => [type, false]));
         if (!pitch) return hookups;
-        const connected = Object.fromEntries(UTILITY_TYPES.map(type =>
-            [type, getConnectedUtilityTiles(tileMap, type)]
-        ));
         const adjacent = [];
         for (let x = pitch.x; x < pitch.x + pitch.w; x++) {
             adjacent.push({x, y: pitch.y - 1}, {x, y: pitch.y + pitch.h});
@@ -43,13 +40,18 @@
             adjacent.push({x: pitch.x - 1, y}, {x: pitch.x + pitch.w, y});
         }
         adjacent.forEach(({x,y}) => {
-            const tile = tileMap[y]?.[x];
-            if (!isRoute(tile)) return;
             UTILITY_TYPES.forEach(type => {
-                if (connected[type].has(`${x},${y}`)) hookups[type] = true;
+                if (connected[type]?.has(`${x},${y}`)) hookups[type] = true;
             });
         });
         return hookups;
+    }
+
+    function getPitchHookups(pitch, tileMap = []) {
+        const connected = Object.fromEntries(UTILITY_TYPES.map(type =>
+            [type, getConnectedUtilityTiles(tileMap, type)]
+        ));
+        return getPitchHookupsFromConnected(pitch, connected);
     }
 
     function getFacilityAccessPoint(facility) {
@@ -141,7 +143,7 @@
 
     const api = {
         LOCAL_SERVICE_RADIUS, UTILITY_TYPES, ENTERTAINMENT_TYPES,
-        getConnectedUtilityTiles, getPitchHookups, getServiceCoverage,
+        getConnectedUtilityTiles, getPitchHookups, getPitchHookupsFromConnected, getServiceCoverage,
         getPitchServiceCheck, getMaximumStayDays, getEntertainmentCapacity, getEntertainmentUsage,
         canUseEntertainment, getUtilityOverlay
     };

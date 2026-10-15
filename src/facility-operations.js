@@ -112,23 +112,26 @@
         }
     }
 
-    function serveParty(state, party, type, transaction) {
+    function serveParty(state, party, type, transaction, onCapabilityChange) {
         const facility = (state.facilities || []).find(item =>
             item.type === type && isFacilityOperational(item) &&
             (Number(item.hourlyUsage) || 0) + party.headcount <= item.capacity
         );
         if (!facility) return false;
+        const wasOperational = isFacilityOperational(facility);
         facility.hourlyUsage = (Number(facility.hourlyUsage) || 0) + party.headcount;
         if (type === 'toilets') {
             facility.cleanliness = Math.max(0, Number(facility.cleanliness ?? 100) - party.headcount * 0.25);
             facility.wear = Math.max(0, Number(facility.wear ?? 100) - party.headcount * 0.02);
             refreshFacilityOperationalStatus(facility);
         }
+        if (wasOperational !== isFacilityOperational(facility) &&
+            typeof onCapabilityChange === 'function') onCapabilityChange();
         recordService(party, facility, type, transaction);
         return true;
     }
 
-    function processHourlyFacilities(state, transaction) {
+    function processHourlyFacilities(state, transaction, onCapabilityChange) {
         if (!state || typeof transaction !== 'function') return;
         const serial = state.day * 24 + state.hour;
         (state.facilities || []).forEach(facility => {
@@ -152,7 +155,7 @@
 
             if (preferences.toiletIntervalHours &&
                 (serial + offset) % preferences.toiletIntervalHours === 0 &&
-                !serveParty(state, party, 'toilets', transaction)) {
+                !serveParty(state, party, 'toilets', transaction, onCapabilityChange)) {
                 party.needs.missedToiletVisits++;
                 adjustPartySatisfaction(party, -8);
             }
@@ -160,18 +163,18 @@
                 (state.day - (guest.booking?.arrivalDay ?? state.day)) %
                     preferences.showerVisitIntervalDays === 0 &&
                 state.hour === 8 + offset % 8 &&
-                !serveParty(state, party, 'showers', transaction)) {
+                !serveParty(state, party, 'showers', transaction, onCapabilityChange)) {
                 party.needs.missedShowerVisits++;
                 adjustPartySatisfaction(party, -8);
             }
             if (preferences.shopIntervalHours &&
                 (serial + offset) % preferences.shopIntervalHours === 0) {
-                serveParty(state, party, 'shop', transaction);
+                serveParty(state, party, 'shop', transaction, onCapabilityChange);
             }
             if (preferences.laundryEveryDays &&
                 state.hour === 18 && state.day >= guest.booking?.arrivalDay &&
                 (state.day - guest.booking.arrivalDay) % preferences.laundryEveryDays === 0) {
-                serveParty(state, party, 'laundry', transaction);
+                serveParty(state, party, 'laundry', transaction, onCapabilityChange);
             }
         });
     }

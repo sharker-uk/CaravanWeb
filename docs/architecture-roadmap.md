@@ -25,6 +25,7 @@
 - [x] Record cash movements in a reconciled transaction ledger and seven-day balance.
 - [x] Base satisfaction on guest utilities, accommodation condition and visited facilities.
 - [x] Model guest party composition, booking dates, preferences and seasonal demand.
+- [x] Derive pitch accommodation, utility and local-service capabilities for guest booking queries.
 - [x] Enforce operational toilet/shower capacity and account for facility operations, shop stock and laundry.
 - [x] Exercise three-week operating costs and revenue through the transaction ledger.
 - [x] Follow the player camera and support drag-to-build pitch areas and utility lines.

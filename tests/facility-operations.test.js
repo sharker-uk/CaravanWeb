@@ -134,6 +134,38 @@ test('toilet use gradually reduces cleanliness and wear and dirty toilets lower 
   assert.ok(party.needs.satisfaction < 75);
 });
 
+test('facility processing signals when service availability changes', () => {
+  const toilets = facility('toilets', 8);
+  toilets.cleanliness = 1;
+  const state = {
+    day: 1,
+    hour: 0,
+    facilities: [toilets],
+    guests: [{
+      pitchIndex: 0,
+      accommodation: 'tent',
+      booking: {arrivalDay: 1},
+      party: {
+        adults: 8,
+        children: 0,
+        headcount: 8,
+        preferences: {toiletIntervalHours: 24},
+        needs: {
+          toiletVisits: 0, showerVisits: 0, missedToiletVisits: 0,
+          missedShowerVisits: 0, shoppingTrips: 0, laundryTrips: 0,
+          satisfaction: 75
+        }
+      }
+    }]
+  };
+  let capabilityChanges = 0;
+
+  processHourlyFacilities(state, () => {}, () => { capabilityChanges++; });
+
+  assert.equal(toilets.isOperational, false);
+  assert.equal(capabilityChanges, 1);
+});
+
 test('three-week managed-park operations remain ledger-reconciled and profitable', () => {
   const family = createGuestParty(181, () => 0);
   const guest = {
