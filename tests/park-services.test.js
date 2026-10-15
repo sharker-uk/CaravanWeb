@@ -28,6 +28,17 @@ test('utility only connects through contiguous route tiles back to the park-edge
   assert.equal(connected.has('4,2'), false);
 });
 
+test('utility overlay separates connected and disconnected laid runs', () => {
+  const tiles = map();
+  route(tiles, 0, 2, 'road', 'water');
+  route(tiles, 1, 2, 'road', 'water');
+  route(tiles, 4, 2, 'road', 'water');
+
+  const overlay = ParkServices.getUtilityOverlay(tiles, 'water');
+  assert.deepEqual([...overlay.connected].sort(), ['0,2', '1,2']);
+  assert.deepEqual([...overlay.disconnected].sort(), ['4,2']);
+});
+
 test('pitch hookups require utility on an adjacent road/path and a connected feed', () => {
   const tiles = map();
   const pitch = {x: 2, y: 2, w: 2, h: 2, type: 'gravel'};
