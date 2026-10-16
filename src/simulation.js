@@ -1,10 +1,15 @@
 (function (globalScope) {
-    function applyCaravanDecay(state) {
+    function applyCaravanDecay(state, elapsedSeconds = 1) {
         if (!state || !Array.isArray(state.caravans)) return state;
+        if (!Number.isFinite(elapsedSeconds) || elapsedSeconds <= 0) return state;
+        const gameHourSeconds = (Number(state.dayLengthMinutes) || 10) * 600 / 24;
+        const elapsedGameHours = elapsedSeconds / gameHourSeconds;
         state.caravans.forEach(caravan => {
-            const decay = state.weather === 'Rain' ? 0.02 : 0.005;
+            const decay = (state.weather === 'Rain' ? 0.02 : 0.005) * elapsedSeconds;
             caravan.condition = Math.max(0, caravan.condition - decay);
-            if (caravan.condition < 40 && !caravan.isBroken && Math.random() < 0.001) {
+            const breakChance = 1 - Math.pow(1 - 0.001, elapsedGameHours);
+            if (caravan.condition < 40 && !caravan.isBroken &&
+                Math.random() < breakChance) {
                 caravan.isBroken = true;
             }
         });
@@ -42,7 +47,14 @@
             });
         }
 
-        applyCaravanDecay(state);
+        const elapsedSeconds = dt * (Number(state.simulationSpeed) || 1);
+        const brokenStatus = state.caravans.map(caravan => caravan.isBroken);
+        applyCaravanDecay(state, elapsedSeconds);
+        if (state.caravans.some((caravan, index) =>
+            caravan.isBroken !== brokenStatus[index]) &&
+            typeof options.onCaravanStatusChange === 'function') {
+            options.onCaravanStatusChange();
+        }
         const guestApi = globalScope.GuestActivities ||
             (typeof require === 'function' ? require('./guest-activities.js') : null);
         if (!state.isPaused && guestApi && typeof guestApi.updateGuestActivities === 'function') {

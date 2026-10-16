@@ -13,7 +13,8 @@
             const caravan = staticCaravansApi.findInstalledVan(state, pitch);
             if (caravan) {
                 const hasSleepingCapacity = staticCaravansApi.getMaximumOccupancy(caravan) > 0;
-                return hasSleepingCapacity && UTILITY_TYPES.every(type => hookups[type])
+                return hasSleepingCapacity && !caravan.isBroken &&
+                    caravan.isOperational !== false && UTILITY_TYPES.every(type => hookups[type])
                     ? ['static'] : [];
             }
             return ['tent', 'towed'];

@@ -1,7 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 require('../src/game-rules.js');
-const {updateGuestActivities, calculateGuestExperience, updateGuestSatisfaction} =
+require('../src/static-caravans.js');
+const {isWalkable, updateGuestActivities, calculateGuestExperience, updateGuestSatisfaction} =
   require('../src/guest-activities.js');
 
 function createState() {
@@ -30,6 +31,25 @@ function createState() {
     rating: 2
   };
 }
+
+test('static caravan collision blocks only its footprint, not the rest of its pitch', () => {
+  const pitch = {x: 2, y: 2, w: 6, h: 8, type: 'gravel'};
+  const caravan = {pitch};
+  const guest = {pitch};
+  const state = {
+    tiles: Array.from({length: 12}, () =>
+      Array.from({length: 12}, () => ({terrain: 'grass', nature: null}))
+    ),
+    caravans: [caravan],
+    facilities: [],
+    landmarks: [],
+    constructions: [],
+    guests: [guest]
+  };
+
+  assert.equal(isWalkable(state, 2, 4, guest), true);
+  assert.equal(isWalkable(state, 3, 4, guest), false);
+});
 
 test('guests select a reachable facility and move through world coordinates', () => {
   const state = createState();

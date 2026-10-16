@@ -44,9 +44,12 @@
         if (!Array.isArray(pitches)) return [];
         return pitches.map(pitch => {
             if (!pitch || typeof pitch !== 'object') return null;
-            const stablePitchId = typeof pitch.id === 'string' && pitch.id
+            const generatedPitchId = `pitch-${pitch.x}-${pitch.y}-${pitch.w}-${pitch.h}`
+                .replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 64);
+            const stablePitchId = typeof pitch.id === 'string' &&
+                /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(pitch.id)
                 ? pitch.id
-                : `pitch-${pitch.x}-${pitch.y}-${pitch.w}-${pitch.h}`;
+                : generatedPitchId;
             const normalized = {
                 id: stablePitchId,
                 x: Number(pitch.x),
@@ -56,7 +59,8 @@
                 type: pitch.type === 'gravel' ? 'gravel' : 'grass',
                 occupied: Boolean(pitch.occupied),
                 accessories: Array.isArray(pitch.accessories)
-                    ? pitch.accessories.filter(item => item && staticCaravansApi.ACCESSORIES[item.type] &&
+                    ? pitch.accessories.filter(item => item &&
+                        Object.hasOwn(staticCaravansApi.ACCESSORIES, item.type) &&
                         Number.isInteger(item.x) && Number.isInteger(item.y) &&
                         Number.isInteger(item.w) && Number.isInteger(item.h))
                         .map((item, index) => ({
@@ -266,22 +270,27 @@
         if (!Array.isArray(facilities)) return [];
         return facilities.map(facility => {
             if (!facility || typeof facility !== 'object') return null;
-            const defaults = facilityApi?.getFacilityDefaults(facility.type) ||
-                {capacity: facility.type === 'toilets' ? 16 : 10, hourlyCost: 1};
+            const type = typeof facility.type === 'string' &&
+                /^[a-z][a-z0-9_]{0,63}$/.test(facility.type) &&
+                (!facilityApi?.FACILITY_DEFAULTS ||
+                    Object.hasOwn(facilityApi.FACILITY_DEFAULTS, facility.type))
+                ? facility.type : 'shop';
+            const defaults = facilityApi?.getFacilityDefaults(type) ||
+                {capacity: type === 'toilets' ? 16 : 10, hourlyCost: 1};
             return {
                 ...facility,
                 x: Number(facility.x),
                 y: Number(facility.y),
                 w: Number(facility.w),
                 h: Number(facility.h),
-                type: typeof facility.type === 'string' ? facility.type : 'shop',
+                type,
                 capacity: Number.isFinite(facility.capacity) && facility.capacity >= 0
                     ? facility.capacity
                     : defaults.capacity,
                 entertainmentCapacity: Number.isFinite(facility.entertainmentCapacity) && facility.entertainmentCapacity >= 0
                     ? facility.entertainmentCapacity
                     : (defaults.entertainmentCapacity ?? 0),
-                hourlyCost: facility.type === 'toilets' ? 0 :
+                hourlyCost: type === 'toilets' ? 0 :
                     Number.isFinite(facility.hourlyCost) && facility.hourlyCost >= 0
                         ? facility.hourlyCost
                         : defaults.hourlyCost,
@@ -290,14 +299,14 @@
                 wear: Number.isFinite(facility.wear)
                     ? Math.min(100, Math.max(0, facility.wear)) : 100,
                 maintenanceClosed: Boolean(facility.maintenanceClosed) ||
-                    (facility.type === 'toilets' &&
+                    (type === 'toilets' &&
                         ((Number.isFinite(facility.cleanliness) ? facility.cleanliness : 100) <= 0 ||
                          (Number.isFinite(facility.wear) ? facility.wear : 100) <= 0)),
                 costPerUse: Number.isFinite(facility.costPerUse) && facility.costPerUse >= 0
                     ? facility.costPerUse
                     : defaults.costPerUse || 0,
                 isOperational: facility.isOperational !== false &&
-                    !(facility.type === 'toilets' &&
+                    !(type === 'toilets' &&
                         ((Number.isFinite(facility.cleanliness) ? facility.cleanliness : 100) <= 0 ||
                          (Number.isFinite(facility.wear) ? facility.wear : 100) <= 0)),
                 hourlyUsage: Number.isFinite(facility.hourlyUsage) && facility.hourlyUsage >= 0

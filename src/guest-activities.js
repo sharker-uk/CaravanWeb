@@ -12,9 +12,12 @@
         if ((state.constructions || []).some(construction => construction.blocksMovement &&
             x >= construction.footprint.x && x < construction.footprint.x + construction.footprint.w &&
             y >= construction.footprint.y && y < construction.footprint.y + construction.footprint.h)) return false;
-        if ((state.caravans || []).some(caravan =>
-            x >= caravan.pitch.x && x < caravan.pitch.x + caravan.pitch.w &&
-            y >= caravan.pitch.y && y < caravan.pitch.y + caravan.pitch.h)) return false;
+        if ((state.caravans || []).some(caravan => {
+            const footprint = globalScope.StaticCaravans?.getStaticFootprint(caravan.pitch) ||
+                caravan.pitch;
+            return x >= footprint.x && x < footprint.x + footprint.w &&
+                y >= footprint.y && y < footprint.y + footprint.h;
+        })) return false;
         if ((state.guests || []).some(other => other !== guest &&
             Math.floor(other.position?.x ?? Number.NaN) === x &&
             Math.floor(other.position?.y ?? Number.NaN) === y)) return false;
@@ -213,7 +216,7 @@
         state.rating = Math.max(0, Math.min(5, 1 + state.satisfaction / 25));
     }
 
-    const api = {updateGuestActivities, calculateGuestExperience, updateGuestSatisfaction};
+    const api = {isWalkable, updateGuestActivities, calculateGuestExperience, updateGuestSatisfaction};
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     globalScope.GuestActivities = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

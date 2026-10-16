@@ -50,10 +50,10 @@
             skin: SKIN_TONES.includes(avatar.skin) ? avatar.skin : fallback.skin,
             hairStyle: HAIR_STYLES.includes(avatar.hairStyle) ? avatar.hairStyle : fallback.hairStyle,
             hairColour: HAIR_COLOURS.includes(avatar.hairColour) ? avatar.hairColour : fallback.hairColour,
-            top: TOP_COLOURS.some(item => item.value === avatar.top) ? avatar.top :
-                (TOP_COLOURS.some(item => item === avatar.top) ? avatar.top : fallback.top),
-            bottom: BOTTOM_COLOURS.some(item => item.value === avatar.bottom) ? avatar.bottom :
-                (BOTTOM_COLOURS.some(item => item === avatar.bottom) ? avatar.bottom : fallback.bottom),
+            top: TOPS.some(item => item.value === avatar.top) || TOP_COLOURS.includes(avatar.top)
+                ? avatar.top : fallback.top,
+            bottom: BOTTOMS.some(item => item.value === avatar.bottom) || BOTTOM_COLOURS.includes(avatar.bottom)
+                ? avatar.bottom : fallback.bottom,
             accessory: ACCESSORIES.includes(avatar.accessory) ? avatar.accessory : fallback.accessory
         };
     }
@@ -65,8 +65,8 @@
             skin: pick(SKIN_TONES),
             hairStyle: pick(HAIR_STYLES),
             hairColour: pick(HAIR_COLOURS),
-            top: pick(TOP_COLOURS).value,
-            bottom: pick(BOTTOM_COLOURS).value,
+            top: pick(TOPS).value,
+            bottom: pick(BOTTOMS).value,
             accessory: pick(ACCESSORIES)
         };
     }
@@ -196,8 +196,8 @@
         hairColours: HAIR_COLOURS,
         hairStyles: HAIR_STYLES,
         accessories: ACCESSORIES,
-        tops: TOP_COLOURS,
-        bottoms: BOTTOM_COLOURS,
+        tops: TOPS,
+        bottoms: BOTTOMS,
         defaultAvatar,
         normalizeAvatar,
         randomizeAvatar,

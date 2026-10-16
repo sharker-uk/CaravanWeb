@@ -15,7 +15,8 @@
     };
 
     function getFacilityDefaults(type) {
-        const defaults = FACILITY_DEFAULTS[type] || FACILITY_DEFAULTS.shop;
+        const defaults = Object.hasOwn(FACILITY_DEFAULTS, type)
+            ? FACILITY_DEFAULTS[type] : FACILITY_DEFAULTS.shop;
         return {...defaults, isOperational: true, hourlyUsage: 0, usageDay: null, usageHour: null, cleanliness: 100, wear: 100, maintenanceClosed: false};
     }
 

@@ -144,6 +144,29 @@ test('static catalogue, accessory stock, and pending delivery data normalize det
   assert.equal(migrateSave(save).pitches[0].id, migrated.pitches[0].id);
 });
 
+test('migration rejects prototype keys and sanitizes pitch and facility identifiers', () => {
+  const save = buildLegacySave();
+  save.pitches = [{
+    id: '<img src=x onerror=alert(1)>',
+    x: 2, y: 2, w: 4, h: 2, type: 'grass',
+    accessories: [
+      {type: 'toString', x: 2, y: 2, w: 1, h: 1},
+      {type: '__proto__', x: 2, y: 2, w: 1, h: 1},
+      {type: 'bbq', x: 2, y: 2, w: 1, h: 1}
+    ]
+  }];
+  save.facilities = [
+    {x: 1, y: 1, w: 2, h: 2, type: 'toString'},
+    {x: 4, y: 1, w: 2, h: 2, type: '__proto__'}
+  ];
+
+  const migrated = migrateSave(save);
+
+  assert.equal(migrated.pitches[0].id, 'pitch-2-2-4-2');
+  assert.deepEqual(migrated.pitches[0].accessories.map(item => item.type), ['bbq']);
+  assert.deepEqual(migrated.facilities.map(facility => facility.type), ['shop', 'shop']);
+});
+
 test('migrateSave preserves guest world state and transaction history', () => {
   const save = buildLegacySave();
   save.initialBalance = 2000;

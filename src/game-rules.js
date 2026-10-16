@@ -19,7 +19,7 @@
         if (tile.terrain === undefined) {
             return ['grass', 'road', 'water'].includes(tile.type);
         }
-        return ['grass', 'water'].includes(tile.terrain) &&
+        return ['grass', 'water', 'sand'].includes(tile.terrain) &&
             (tile.nature === null || tile.nature === undefined ||
                 ['tree', 'debris'].includes(tile.nature)) &&
             (tile.road === undefined || typeof tile.road === 'boolean') &&

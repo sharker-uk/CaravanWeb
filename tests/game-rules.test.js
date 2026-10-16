@@ -40,6 +40,12 @@ test('validateSaveData accepts a valid save file', () => {
   assert.equal(validateSaveData(validSave), true);
 });
 
+test('validateSaveData accepts coastal sand terrain', () => {
+  const save = createValidSave();
+  save.tiles[0][0].terrain = 'sand';
+  assert.equal(validateSaveData(save), true);
+});
+
 test('validateSaveData rejects bad save structure and malformed data', () => {
   const brokenSave = createValidSave({
     tiles: Array.from({length: 39}, () => Array.from({length: 60}, () => ({ terrain: 'grass' })))

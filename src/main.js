@@ -1,6 +1,10 @@
 /** AUDIO ENGINE **/
-const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let AudioCtx = null;
 function playSound(freq, type, duration) {
+    const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextConstructor) return;
+    AudioCtx ||= new AudioContextConstructor();
+    if (AudioCtx.state === 'suspended') AudioCtx.resume().catch(() => {});
     const osc = AudioCtx.createOscillator();
     const gain = AudioCtx.createGain();
     osc.type = type;
@@ -11,6 +15,16 @@ function playSound(freq, type, duration) {
     gain.connect(AudioCtx.destination);
     osc.start();
     osc.stop(AudioCtx.currentTime + duration);
+}
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
 }
 
 function isFootprintUnderConstruction(footprint) {
@@ -40,7 +54,7 @@ function completeConstruction(job) {
     } else if (job.kind === 'facility') {
         state.facilities.push({...FacilityOperations.getFacilityDefaults(job.type), ...job.facility});
     } else if (job.kind === 'tree') {
-        state.tiles[job.x][job.y].nature = 'tree';
+        state.tiles[job.y][job.x].nature = 'tree';
     } else if (job.kind === 'caravan') {
         const pitch = state.pitches[job.pitchIndex];
         if (!pitch || !pitch.constructionReserved) {
@@ -481,18 +495,7 @@ function normalizeUtilities(utilities) {
 }
 
 function isValidTileData(tile) {
-    if (!tile || typeof tile !== 'object') return false;
-    if (tile.terrain === undefined) {
-        return ['grass', 'road', 'water'].includes(tile.type);
-    }
-    return ['grass', 'water', 'sand'].includes(tile.terrain) &&
-        (tile.nature === null || tile.nature === undefined ||
-            ['tree', 'debris'].includes(tile.nature)) &&
-        (tile.road === undefined || typeof tile.road === 'boolean') &&
-        (tile.path === undefined || typeof tile.path === 'boolean') &&
-        (tile.utilities === undefined || (tile.utilities && typeof tile.utilities === 'object' &&
-            UTILITY_TYPES.every(type => tile.utilities[type] === undefined ||
-                typeof tile.utilities[type] === 'boolean')));
+    return GameRulesApi.isValidTileData(tile);
 }
 
 function isGuestAccommodationValid(pitch, accommodation, headcount = 1) {
@@ -641,13 +644,13 @@ function renderRustyResales(selectedPitchId) {
         ? StaticCaravans.calculateResaleValue(van, StaticCaravans.gameTimeMinutes(state))
         : 0;
     const selectedSummary = selected
-        ? `<p>Pitch ${selected.pitch.id}: ${selected.installed ? 'replacement' : 'new installation'} · ` +
-            `trade-in ${van ? `£${tradeIn.toLocaleString()}` : '£0'} · catalogue prices shown below; net cost is price minus trade-in.</p>`
+        ? `<p>Pitch ${escapeHtml(selected.pitch.id)}: ${selected.installed ? 'replacement' : 'new installation'} · ` +
+            `trade-in ${van ? `£${escapeHtml(tradeIn.toLocaleString())}` : '£0'} · catalogue prices shown below; net cost is price minus trade-in.</p>`
         : '';
     const pending = state.staticDeliveries || [];
     const deliveryMarkup = pending.length
         ? `<ul>${pending.map(order =>
-            `<li>${StaticCaravans.getModel(order.modelId)?.name || order.modelId} → pitch ${order.pitchId} · expected ${formatGameTime(order.deliveryAtMinutes)}</li>`
+            `<li>${escapeHtml(StaticCaravans.getModel(order.modelId)?.name || order.modelId)} → pitch ${escapeHtml(order.pitchId)} · expected ${escapeHtml(formatGameTime(order.deliveryAtMinutes))}</li>`
         ).join('')}</ul>`
         : '<p>No static deliveries are currently scheduled.</p>';
     const installedMarkup = state.caravans.length
@@ -657,18 +660,18 @@ function renderRustyResales(selectedPitchId) {
                 item, StaticCaravans.gameTimeMinutes(state)
             ));
             const value = StaticCaravans.calculateResaleValue(item, StaticCaravans.gameTimeMinutes(state));
-            return `<li>Pitch ${item.pitchId}: ${model?.name || item.modelId} · ${model?.tierName || item.tier} · ${item.bedrooms} bedroom(s) / ${StaticCaravans.getMaximumOccupancy(item)} people · ${ageDays} in-game day(s) old · trade-in £${value.toLocaleString()}</li>`;
+            return `<li>Pitch ${escapeHtml(item.pitchId)}: ${escapeHtml(model?.name || item.modelId)} · ${escapeHtml(model?.tierName || item.tier)} · ${escapeHtml(item.bedrooms)} bedroom(s) / ${escapeHtml(StaticCaravans.getMaximumOccupancy(item))} people · ${escapeHtml(ageDays)} in-game day(s) old · trade-in £${escapeHtml(value.toLocaleString())}</li>`;
         }).join('')}</ul>`
         : '<p>No static caravans are installed yet.</p>';
     const blockers = options.filter(option => !option.eligibility.eligible).map(option =>
-        `<li>Pitch ${option.pitch.id}: ${option.eligibility.reason}</li>`
+        `<li>Pitch ${escapeHtml(option.pitch.id)}: ${escapeHtml(option.eligibility.reason)}</li>`
     );
     const modelCards = StaticCaravans.CATALOGUE.map(model => {
         const netCost = model.purchasePrice - tradeIn;
-        return `<article class="vendor-item"><strong>${model.name} · £${model.purchasePrice.toLocaleString()}</strong>` +
-            `<p>${model.tierName} · ${model.conditionCategory} · ${model.bedrooms} bedroom(s), up to ${model.maxOccupancy} people · ${model.interiorQuality} interior</p>` +
-            `<button type="button" data-vendor-buy="${model.id}" ${!selected || state.cash < netCost ? 'disabled' : ''}>` +
-            `${netCost < 0 ? `Net credit £${Math.abs(netCost).toLocaleString()}` : `Net cost £${netCost.toLocaleString()}`}</button></article>`;
+        return `<article class="vendor-item"><strong>${escapeHtml(model.name)} · £${escapeHtml(model.purchasePrice.toLocaleString())}</strong>` +
+            `<p>${escapeHtml(model.tierName)} · ${escapeHtml(model.conditionCategory)} · ${escapeHtml(model.bedrooms)} bedroom(s), up to ${escapeHtml(model.maxOccupancy)} people · ${escapeHtml(model.interiorQuality)} interior</p>` +
+            `<button type="button" data-vendor-buy="${escapeHtml(model.id)}" ${!selected || state.cash < netCost ? 'disabled' : ''}>` +
+            `${netCost < 0 ? `Net credit £${escapeHtml(Math.abs(netCost).toLocaleString())}` : `Net cost £${escapeHtml(netCost.toLocaleString())}`}</button></article>`;
     }).join('');
     const deckingPitches = state.pitches.filter(pitch => {
         const installed = StaticCaravans.findInstalledVan(state, pitch);
@@ -678,23 +681,23 @@ function renderRustyResales(selectedPitchId) {
     });
     const deckingMarkup = deckingPitches.length
         ? `<div class="vendor-list">${deckingPitches.map(pitch =>
-            `<article class="vendor-item"><strong>Pitch ${pitch.id}</strong><p>Hardstanding with a static caravan · decking lasts ${StaticCaravans.DECKING.lifespanDays.toLocaleString()} in-game days.</p>` +
-            `<button type="button" data-install-decking="${pitch.id}" ${state.cash < StaticCaravans.DECKING.price ? 'disabled' : ''}>${pitch.decking ? 'Replace end-of-life decking' : 'Install decking'} · £${StaticCaravans.DECKING.price.toLocaleString()}</button></article>`
+            `<article class="vendor-item"><strong>Pitch ${escapeHtml(pitch.id)}</strong><p>Hardstanding with a static caravan · decking lasts ${escapeHtml(StaticCaravans.DECKING.lifespanDays.toLocaleString())} in-game days.</p>` +
+            `<button type="button" data-install-decking="${escapeHtml(pitch.id)}" ${state.cash < StaticCaravans.DECKING.price ? 'disabled' : ''}>${pitch.decking ? 'Replace end-of-life decking' : 'Install decking'} · £${escapeHtml(StaticCaravans.DECKING.price.toLocaleString())}</button></article>`
         ).join('')}</div>`
         : '<p>No unoccupied, unreserved static pitches currently qualify for decking.</p>';
     const deckingStatus = state.pitches.filter(pitch => pitch.decking).map(pitch => {
         const ageDays = Math.max(0, (StaticCaravans.gameTimeMinutes(state) -
             pitch.decking.installedAtMinutes) / 1440);
         const remaining = Math.max(0, StaticCaravans.DECKING.lifespanDays - ageDays);
-        return `<li>Pitch ${pitch.id}: ${Math.round(pitch.decking.condition)}% condition · ${Math.floor(remaining).toLocaleString()} in-game day(s) remaining${pitch.decking.operational === false ? ' · End of life' : ''}</li>`;
+        return `<li>Pitch ${escapeHtml(pitch.id)}: ${escapeHtml(Math.round(pitch.decking.condition))}% condition · ${escapeHtml(Math.floor(remaining).toLocaleString())} in-game day(s) remaining${pitch.decking.operational === false ? ' · End of life' : ''}</li>`;
     });
     content.innerHTML =
-        `<p class="vendor-note">Available cash: £${Math.floor(state.cash).toLocaleString()}. Time continues while browsing. Delivery takes six in-game hours and is limited to 08:00–20:00.</p>` +
+        `<p class="vendor-note">Available cash: £${escapeHtml(Math.floor(state.cash).toLocaleString())}. Time continues while browsing. Delivery takes six in-game hours and is limited to 08:00–20:00.</p>` +
         `<h3>Choose a pitch</h3>` +
         (eligible.length
             ? `<select id="rusty-pitch" class="vendor-select">${eligible.map(option =>
-                `<option value="${option.pitch.id}" ${option.pitch.id === selected?.pitch.id ? 'selected' : ''}>` +
-                `Pitch ${option.pitch.id} · ${option.installed ? `replace ${StaticCaravans.getModel(option.installed.modelId)?.name || 'installed static'}` : 'empty hardstanding'}</option>`
+                `<option value="${escapeHtml(option.pitch.id)}" ${option.pitch.id === selected?.pitch.id ? 'selected' : ''}>` +
+                `Pitch ${escapeHtml(option.pitch.id)} · ${option.installed ? `replace ${escapeHtml(StaticCaravans.getModel(option.installed.modelId)?.name || 'installed static')}` : 'empty hardstanding'}</option>`
             ).join('')}</select>${selectedSummary}`
             : '<p>No eligible empty or replacement pitches. A pitch needs connected gas, water, electricity and waste; it must be unoccupied and unreserved.</p>') +
         `<h3>Installed statics</h3>${installedMarkup}` +
@@ -710,10 +713,10 @@ function openRustyResales() {
 
 function renderFiddlShop() {
     const content = document.getElementById('vendor-content');
-    content.innerHTML = `<p class="vendor-note">Available cash: £${Math.floor(state.cash).toLocaleString()}. Buy an item here, then click a tile inside an eligible pitch to place it. Time continues while browsing.</p>` +
+    content.innerHTML = `<p class="vendor-note">Available cash: £${escapeHtml(Math.floor(state.cash).toLocaleString())}. Buy an item here, then click a tile inside an eligible pitch to place it. Time continues while browsing.</p>` +
         `<div class="vendor-list">${Object.values(StaticCaravans.ACCESSORIES).map(item =>
-            `<article class="vendor-item"><strong>${item.name} · £${item.price.toLocaleString()}</strong><p>${item.description} Eligible: ${item.pitches.map(type => type === 'gravel' ? 'Hardstanding' : 'Grass').join(', ')}. Owned: ${state.accessoryInventory?.[item.id] || 0}</p>` +
-            `<button type="button" data-buy-accessory="${item.id}" ${state.cash < item.price ? 'disabled' : ''}>Buy and place · £${item.price.toLocaleString()}</button></article>`
+            `<article class="vendor-item"><strong>${escapeHtml(item.name)} · £${escapeHtml(item.price.toLocaleString())}</strong><p>${escapeHtml(item.description)} Eligible: ${escapeHtml(item.pitches.map(type => type === 'gravel' ? 'Hardstanding' : 'Grass').join(', '))}. Owned: ${escapeHtml(state.accessoryInventory?.[item.id] || 0)}</p>` +
+            `<button type="button" data-buy-accessory="${escapeHtml(item.id)}" ${state.cash < item.price ? 'disabled' : ''}>Buy and place · £${escapeHtml(item.price.toLocaleString())}</button></article>`
         ).join('')}</div>`;
 }
 
@@ -820,7 +823,15 @@ async function sleepThroughNight() {
     transition.classList.add('active');
     await new Promise(resolve => window.setTimeout(resolve, 600));
 
-    SimulationClock.advanceToHour(state, 8, {onHourly, onDaily});
+    SimulationClock.advanceToHour(state, 8, {
+        onHourly: () => {
+            onHourly();
+            applyCaravanDecayForElapsedSeconds(
+                (Number(state.dayLengthMinutes) || 10) * 600 / 24
+            );
+        },
+        onDaily
+    });
     updateConstructions();
     updateStaticDeliveries();
     saveGame();
@@ -1036,7 +1047,11 @@ class Caravan {
 function update(dt) {
     if (state.sleeping) return;
     if (SimulationApi && typeof SimulationApi.advanceSimulationState === 'function') {
-        SimulationApi.advanceSimulationState(state, dt, { onHourly, onDaily });
+        SimulationApi.advanceSimulationState(state, dt, {
+            onHourly,
+            onDaily,
+            onCaravanStatusChange: refreshPitchCapabilities
+        });
     } else {
         if (!state.isPaused) {
             SimulationClock.advanceSimulation(state, dt, {
@@ -1045,11 +1060,7 @@ function update(dt) {
             });
         }
 
-        state.caravans.forEach(c => {
-            let decay = state.weather === 'Rain' ? 0.02 : 0.005;
-            c.condition = Math.max(0, c.condition - decay);
-            if (c.condition < 40 && !c.isBroken && Math.random() < 0.001) c.isBroken = true;
-        });
+        applyCaravanDecayForElapsedSeconds(dt * (Number(state.simulationSpeed) || 1));
 
         if (!state.isPaused) GuestActivities.updateGuestActivities(state, dt / 10);
         GuestActivities.updateGuestSatisfaction(state);
@@ -1063,6 +1074,28 @@ function update(dt) {
     updateUI();
 }
 
+function applyCaravanDecayForElapsedSeconds(elapsedSeconds) {
+    if (!Number.isFinite(elapsedSeconds) || elapsedSeconds <= 0) return;
+    const brokenStatus = state.caravans.map(caravan => caravan.isBroken);
+    if (SimulationApi?.applyCaravanDecay) {
+        SimulationApi.applyCaravanDecay(state, elapsedSeconds);
+    } else {
+        const gameHourSeconds = (Number(state.dayLengthMinutes) || 10) * 600 / 24;
+        const breakChance = 1 - Math.pow(1 - 0.001, elapsedSeconds / gameHourSeconds);
+        state.caravans.forEach(caravan => {
+            const rate = state.weather === 'Rain' ? 0.02 : 0.005;
+            caravan.condition = Math.max(0, caravan.condition - rate * elapsedSeconds);
+            if (caravan.condition < 40 && !caravan.isBroken && Math.random() < breakChance) {
+                caravan.isBroken = true;
+            }
+        });
+    }
+    if (state.caravans.some((caravan, index) =>
+        caravan.isBroken !== brokenStatus[index])) {
+        refreshPitchCapabilities();
+    }
+}
+
 function onHourly() {
     let pitchCapabilitiesChanged = advanceMaintenanceTask();
     if (state.handymanContractHoursRemaining > 0) {
@@ -1073,6 +1106,7 @@ function onHourly() {
                 recordTransaction(-40, 'repairs', 'Day handyman caravan repair');
                 caravan.condition = 100;
                 caravan.isBroken = false;
+                pitchCapabilitiesChanged = true;
             }
         });
         if (state.handymanContractHoursRemaining === 0) showToast('The booked handyman has finished the day’s work.');
@@ -1088,7 +1122,9 @@ function onHourly() {
         state.caravans.forEach(c => {
             if (c.isBroken && state.cash > 50) {
                 recordTransaction(-40, 'repairs', 'Handyman caravan repair');
+                c.condition = 100;
                 c.isBroken = false;
+                pitchCapabilitiesChanged = true;
             }
         });
     }
@@ -1146,7 +1182,13 @@ function arriveGuest(candidate) {
         ? 14
         : ParkServices.getMaximumStayDays(state, pitch, accommodation, party.headcount);
     const stayDaysRemaining = 1 + Math.floor(Math.random() * maximumStayDays);
-    const dailyIncome = getGuestDailyIncome(ratingAtArrival) +
+    const installedVan = accommodation === 'static'
+        ? StaticCaravans.findInstalledVan(state, pitch) : null;
+    const baseDailyIncome = accommodation === 'static'
+        ? StaticCaravans.getModel(installedVan?.modelId)?.dailyRent ||
+            getGuestDailyIncome(ratingAtArrival)
+        : getGuestDailyIncome(ratingAtArrival);
+    const dailyIncome = baseDailyIncome +
         Math.max(0, party.adults - 1) * 8 + party.children * 5;
     const booking = {
         id: `booking-${state.day}-${state.pitches.indexOf(pitch)}-${state.dailyGuestArrivals}`,
@@ -1214,10 +1256,12 @@ function findGuestArrivalPosition(pitch) {
                 x >= facility.x && x < facility.x + facility.w &&
                 y >= facility.y && y < facility.y + facility.h
             ) &&
-            !state.caravans.some(caravan =>
-                x >= caravan.pitch.x && x < caravan.pitch.x + caravan.pitch.w &&
-                y >= caravan.pitch.y && y < caravan.pitch.y + caravan.pitch.h
-            );
+            !state.caravans.some(caravan => {
+                const footprint = StaticCaravans?.getStaticFootprint(caravan.pitch) ||
+                    caravan.pitch;
+                return x >= footprint.x && x < footprint.x + footprint.w &&
+                    y >= footprint.y && y < footprint.y + footprint.h;
+            });
     };
     const route = candidates.find(({x, y}) => {
         const tile = state.tiles[y]?.[x];
@@ -1229,9 +1273,15 @@ function findGuestArrivalPosition(pitch) {
     for (let y = 0; y < GRID_H; y++) {
         for (let x = 0; x < GRID_W; x++) {
             const tile = state.tiles[y][x];
-            if (tile.terrain === 'grass' && (tile.road || tile.path) && isFree({x, y})) {
+            if (tile.terrain === 'grass' && (tile.road || tile.path) &&
+                isArrivalWalkable({x, y})) {
                 return {x: x + 0.5, y: y + 0.5};
             }
+        }
+    }
+    for (let y = pitch.y; y < pitch.y + pitch.h; y++) {
+        for (let x = pitch.x; x < pitch.x + pitch.w; x++) {
+            if (isArrivalWalkable({x, y})) return {x: x + 0.5, y: y + 0.5};
         }
     }
     return {x: pitch.x + pitch.w / 2, y: pitch.y + pitch.h / 2};
@@ -1252,10 +1302,6 @@ function checkOutGuests(departingGuests) {
 }
 
 function onDaily() {
-    let income = 0;
-    state.caravans.forEach(c => {
-        if (!c.isBroken && c.isRentalReady()) income += c.getDailyRent();
-    });
     const departingGuests = [];
     state.guests.forEach(guest => {
         guest.stayDaysRemaining--;
@@ -1264,18 +1310,9 @@ function onDaily() {
         }
     });
     checkOutGuests(departingGuests);
-    if (income) recordTransaction(income, 'caravan rental', 'Daily caravan rental income');
     state.dailyGuestArrivals = 0;
-    if (income > 0 || departingGuests.length) {
-        const notices = [];
-        if (income > 0) notices.push(`💰 Daily Revenue: £${income}`);
-        if (departingGuests.length) {
-            notices.push(`${departingGuests.length} guest${departingGuests.length === 1 ? '' : 's'} checked out`);
-        }
-        showToast(notices.join(' · '));
-    }
-    if (income > 0) {
-        playSound(880, 'sine', 0.2);
+    if (departingGuests.length) {
+        showToast(`${departingGuests.length} guest${departingGuests.length === 1 ? '' : 's'} checked out`);
     }
     saveGame();
 }
@@ -2105,7 +2142,7 @@ function updateUI() {
         handymanButton.style.display = maintenanceNeeded || state.handymanContractHoursRemaining > 0 ? 'flex' : 'none';
         handymanButton.disabled = state.handymanContractHoursRemaining > 0 || state.cash < 100;
         handymanButton.innerHTML = state.handymanContractHoursRemaining > 0
-            ? '🛠️<span>Handyman booked · ' + state.handymanContractHoursRemaining + 'h left</span>'
+            ? '🛠️<span>Handyman booked · ' + escapeHtml(state.handymanContractHoursRemaining) + 'h left</span>'
             : '🛠️<span>Book handyman · £100/day</span>';
     }
     if (state.selectedEntity) {
@@ -2121,19 +2158,19 @@ function updateUI() {
             const activeTask = state.maintenanceTask && state.maintenanceTask.facilityIndex === state.facilities.indexOf(c)
                 ? state.maintenanceTask : null;
             document.getElementById('ins-content').innerHTML =
-                `Status: ${c.isOperational === false ? (c.maintenanceClosed ? 'Closed — needs maintenance' : 'Closed') : 'Operational'}<br>` +
-                `Capacity: ${c.capacity} guests/hour<br>` +
-                `Hourly operating cost: £${c.hourlyCost}<br>` +
-                `Current usage: ${c.hourlyUsage || 0}/${c.capacity}` +
+                `Status: ${escapeHtml(c.isOperational === false ? (c.maintenanceClosed ? 'Closed — needs maintenance' : 'Closed') : 'Operational')}<br>` +
+                `Capacity: ${escapeHtml(c.capacity)} guests/hour<br>` +
+                `Hourly operating cost: £${escapeHtml(c.hourlyCost)}<br>` +
+                `Current usage: ${escapeHtml(c.hourlyUsage || 0)}/${escapeHtml(c.capacity)}` +
                 (isToiletBlock ?
-                    `<br><br><strong>Cleanliness · ${Math.round(cleanliness)}%</strong>` +
-                    `<div class="condition-track" role="meter" aria-label="Toilet cleanliness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(cleanliness)}"><div class="condition-fill" style="width:${cleanliness}%;background:#27ae60"></div></div>` +
-                    `<strong>Wear and tear · ${Math.round(wear)}%</strong>` +
-                    `<div class="condition-track" role="meter" aria-label="Toilet block wear and tear" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(wear)}"><div class="condition-fill" style="width:${wear}%;background:#e67e22"></div></div>` +
-                    (activeTask ? `<br>Work in progress: ${activeTask.action === 'clean' ? 'Cleaning' : 'Repairing'} · ${activeTask.hoursRemaining} in-game hour(s) left` : '')
+                    `<br><br><strong>Cleanliness · ${escapeHtml(Math.round(cleanliness))}%</strong>` +
+                    `<div class="condition-track" role="meter" aria-label="Toilet cleanliness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${escapeHtml(Math.round(cleanliness))}"><div class="condition-fill" style="width:${escapeHtml(cleanliness)}%;background:#27ae60"></div></div>` +
+                    `<strong>Wear and tear · ${escapeHtml(Math.round(wear))}%</strong>` +
+                    `<div class="condition-track" role="meter" aria-label="Toilet block wear and tear" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${escapeHtml(Math.round(wear))}"><div class="condition-fill" style="width:${escapeHtml(wear)}%;background:#e67e22"></div></div>` +
+                    (activeTask ? `<br>Work in progress: ${activeTask.action === 'clean' ? 'Cleaning' : 'Repairing'} · ${escapeHtml(activeTask.hoursRemaining)} in-game hour(s) left` : '')
                     : '') +
                 (ParkServices.ENTERTAINMENT_TYPES.includes(c.type)
-                    ? `<br>Park-wide entertainment capacity: ${ParkServices.getEntertainmentCapacity(state)}`
+                    ? `<br>Park-wide entertainment capacity: ${escapeHtml(ParkServices.getEntertainmentCapacity(state))}`
                     : '');
             actionButtons.forEach(button => {
                 button.style.display = 'none';
@@ -2159,7 +2196,7 @@ function updateUI() {
         facilityToggle.style.display = 'none';
         const hookups = getPitchHookups(c.pitch);
         const hookupStatus = UTILITY_TYPES.map(type =>
-            `${type}: ${hookups[type] ? 'connected' : 'not connected'}`).join('<br>');
+            `${escapeHtml(type)}: ${hookups[type] ? 'connected' : 'not connected'}`).join('<br>');
         const model = StaticCaravans.getModel(c.modelId);
         const ageDays = Math.floor(StaticCaravans.calculateAgeDays(
             c, StaticCaravans.gameTimeMinutes(state)
@@ -2170,15 +2207,15 @@ function updateUI() {
                 decking.installedAtMinutes) / 1440)
             : 0;
         const deckingText = decking
-            ? `<br>Decking: ${Math.round(decking.condition)}% condition · ${decking.operational === false ? 'end of life; replacement required' : `${Math.max(0, Math.floor(StaticCaravans.DECKING.lifespanDays - deckingAgeDays))} day(s) remaining`}`
+            ? `<br>Decking: ${escapeHtml(Math.round(decking.condition))}% condition · ${decking.operational === false ? 'end of life; replacement required' : `${escapeHtml(Math.max(0, Math.floor(StaticCaravans.DECKING.lifespanDays - deckingAgeDays)))} day(s) remaining`}`
             : '<br>Decking: not installed';
         document.getElementById('ins-name').innerText = model?.name || 'Static caravan';
         document.getElementById('ins-content').innerHTML =
-            `Tier: ${model?.tierName || c.tier} · ${c.bedrooms} bedroom(s) · maximum ${StaticCaravans.getMaximumOccupancy(c)} people` +
-            `<br>Interior: ${model?.interiorQuality || 'legacy'} · Condition: ${Math.floor(c.condition)}%` +
-            `<br>Age: ${ageDays} in-game day(s) · Purchase price: £${c.purchasePrice.toLocaleString()}` +
-            `<br>Rent: £${c.getDailyRent()}/day · Status: ${c.isBroken ? '⚠️ BROKEN' : c.isOperational === false ? 'Out of service' : 'Operational'}` +
-            `<br>Rental: ${c.isRentalReady() ? 'Ready' : 'Needs connected hookups or repair'}<br>${hookupStatus}` +
+            `Tier: ${escapeHtml(model?.tierName || c.tier)} · ${escapeHtml(c.bedrooms)} bedroom(s) · maximum ${escapeHtml(StaticCaravans.getMaximumOccupancy(c))} people` +
+            `<br>Interior: ${escapeHtml(model?.interiorQuality || 'legacy')} · Condition: ${escapeHtml(Math.floor(c.condition))}%` +
+            `<br>Age: ${escapeHtml(ageDays)} in-game day(s) · Purchase price: £${escapeHtml(c.purchasePrice.toLocaleString())}` +
+            `<br>Rent: £${escapeHtml(c.getDailyRent())}/day · Status: ${escapeHtml(c.isBroken ? '⚠️ BROKEN' : c.isOperational === false ? 'Out of service' : 'Operational')}` +
+            `<br>Rental: ${escapeHtml(c.isRentalReady() ? 'Ready' : 'Needs connected hookups or repair')}<br>${hookupStatus}` +
             deckingText;
         actionButtons.forEach(button => {
             button.style.display = 'block';
@@ -2199,11 +2236,11 @@ function updateUI() {
         const demand = getGuestDemand();
         const balance = Economy.getSevenDayBalance(state);
         const recentTransactions = state.transactions.slice(-5).reverse().map(transaction =>
-            `${transaction.description}: ${transaction.amount < 0 ? '−' : '+'}£${Math.abs(transaction.amount).toLocaleString()}`
+            `${escapeHtml(transaction.description)}: ${escapeHtml(transaction.amount < 0 ? '−' : '+')}£${escapeHtml(Math.abs(transaction.amount).toLocaleString())}`
         );
         const parties = state.guests.reduce((sum, guest) =>
             sum + (guest.party?.headcount || 1), 0);
-        document.getElementById('ins-content').innerHTML = `Cash: £${Math.floor(state.cash).toLocaleString()}<br>Occupancy: ${occupied}/${state.pitches.length || 0}<br>Guests: ${parties} people in ${state.guests.length} parties<br>Rating: ${state.rating.toFixed(1)} / 5<br>Demand: ${demand.level} (${demand.score}%)<br>7-day income: £${balance.income.toLocaleString()} · expenses: £${balance.expenses.toLocaleString()} · net: £${balance.net.toLocaleString()}<br>Ledger: ${balance.isValid ? '✓ reconciled' : '⚠ balance mismatch'}<br><strong>Recent transactions</strong><br>${recentTransactions.length ? recentTransactions.join('<br>') : 'No transactions yet.'}`;
+        document.getElementById('ins-content').innerHTML = `Cash: £${escapeHtml(Math.floor(state.cash).toLocaleString())}<br>Occupancy: ${escapeHtml(occupied)}/${escapeHtml(state.pitches.length || 0)}<br>Guests: ${escapeHtml(parties)} people in ${escapeHtml(state.guests.length)} parties<br>Rating: ${escapeHtml(state.rating.toFixed(1))} / 5<br>Demand: ${escapeHtml(demand.level)} (${escapeHtml(demand.score)}%)<br>7-day income: £${escapeHtml(balance.income.toLocaleString())} · expenses: £${escapeHtml(balance.expenses.toLocaleString())} · net: £${escapeHtml(balance.net.toLocaleString())}<br>Ledger: ${escapeHtml(balance.isValid ? '✓ reconciled' : '⚠ balance mismatch')}<br><strong>Recent transactions</strong><br>${recentTransactions.length ? recentTransactions.join('<br>') : 'No transactions yet.'}`;
         actionButtons.forEach(button => {
             button.style.display = 'none';
             button.disabled = true;
@@ -2241,6 +2278,7 @@ function repairSelectedCaravan() {
     if (!caravan || !caravan.isBroken || !spend(40, 'repairs', 'Repaired caravan')) return;
     caravan.condition = 100;
     caravan.isBroken = false;
+    refreshPitchCapabilities();
     saveGame();
     updateUI();
 }

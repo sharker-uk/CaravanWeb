@@ -87,6 +87,20 @@ test('candidate queries filter cached capabilities and read current pitch availa
   assert.deepEqual(PitchCapabilities.findCandidates(index, requirements), []);
 });
 
+test('broken and non-operational static caravans are excluded from accommodation candidates', () => {
+  for (const status of [{isBroken: true}, {isOperational: false}]) {
+    const state = createState();
+    Object.assign(state.caravans[0], status);
+    const index = PitchCapabilities.rebuild(state);
+
+    assert.deepEqual(index.records[0].accommodations, []);
+    assert.deepEqual(PitchCapabilities.findCandidates(index, {
+      accommodations: ['static'],
+      headcount: 2
+    }), []);
+  }
+});
+
 test('cached validation avoids rebuilding utility connectivity while current validation catches stale data', () => {
   const state = createState('grass');
   const pitch = state.pitches[0];

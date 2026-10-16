@@ -33,6 +33,11 @@ test('toilet blocks have no hourly running cost and begin in good condition', ()
   assert.equal(toilets.wear, 100);
 });
 
+test('facility defaults do not resolve inherited prototype properties as facility types', () => {
+  assert.equal(getFacilityDefaults('toString').capacity, getFacilityDefaults('shop').capacity);
+  assert.equal(getFacilityDefaults('__proto__').capacity, getFacilityDefaults('shop').capacity);
+});
+
 test('toilet maintenance prices rise with neglect, independent of job duration', () => {
   assert.equal(getMaintenanceCost('clean', 100), 5);
   assert.equal(getMaintenanceCost('clean', 80), 5);

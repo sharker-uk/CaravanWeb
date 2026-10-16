@@ -33,6 +33,8 @@ test('avatar randomiser keeps the manager name and selects supported appearance 
     assert.ok(CharacterSystem.skinTones.includes(avatar.skin));
     assert.ok(CharacterSystem.hairStyles.includes(avatar.hairStyle));
     assert.ok(CharacterSystem.hairColours.includes(avatar.hairColour));
+    assert.equal(typeof avatar.top, 'string');
+    assert.equal(typeof avatar.bottom, 'string');
     assert.ok(CharacterSystem.tops.some(top => top.value === avatar.top));
     assert.ok(CharacterSystem.bottoms.some(bottom => bottom.value === avatar.bottom));
     assert.ok(CharacterSystem.accessories.includes(avatar.accessory));
@@ -71,4 +73,3 @@ test('saved guest roster profiles are normalized and capped', () => {
     assert.equal(restored[0].name, 'Visitor 0');
     assert.equal(restored[0].appearance.skin, CharacterSystem.defaultAvatar().skin);
 });
-
