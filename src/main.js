@@ -1673,6 +1673,23 @@ function drawAsset(key, x, y, width, height, fallback) {
         : (fallback(), false);
 }
 
+function drawAccommodationGlow(x, y, width, strength) {
+    if (strength <= 0) return;
+    const radius = TILE_SIZE * 1.15;
+    const centerX = (x + width / 2) * TILE_SIZE;
+    const centerY = y * TILE_SIZE + TILE_SIZE * 0.08;
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.scale(1, 0.55);
+    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+    glow.addColorStop(0, `rgba(255, 196, 112, ${0.19 * strength})`);
+    glow.addColorStop(0.45, `rgba(255, 196, 112, ${0.1 * strength})`);
+    glow.addColorStop(1, 'rgba(255, 196, 112, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(-radius, -radius, radius * 2, radius * 2);
+    ctx.restore();
+}
+
 function connectedSurfaceMask(x, y, surface) {
     const has = (tileX, tileY) => Boolean(state.tiles[tileY]?.[tileX]?.[surface]);
     return (has(x, y - 1) ? 1 : 0) |
@@ -2091,6 +2108,20 @@ function draw(timestamp = 0) {
         ctx.fillStyle = `rgba(8, 16, 43, ${lighting.darkness})`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
+    }
+
+    const glowStrength = lighting.darkness / 0.62;
+    if (glowStrength > 0) {
+        state.caravans.forEach(caravan => {
+            const footprint = StaticCaravans.getStaticFootprint(caravan.pitch);
+            drawAccommodationGlow(footprint.x, footprint.y + footprint.h, footprint.w, glowStrength);
+        });
+        state.guests.forEach(guest => {
+            if (guest.accommodation === 'tent' || guest.accommodation === 'towed') {
+                drawAccommodationGlow(guest.pitch.x, guest.pitch.y + guest.pitch.h,
+                    guest.pitch.w, glowStrength);
+            }
+        });
     }
 
     ctx.restore();
