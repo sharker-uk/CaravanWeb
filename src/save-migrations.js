@@ -326,6 +326,16 @@
         const normalizedTiles = Array.isArray(saveData.tiles)
             ? saveData.tiles.map(row => Array.isArray(row) ? row.map(normalizeTile) : [])
             : [];
+        const legacyTrees = (Array.isArray(saveData.facilities) ? saveData.facilities : [])
+            .filter(facility => facility?.type === 'tree');
+        legacyTrees.forEach(tree => {
+            if (!Number.isInteger(tree.x) || !Number.isInteger(tree.y)) return;
+            const tile = normalizedTiles[tree.y]?.[tree.x];
+            if (tile?.terrain === 'grass') tile.nature = 'tree';
+        });
+        const facilitiesWithoutLegacyTrees =
+            (Array.isArray(saveData.facilities) ? saveData.facilities : [])
+                .filter(facility => facility?.type !== 'tree');
         const pitches = normalizePitches(saveData.pitches);
         const caravans = normalizeCaravans(saveData.caravans, pitches, currentDay);
         const staticDeliveries = normalizeStaticDeliveries(saveData.staticDeliveries, pitches);
@@ -368,7 +378,7 @@
             staticAssetSequence: Number.isInteger(saveData.staticAssetSequence)
                 ? Math.max(inferredAssetSequence, saveData.staticAssetSequence)
                 : inferredAssetSequence,
-            facilities: normalizeFacilities(saveData.facilities),
+            facilities: normalizeFacilities(facilitiesWithoutLegacyTrees),
             overlayMode: ['none', 'services', 'utilities', 'entertainment'].includes(saveData.overlayMode)
                 ? saveData.overlayMode : 'none',
             landmarks: Array.isArray(saveData.landmarks) ? saveData.landmarks.filter(landmark =>

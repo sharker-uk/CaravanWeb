@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 require('../src/game-rules.js');
+const GuestActivities = require('../src/guest-activities.js');
 const Simulation = require('../src/simulation.js');
 const { advanceSimulationState } = Simulation;
 
@@ -51,6 +52,59 @@ test('caravan decay scales with elapsed time and simulation speed', () => {
 
   assert.ok(Math.abs(80 - normalSpeed.caravans[0].condition - 0.005) < 1e-10);
   assert.ok(Math.abs(80 - doubleSpeed.caravans[0].condition - 0.01) < 1e-10);
+});
+
+test('caravan breakdown chance scales with elapsed real seconds', () => {
+  const state = {
+    weather: 'Sunny',
+    caravans: [{condition: 39, isBroken: false}]
+  };
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0.0003;
+    Simulation.applyCaravanDecay(state, 0.5);
+  } finally {
+    Math.random = originalRandom;
+  }
+
+  assert.equal(state.caravans[0].isBroken, true);
+});
+
+test('guest movement and activity timers scale with simulation speed', () => {
+  for (const simulationSpeed of [1, 2, 4]) {
+    const state = {
+      isPaused: false,
+      weather: 'Sunny',
+      satisfaction: 60,
+      rating: 1,
+      caravans: [],
+      facilities: [],
+      guests: [{
+        pitch: {x: 0, y: 0, w: 1, h: 1, type: 'grass'},
+        position: {x: 1.5, y: 1.5},
+        path: [{x: 2.5, y: 1.5}],
+        destination: {x: 2.5, y: 1.5},
+        activity: 'visiting facility',
+        activityTimer: 20,
+        accommodation: 'tent'
+      }],
+      tiles: Array.from({length: 4}, () =>
+        Array.from({length: 4}, () => ({terrain: 'grass', nature: null}))
+      ),
+      day: 1,
+      hour: 9,
+      minute: 0,
+      dayLengthMinutes: 10,
+      simulationSpeed
+    };
+
+    advanceSimulationState(state, 1);
+
+    assert.ok(Math.abs(state.guests[0].position.x -
+      (1.5 + 0.7 * simulationSpeed / 10)) < 1e-10);
+    assert.ok(Math.abs(state.guests[0].activityTimer -
+      (20 - simulationSpeed / 10)) < 1e-10);
+  }
 });
 
 test('fast-forward-equivalent hourly caravan decay matches normal simulation time', () => {

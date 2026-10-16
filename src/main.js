@@ -66,6 +66,7 @@ function completeConstruction(job) {
             pitchId: pitch.id
         });
         delete pitch.constructionReserved;
+        pitch.occupied = false;
         pitch.staticCaravanId = caravan.id;
         state.caravans.push(caravan);
     } else {
@@ -1311,6 +1312,7 @@ function onDaily() {
     });
     checkOutGuests(departingGuests);
     state.dailyGuestArrivals = 0;
+    state.weather = Math.random() < 0.25 ? 'Rain' : 'Sunny';
     if (departingGuests.length) {
         showToast(`${departingGuests.length} guest${departingGuests.length === 1 ? '' : 's'} checked out`);
     }
@@ -1564,7 +1566,6 @@ function startConstruction(kind, payload, footprint, cost, description, category
     }
     if (kind === 'caravan') {
         const pitch = state.pitches[payload.pitchIndex];
-        pitch.occupied = true;
         pitch.constructionReserved = true;
     }
     saveGame();
@@ -2073,6 +2074,9 @@ function updateUI() {
     document.getElementById('cash-display').innerText = Math.floor(state.cash).toLocaleString();
     const woodDisplay = document.getElementById('wood-display');
     if (woodDisplay) woodDisplay.innerText = Math.floor(state.wood).toLocaleString();
+    document.getElementById('weather-display').textContent =
+        state.weather === 'Rain' ? '🌧️' : '☀️';
+    document.getElementById('weather-text').textContent = state.weather;
     const beautyDisplay = document.getElementById('beauty-display');
     if (beautyDisplay) beautyDisplay.innerText = `${state.beauty}%`;
     const shovelButton = document.getElementById('buy-shovel-btn');

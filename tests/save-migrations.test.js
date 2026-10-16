@@ -167,6 +167,24 @@ test('migration rejects prototype keys and sanitizes pitch and facility identifi
   assert.deepEqual(migrated.facilities.map(facility => facility.type), ['shop', 'shop']);
 });
 
+test('legacy tree facilities become grass tile nature before facilities are normalized', () => {
+  const save = buildLegacySave();
+  save.facilities.push(
+    {x: 5, y: 1, w: 1, h: 1, type: 'tree'},
+    {x: 6, y: 1, w: 1, h: 1, type: 'tree'},
+    {x: 7, y: 1, w: 1, h: 1, type: 'tree'}
+  );
+  save.tiles[1][6] = {type: 'water'};
+
+  const migrated = migrateSave(save);
+
+  assert.equal(migrated.tiles[1][5].nature, 'tree');
+  assert.equal(migrated.tiles[1][6].nature, null);
+  assert.equal(migrated.tiles[1][7].nature, 'tree');
+  assert.equal(migrated.facilities.some(facility => facility.type === 'tree'), false);
+  assert.equal(migrated.facilities.length, 1);
+});
+
 test('migrateSave preserves guest world state and transaction history', () => {
   const save = buildLegacySave();
   save.initialBalance = 2000;
