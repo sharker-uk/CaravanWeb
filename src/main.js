@@ -372,6 +372,12 @@ function init() {
         const restoredGuest = {
             ...guest,
             pitch,
+            bedtimeHour: Number.isInteger(guest.bedtimeHour)
+                ? guest.bedtimeHour
+                : GuestParties.getBedtimeHour(guest.party,
+                    ParkServices.getEntertainmentCapacity(state) > 0),
+            lastBedtimeDay: Number.isInteger(guest.lastBedtimeDay)
+                ? guest.lastBedtimeDay : null,
             position: guest.position || {x: pitch.x + pitch.w / 2, y: pitch.y + pitch.h / 2},
             path: Array.isArray(guest.path) ? guest.path : [],
             ratingAtArrival,
@@ -827,6 +833,9 @@ async function sleepThroughNight() {
     SimulationClock.advanceToHour(state, 8, {
         onHourly: () => {
             onHourly();
+            GuestActivities.updateGuestActivities(
+                state, (Number(state.dayLengthMinutes) || 10) * 60 / 24 / 10
+            );
             applyCaravanDecayForElapsedSeconds(
                 (Number(state.dayLengthMinutes) || 10) * 600 / 24
             );
@@ -979,6 +988,8 @@ function saveGame() {
                 destination: guest.destination,
                 activity: guest.activity,
                 activityTimer: guest.activityTimer,
+                bedtimeHour: guest.bedtimeHour,
+                lastBedtimeDay: guest.lastBedtimeDay,
                 facilityVisits: guest.facilityVisits,
                 activityFacilityType: guest.activityFacilityType,
                 routeFailures: guest.routeFailures,
@@ -1144,10 +1155,24 @@ function onHourly() {
     if (pitchCapabilitiesChanged) refreshPitchCapabilities();
     const candidate = createArrivalCandidate();
     const demand = GuestParties.getDemandProfile(state.day);
-    if (Economy.shouldAcceptGuest(state, {
+    const entertainmentAvailable = candidate
+        ? ParkServices.canUseEntertainment(state, candidate.party.headcount).valid
+        : false;
+    const bookingInterest = GuestParties.getBookingInterest(
+        candidate?.party, entertainmentAvailable
+    );
+    const passesInterestCheck = bookingInterest >= 1 || Math.random() < bookingInterest;
+    if (candidate && passesInterestCheck && Economy.shouldAcceptGuest(state, {
         demandMultiplier: demand.multiplier,
-        eligible: Boolean(candidate)
-    })) arriveGuest(candidate);
+        eligible: true
+    })) {
+        candidate.party.spendingMultiplier =
+            GuestParties.getSpendingMultiplier(candidate.party, entertainmentAvailable);
+        candidate.bedtimeHour = GuestParties.getBedtimeHour(
+            candidate.party, entertainmentAvailable
+        );
+        arriveGuest(candidate);
+    }
     saveGame();
 }
 
@@ -1217,6 +1242,8 @@ function arriveGuest(candidate) {
         path: [],
         activity: 'arriving',
         activityTimer: 2,
+        bedtimeHour: candidate.bedtimeHour,
+        lastBedtimeDay: null,
         facilityVisits: 0,
         lastFacilityUpdate: -1,
         experienceScore: state.satisfaction,
@@ -2045,11 +2072,13 @@ function draw(timestamp = 0) {
             [-0.18, 0], [0.18, 0], [-0.38, 0.22], [0.38, 0.22],
             [-0.18, 0.42], [0.18, 0.42], [-0.42, -0.2], [0.42, -0.2]
         ];
-        members.slice(0, 8).forEach((member, index) => {
-            const [offsetX, offsetY] = offsets[index] || [0, 0];
-            CharacterSystem.drawCharacter(ctx, member.appearance || CharacterSystem.defaultAvatar(),
-                residentX + offsetX * TILE_SIZE, residentY + offsetY * TILE_SIZE, members.length > 3 ? 0.8 : 0.9);
-        });
+        if (guest.activity !== 'sleeping') {
+            members.slice(0, 8).forEach((member, index) => {
+                const [offsetX, offsetY] = offsets[index] || [0, 0];
+                CharacterSystem.drawCharacter(ctx, member.appearance || CharacterSystem.defaultAvatar(),
+                    residentX + offsetX * TILE_SIZE, residentY + offsetY * TILE_SIZE, members.length > 3 ? 0.8 : 0.9);
+            });
+        }
     });
     const playerX = state.player.x * TILE_SIZE;
     const playerY = state.player.y * TILE_SIZE;

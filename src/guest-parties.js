@@ -54,6 +54,29 @@
         return range[0] + Math.floor(random() * (range[1] - range[0] + 1));
     }
 
+    function getBedtimeHour(party, entertainmentAvailable, random = Math.random) {
+        if (party?.type === 'couple' && party.ageGroup === 'young' && entertainmentAvailable) {
+            return randomInteger([22, 25], random);
+        }
+        if (party?.type === 'couple' && party.ageGroup === 'older') {
+            return randomInteger([19, 21], random);
+        }
+        if (party?.type === 'family' || party?.type === 'couple') {
+            return randomInteger([19, 22], random);
+        }
+        return null;
+    }
+
+    function getBookingInterest(party, entertainmentAvailable) {
+        return party?.type === 'couple' && party.ageGroup === 'young' &&
+            !entertainmentAvailable ? 0.35 : 1;
+    }
+
+    function getSpendingMultiplier(party, entertainmentAvailable) {
+        return party?.type === 'couple' && party.ageGroup === 'young' &&
+            entertainmentAvailable ? 1.5 : 1;
+    }
+
     function createGuestParty(day, random = Math.random) {
         const profile = getDemandProfile(day);
         const choices = PARTY_PROFILES[profile.period];
@@ -64,6 +87,9 @@
         }) || choices[choices.length - 1];
         const adults = randomInteger(choice.adults, random);
         const children = randomInteger(choice.children, random);
+        const ageGroup = choice.type === 'couple'
+            ? random() < 0.65 ? 'young' : 'older'
+            : null;
         const partyPreferences = {
             family: ['playground', 'shop', 'toilets', 'showers'],
             couple: ['restaurant', 'shop', 'showers'],
@@ -73,6 +99,7 @@
 
         return {
             type: choice.type,
+            ageGroup,
             adults,
             children,
             headcount: adults + children,
@@ -114,6 +141,9 @@
         getDemandProfile,
         isArrivalTimeAllowed,
         isStaticCheckoutDue,
+        getBedtimeHour,
+        getBookingInterest,
+        getSpendingMultiplier,
         createGuestParty,
         selectEligibleBooking
     };

@@ -205,6 +205,24 @@ test('migrateSave preserves guest world state and transaction history', () => {
   assert.equal(migrated.guests[0].booking.departureDay, 7);
 });
 
+test('guest migration preserves bedtime state and normalizes couple age group', () => {
+  const save = buildLegacySave();
+  save.guests[0] = {
+    ...save.guests[0],
+    party: {type: 'couple', adults: 2, children: 0, ageGroup: 'young'},
+    bedtimeHour: 25,
+    lastBedtimeDay: 3,
+    activity: 'sleeping'
+  };
+
+  const migrated = migrateSave(save);
+
+  assert.equal(migrated.guests[0].party.ageGroup, 'young');
+  assert.equal(migrated.guests[0].bedtimeHour, 25);
+  assert.equal(migrated.guests[0].lastBedtimeDay, 3);
+  assert.equal(migrated.guests[0].activity, 'sleeping');
+});
+
 test('migrateSave retains party details and facility operating state', () => {
   const save = buildLegacySave();
   save.guests[0].party = {

@@ -51,6 +51,111 @@ test('static caravan collision blocks only its footprint, not the rest of its pi
   assert.equal(isWalkable(state, 3, 4, guest), false);
 });
 
+test('families return to their pitch at bedtime and wake after seven', () => {
+  const pitch = {x: 2, y: 2, w: 4, h: 4, type: 'grass'};
+  const guest = {
+    pitch,
+    party: {type: 'family'},
+    position: {x: 3.5, y: 3.5},
+    path: [],
+    activity: 'relaxing at pitch',
+    activityTimer: 10,
+    bedtimeHour: 19,
+    lastBedtimeDay: null
+  };
+  const state = {
+    day: 3,
+    hour: 19,
+    minute: 0,
+    tiles: Array.from({length: 10}, () =>
+      Array.from({length: 10}, () => ({terrain: 'grass', nature: null}))
+    ),
+    caravans: [],
+    facilities: [],
+    landmarks: [],
+    constructions: [],
+    guests: [guest]
+  };
+
+  updateGuestActivities(state, 0.1);
+  assert.equal(guest.activity, 'sleeping');
+  assert.equal(guest.lastBedtimeDay, 3);
+
+  state.hour = 6;
+  updateGuestActivities(state, 0.1);
+  assert.equal(guest.activity, 'sleeping');
+
+  state.hour = 7;
+  updateGuestActivities(state, 0.1);
+  assert.equal(guest.activity, 'relaxing at pitch');
+});
+
+test('couple bedtime after midnight is associated with the previous night', () => {
+  const pitch = {x: 2, y: 2, w: 4, h: 4, type: 'grass'};
+  const guest = {
+    pitch,
+    party: {type: 'couple', ageGroup: 'young'},
+    position: {x: 3.5, y: 3.5},
+    path: [],
+    activity: 'relaxing at pitch',
+    activityTimer: 10,
+    bedtimeHour: 25,
+    lastBedtimeDay: null
+  };
+  const state = {
+    day: 4,
+    hour: 1,
+    minute: 0,
+    tiles: Array.from({length: 10}, () =>
+      Array.from({length: 10}, () => ({terrain: 'grass', nature: null}))
+    ),
+    caravans: [],
+    facilities: [],
+    landmarks: [],
+    constructions: [],
+    guests: [guest]
+  };
+
+  updateGuestActivities(state, 0.1);
+
+  assert.equal(guest.activity, 'sleeping');
+  assert.equal(guest.lastBedtimeDay, 3);
+});
+
+test('guests walk back to their pitch before sleeping', () => {
+  const pitch = {x: 3, y: 2, w: 4, h: 4, type: 'grass'};
+  const guest = {
+    pitch,
+    party: {type: 'family'},
+    position: {x: 1.5, y: 1.5},
+    path: [],
+    activity: 'strolling around the park',
+    activityTimer: 10,
+    bedtimeHour: 19,
+    lastBedtimeDay: null
+  };
+  const state = {
+    day: 2,
+    hour: 20,
+    minute: 0,
+    tiles: Array.from({length: 10}, () =>
+      Array.from({length: 10}, () => ({terrain: 'grass', nature: null}))
+    ),
+    caravans: [],
+    facilities: [],
+    landmarks: [],
+    constructions: [],
+    guests: [guest]
+  };
+
+  updateGuestActivities(state, 0.1);
+
+  assert.equal(guest.activity, 'returning to accommodation');
+  assert.ok(guest.path.length > 0);
+  assert.ok(guest.destination.x >= pitch.x && guest.destination.x < pitch.x + pitch.w);
+  assert.ok(guest.destination.y >= pitch.y && guest.destination.y < pitch.y + pitch.h);
+});
+
 test('guests select a reachable facility and move through world coordinates', () => {
   const state = createState();
   const startX = state.guests[0].position.x;

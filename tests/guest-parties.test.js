@@ -5,7 +5,10 @@ const {
   getDemandProfile,
   getDemandPeriod,
   isArrivalTimeAllowed,
-  isStaticCheckoutDue
+  isStaticCheckoutDue,
+  getBedtimeHour,
+  getBookingInterest,
+  getSpendingMultiplier
 } =
   require('../src/guest-parties.js');
 const {selectEligibleBooking} = require('../src/guest-parties.js');
@@ -69,6 +72,41 @@ test('arrival windows match each accommodation type', () => {
   assert.equal(isArrivalTimeAllowed('static', 14), false);
   assert.equal(isArrivalTimeAllowed('static', 21), false);
   assert.equal(isArrivalTimeAllowed('static', 8.5), false);
+});
+
+test('bedtime depends on party type, couple age group, and entertainment availability', () => {
+  const youngCouple = {
+    type: 'couple',
+    ageGroup: 'young'
+  };
+  const olderCouple = {
+    type: 'couple',
+    ageGroup: 'older'
+  };
+  const family = {type: 'family'};
+
+  assert.equal(getBedtimeHour(family, false, () => 0), 19);
+  assert.equal(getBedtimeHour(family, false, () => 0.999), 22);
+  assert.equal(getBedtimeHour(olderCouple, true, () => 0.999), 21);
+  assert.equal(getBedtimeHour(youngCouple, false, () => 0.999), 22);
+  assert.equal(getBedtimeHour(youngCouple, true, () => 0), 22);
+  assert.equal(getBedtimeHour(youngCouple, true, () => 0.999), 25);
+  assert.equal(getBookingInterest(youngCouple, false), 0.35);
+  assert.equal(getBookingInterest(youngCouple, true), 1);
+  assert.equal(getSpendingMultiplier(youngCouple, false), 1);
+  assert.equal(getSpendingMultiplier(youngCouple, true), 1.5);
+});
+
+test('new couple parties receive a stable young or older age classification', () => {
+  const values = [0, 0, 0, 0.2];
+  const young = createGuestParty(100, () => values.shift());
+  const olderValues = [0, 0, 0, 0.9];
+  const older = createGuestParty(100, () => olderValues.shift());
+
+  assert.equal(young.type, 'couple');
+  assert.equal(young.ageGroup, 'young');
+  assert.equal(older.type, 'couple');
+  assert.equal(older.ageGroup, 'older');
 });
 
 test('static renter checkout is due from noon on the departure day', () => {

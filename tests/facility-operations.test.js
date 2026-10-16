@@ -122,6 +122,42 @@ test('facility service capacity, party needs and transactions affect operating r
   assert.ok(party.needs.toiletVisits + party.needs.showerVisits > 0);
 });
 
+test('young couples spend more in the shop when entertainment has increased their spending', () => {
+  const party = {
+    adults: 2,
+    children: 0,
+    headcount: 2,
+    spendingMultiplier: 1.5,
+    needs: {
+      toiletVisits: 0, showerVisits: 0, laundryTrips: 0, shoppingTrips: 0,
+      missedToiletVisits: 0, missedShowerVisits: 0, satisfaction: 75
+    },
+    preferences: {
+      preferredFacilities: ['shop'],
+      toiletIntervalHours: 0,
+      showerVisitIntervalDays: 0,
+      shopIntervalHours: 1,
+      laundryEveryDays: 0
+    }
+  };
+  const state = {
+    day: 1,
+    hour: 1,
+    facilities: [facility('shop')],
+    guests: [{
+      party,
+      pitchIndex: 0,
+      booking: {arrivalDay: 1},
+      lastFacilityUpdate: -1
+    }]
+  };
+  const transactions = [];
+
+  processHourlyFacilities(state, (...entry) => transactions.push(entry));
+
+  assert.equal(transactions.find(entry => entry[1] === 'shop income')[0], 24);
+});
+
 test('toilet use gradually reduces cleanliness and wear and dirty toilets lower satisfaction', () => {
   const party = createGuestParty(181, () => 0);
   party.headcount = 4;

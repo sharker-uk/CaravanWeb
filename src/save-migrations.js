@@ -117,6 +117,10 @@
             const party = {
                 ...guest.party,
                 type: partyType,
+                ageGroup: partyType === 'couple'
+                    ? ['young', 'older'].includes(guest.party?.ageGroup)
+                        ? guest.party.ageGroup : 'older'
+                    : null,
                 adults,
                 children,
                 headcount: adults + children,
@@ -194,6 +198,11 @@
                     Number.isFinite(guest.destination.y) ? guest.destination : null,
                 activity: typeof guest.activity === 'string' ? guest.activity : 'relaxing at pitch',
                 activityTimer: Number.isFinite(guest.activityTimer) ? guest.activityTimer : 0,
+                bedtimeHour: Number.isInteger(guest.bedtimeHour) &&
+                    guest.bedtimeHour >= 19 && guest.bedtimeHour <= 25
+                    ? guest.bedtimeHour : null,
+                lastBedtimeDay: Number.isInteger(guest.lastBedtimeDay)
+                    ? guest.lastBedtimeDay : null,
                 facilityVisits: Number.isInteger(guest.facilityVisits)
                     ? Math.max(0, guest.facilityVisits)
                     : 0,

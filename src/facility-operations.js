@@ -107,7 +107,10 @@
             }
         }
         if (serviceType === 'shop') {
-            const purchase = party.adults * 8 + party.children * 4;
+            const spendingMultiplier = Number.isFinite(party.spendingMultiplier)
+                ? Math.max(1, party.spendingMultiplier) : 1;
+            const purchase = Math.round((party.adults * 8 + party.children * 4) *
+                spendingMultiplier);
             transaction(purchase, 'shop income', 'Guest shop purchases');
             transaction(-Math.round(purchase * 0.6), 'shop stock', 'Shop stock replenishment');
         }

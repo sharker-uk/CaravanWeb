@@ -78,6 +78,66 @@
         return null;
     }
 
+    function getBedtimeNight(state) {
+        const hour = Number(state.hour) + (Number(state.minute) || 0) / 60;
+        const afterMidnight = hour < 5;
+        return {
+            day: state.day - Number(afterMidnight),
+            hour: hour + (afterMidnight ? 24 : 0)
+        };
+    }
+
+    function findAccommodationPath(state, guest) {
+        const start = guest.position;
+        const destinations = [];
+        for (let y = guest.pitch.y; y < guest.pitch.y + guest.pitch.h; y++) {
+            for (let x = guest.pitch.x; x < guest.pitch.x + guest.pitch.w; x++) {
+                if (isWalkable(state, x, y, guest)) destinations.push({x, y});
+            }
+        }
+        return destinations.map(tile => ({
+            tile,
+            path: globalScope.GameRules.findPathToAny(start, [tile],
+                (x, y) => isWalkable(state, x, y, guest))
+        })).filter(candidate => candidate.path !== null)
+            .sort((a, b) => a.path.length - b.path.length)[0] || null;
+    }
+
+    function updateBedtime(state, guest) {
+        if (!['family', 'couple'].includes(guest.party?.type) ||
+            !Number.isFinite(guest.bedtimeHour)) return false;
+        const currentHour = Number(state.hour) + (Number(state.minute) || 0) / 60;
+        if (guest.activity === 'sleeping') {
+            if (currentHour >= 7 && currentHour < 19) {
+                guest.activity = 'relaxing at pitch';
+                guest.activityTimer = ACTIVITY_DURATION;
+                guest.destination = null;
+                guest.path = [];
+            }
+            return true;
+        }
+
+        const night = getBedtimeNight(state);
+        if (night.hour < guest.bedtimeHour || night.day === guest.lastBedtimeDay) {
+            return false;
+        }
+        const accommodation = findAccommodationPath(state, guest);
+        if (!accommodation) return false;
+        guest.lastBedtimeDay = night.day;
+        guest.activityFacilityType = null;
+        if (!accommodation.path.length) {
+            guest.activity = 'sleeping';
+            guest.destination = null;
+            guest.path = [];
+        } else {
+            guest.activity = 'returning to accommodation';
+            guest.destination = accommodation.tile;
+            guest.path = accommodation.path;
+        }
+        guest.activityTimer = 0;
+        return true;
+    }
+
     function chooseActivity(state, guest) {
         // Booked guests can take a trip into the village, stroll the park paths, or use facilities.
         const choice = Math.random();
@@ -134,6 +194,9 @@
                 y: guest.pitch.y + guest.pitch.h / 2
             };
             guest.path ||= [];
+            if (updateBedtime(state, guest)) {
+                if (guest.activity === 'sleeping') continue;
+            }
             guest.activityTimer = Math.max(0, (guest.activityTimer || 0) - elapsedSeconds);
             if (!guest.path.length && guest.activityTimer <= 0) chooseActivity(state, guest);
             let distanceLeft = WALK_SPEED * elapsedSeconds;
@@ -162,7 +225,9 @@
             }
             if (!guest.path.length && guest.destination) {
                 const completed = guest.activity;
-                if (completed === 'visiting facility') {
+                if (completed === 'returning to accommodation') {
+                    guest.activity = 'sleeping';
+                } else if (completed === 'visiting facility') {
                     guest.facilityVisits = (guest.facilityVisits || 0) + 1;
                     guest.activity = 'using facility';
                 } else if (completed === 'visiting the village') {
@@ -216,7 +281,13 @@
         state.rating = Math.max(0, Math.min(5, 1 + state.satisfaction / 25));
     }
 
-    const api = {isWalkable, updateGuestActivities, calculateGuestExperience, updateGuestSatisfaction};
+    const api = {
+        isWalkable,
+        updateBedtime,
+        updateGuestActivities,
+        calculateGuestExperience,
+        updateGuestSatisfaction
+    };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     globalScope.GuestActivities = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
