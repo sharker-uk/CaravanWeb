@@ -91,9 +91,9 @@
                     throw new Error('Terrain references an invalid cell or missing asset.');
                 const kind=assetKind(pkg.assetCatalog[cell.assetId]);
                 if(grid) grid[cell.y][cell.x]=cell.assetId;
-                if(layerId==='layer_base_terrain'||layerId==='layer_secondary_terrain') {
+                if(layerId==='layer_base_terrain') {
                     if(kind==='water') tiles[cell.y][cell.x].terrain='water';
-                    else if(kind==='grass'||kind==='sand') tiles[cell.y][cell.x].terrain=kind==='sand'?'sand':'grass';
+                    else if(kind==='grass'||kind==='sand') tiles[cell.y][cell.x].terrain='grass';
                 } else if(layerId==='layer_paths_roads') {
                     if(kind==='road') {tiles[cell.y][cell.x].road=true;roads[cell.y][cell.x]=cell.assetId;}
                     if(kind==='path') {tiles[cell.y][cell.x].path=true;paths[cell.y][cell.x]=cell.assetId;}
