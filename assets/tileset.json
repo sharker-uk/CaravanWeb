@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "tileSize": 16,
+  "atlas": "assets/tileset.png",
+  "atlasSize": {
+    "width": 512,
+    "height": 512
+  },
+  "sprites": {
+    "facility.toilets": {
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "accommodation.tent": {
+      "x": 48,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "accommodation.tin": {
+      "x": 80,
+      "y": 0,
+      "w": 48,
+      "h": 32
+    }
+  }
+}

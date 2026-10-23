@@ -1,0 +1,10 @@
+{
+  "name": "caravan-park-tycoon-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Static browser prototype for Caravan Park Tycoon",
+  "scripts": {
+    "check:syntax": "node --check src/asset-renderer.js && node --check src/main.js && node --check src/park-designer-import.js && node --check src/character-system.js && node --check src/guest-activities.js && node --check src/park-services.js && node --check src/facility-operations.js && node --check src/static-caravans.js && node --check src/pitch-capabilities.js && node --check src/save-migrations.js",
+    "test": "node --test"
+  }
+}
