@@ -55,6 +55,9 @@
     <div id="top-bar">
         <div class="stat-group">
             <div id="park-name" style="color: var(--accent-bright);">🌲 Sandy Sands Deluxe</div>
+            <button id="load-park-package" type="button" title="Load a self-contained park exported by Park Designer"
+                style="background:#34495e;border:1px solid #7f8c8d;border-radius:4px;color:#ecf0f1;padding:6px 9px;cursor:pointer;font-weight:bold;">Import Park</button>
+            <input id="park-package-file" type="file" accept=".json,application/json" hidden>
             <div class="stat">📅 <span id="clock-display">Day 1, 09:00</span></div>
             <div class="stat" id="time-of-day">☀️ Daylight</div>
             <div class="stat"><span id="weather-display">☀️</span> <span id="weather-text">Sunny</span></div>
@@ -170,7 +173,16 @@ let state = {
     selectedEntity: null,
     player: {x: 5.5, y: 10.5},
     playerPath: [],
-    interactionTarget: null
+    interactionTarget: null,
+    parkPackageId: null,
+    themeImages: {},
+    themeTerrain: [],
+    themeSecondaryTerrain: [],
+    themeRoads: [],
+    themePaths: [],
+    themeNature: [],
+    themeObjects: [],
+    themeAssetCatalog: {}
 };
 const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
 const UTILITY_COSTS = {gas: 25, water: 20, electricity: 30, waste: 35};
@@ -190,10 +202,19 @@ const pressedKeys = new Set();
 const PLAYER_SPEED = 4;
 
 // --- Initialization ---
-function init() {
+async function init() {
+    const storedParkPackage = await loadImportedParkPackage();
+    if (storedParkPackage) {
+        try { await applyParkDesignerPackage(storedParkPackage, false); }
+        catch (error) {
+            console.error('Stored park package could not be loaded.', error);
+            showToast('⚠️ Saved custom park could not be loaded. Using the standard park.');
+            clearThemeState();
+        }
+    }
     const saved = localStorage.getItem('caravan_tycoon_save');
     if (!saved) {
-        generateNewMap();
+        if (!storedParkPackage) generateNewMap();
         return;
     }
 
@@ -204,6 +225,12 @@ function init() {
         console.error('Unable to parse the saved game.', error);
         showToast('❌ Save data is invalid. A new park has been started.');
         generateNewMap();
+        return;
+    }
+
+    if (storedParkPackage && data?.parkPackageId !== storedParkPackage.id) {
+        await applyParkDesignerPackage(storedParkPackage, false);
+        saveGame();
         return;
     }
 
@@ -310,6 +337,181 @@ function init() {
     state.interactionTarget = null;
 }
 
+const PARK_PACKAGE_DB = 'CaravanWebParkPackages';
+const PARK_PACKAGE_STORE = 'packages';
+
+function openParkPackageDatabase() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(PARK_PACKAGE_DB, 1);
+        request.onupgradeneeded = () => {
+            if (!request.result.objectStoreNames.contains(PARK_PACKAGE_STORE))
+                request.result.createObjectStore(PARK_PACKAGE_STORE, {keyPath: 'id'});
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+async function storeImportedParkPackage(parkPackage) {
+    const db = await openParkPackageDatabase();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(PARK_PACKAGE_STORE, 'readwrite');
+        tx.objectStore(PARK_PACKAGE_STORE).put(parkPackage);
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
+    });
+}
+async function loadImportedParkPackage() {
+    const db = await openParkPackageDatabase();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(PARK_PACKAGE_STORE, 'readonly');
+        const request = tx.objectStore(PARK_PACKAGE_STORE).getAll();
+        request.onsuccess = () => {
+            const packages = request.result || [];
+            db.close();
+            resolve(packages.length ? packages[packages.length - 1] : null);
+        };
+        request.onerror = () => { db.close(); reject(request.error); };
+    });
+}
+function clearThemeState() {
+    state.parkPackageId = null; state.themeImages = {}; state.themeTerrain = [];
+    state.themeSecondaryTerrain = []; state.themeRoads = []; state.themePaths = [];
+    state.themeNature = []; state.themeObjects = []; state.themeAssetCatalog = {};
+}
+function packageAssetKind(asset) {
+    const text = (String(asset?.category || '') + ' ' + String(asset?.name || '')).toLowerCase();
+    if (text.includes('water') || text.includes('sea')) return 'water';
+    if (text.includes('sand') || text.includes('beach')) return 'sand';
+    if (text.includes('road')) return 'road';
+    if (text.includes('path')) return 'path';
+    if (text.includes('tree') || text.includes('nature') || text.includes('bush')) return 'tree';
+    if (text.includes('grass')) return 'grass';
+    return 'object';
+}
+function packageCoordinateEntries(layer) {
+    if (!layer || typeof layer !== 'object' || Array.isArray(layer)) return [];
+    return Object.entries(layer).map(([key, assetId]) => {
+        const match = /^(\d+),(\d+)$/.exec(key);
+        if (!match) throw new Error('Invalid terrain coordinate: ' + key);
+        return {x: Number(match[1]), y: Number(match[2]), assetId};
+    });
+}
+async function loadPackageImages(parkPackage) {
+    const entries = Object.entries(parkPackage.assetCatalog);
+    if (entries.length > 500) throw new Error('Maximum 500 assets per park package.');
+    const images = {};
+    await Promise.all(entries.map(([id, asset]) => new Promise((resolve, reject) => {
+        if (!asset || typeof asset.dataUrl !== 'string' ||
+            !asset.dataUrl.startsWith('data:image/png;base64,')) {
+            reject(new Error('Asset ' + id + ' has no embedded PNG image.')); return;
+        }
+        const image = new Image();
+        image.onload = () => {
+            if (!image.naturalWidth || !image.naturalHeight ||
+                image.naturalWidth > 4096 || image.naturalHeight > 4096) {
+                reject(new Error('Asset ' + id + ' has unsupported dimensions.')); return;
+            }
+            images[id] = image; resolve();
+        };
+        image.onerror = () => reject(new Error('Unable to decode asset ' + id + '.'));
+        image.src = asset.dataUrl;
+    })));
+    return images;
+}
+async function applyParkDesignerPackage(pkg, showMessage = true) {
+    if (!pkg || pkg.packageType !== 'caravanweb-park' || pkg.packageVersion !== 1 ||
+        pkg.format !== 'caravanweb' || !pkg.grid || pkg.grid.widthCells !== GRID_W ||
+        pkg.grid.heightCells !== GRID_H || pkg.grid.cellSizePx !== TILE_SIZE ||
+        !pkg.terrain || !pkg.assetCatalog || !Array.isArray(pkg.pitches) || !Array.isArray(pkg.objects))
+        throw new Error('Unsupported package. This version requires a 60 × 40 map with 16px cells.');
+    const images = await loadPackageImages(pkg);
+    const tiles = Array.from({length: GRID_H}, () => Array.from({length: GRID_W}, () => ({
+        terrain:'grass', nature:null, road:false, path:false, utilities:createEmptyUtilities()
+    })));
+    const grid = () => Array.from({length: GRID_H}, () => Array(GRID_W).fill(null));
+    const terrain = grid(), secondary = grid(), roads = grid(), paths = grid(), nature = grid();
+    const objects = [];
+    for (const [layerId, imageGrid] of [
+        ['layer_base_terrain', terrain], ['layer_secondary_terrain', secondary],
+        ['layer_paths_roads', null], ['layer_nature', nature]
+    ]) {
+        for (const cell of packageCoordinateEntries(pkg.terrain[layerId])) {
+            if (cell.x >= GRID_W || cell.y >= GRID_H || cell.x < 0 || cell.y < 0 ||
+                typeof cell.assetId !== 'string' || !pkg.assetCatalog[cell.assetId])
+                throw new Error('Terrain references an invalid cell or missing asset.');
+            const kind = packageAssetKind(pkg.assetCatalog[cell.assetId]);
+            if (imageGrid) imageGrid[cell.y][cell.x] = cell.assetId;
+            if (layerId === 'layer_base_terrain' || layerId === 'layer_secondary_terrain') {
+                if (kind === 'water') tiles[cell.y][cell.x].terrain = 'water';
+                else if (kind === 'grass' || kind === 'sand') tiles[cell.y][cell.x].terrain = 'grass';
+            } else if (layerId === 'layer_paths_roads') {
+                if (kind === 'road') { tiles[cell.y][cell.x].road = true; roads[cell.y][cell.x] = cell.assetId; }
+                if (kind === 'path') { tiles[cell.y][cell.x].path = true; paths[cell.y][cell.x] = cell.assetId; }
+            } else if (kind === 'tree') tiles[cell.y][cell.x].nature = 'tree';
+            else objects.push({x:cell.x,y:cell.y,w:1,h:1,assetId:cell.assetId,
+                blocksPlayer:false,anchorPx:{x:0,y:TILE_SIZE},visualOffsetPx:{x:0,y:0}});
+        }
+    }
+    const pitches = pkg.pitches.map(p => {
+        if (!p || !['x','y','widthCells','heightCells'].every(k => Number.isInteger(p[k])) ||
+            p.x < 0 || p.y < 0 || p.widthCells < 1 || p.heightCells < 1 ||
+            p.x + p.widthCells > GRID_W || p.y + p.heightCells > GRID_H ||
+            !['tent','caravan','motorhome','serviced'].includes(p.type))
+            throw new Error('A pitch has invalid dimensions, coordinates or type.');
+        return {id:p.id,x:p.x,y:p.y,w:p.widthCells,h:p.heightCells,
+            type:p.type === 'tent' ? 'grass' : 'gravel',occupied:false,
+            designerHookups:{electricity:Boolean(p.electricHookup),water:Boolean(p.waterHookup)}};
+    });
+    const facilities = [];
+    for (const obj of pkg.objects) {
+        const asset = pkg.assetCatalog[obj.assetId];
+        if (!asset || !Number.isFinite(obj.x) || !Number.isFinite(obj.y))
+            throw new Error('A placed object references a missing asset or invalid position.');
+        const type = String(obj.gameplay?.objectType || '').toLowerCase().replace(/[\s-]+/g,'_');
+        const w = Math.max(1,Math.round(obj.footprintCells?.width || 1));
+        const h = Math.max(1,Math.round(obj.footprintCells?.height || 1));
+        if (['toilets','shop','playground','pub','restaurant','arcade','entertainment_space',
+            'pool','activity_centre','entertainment_hub'].includes(type) &&
+            Number.isInteger(obj.x) && Number.isInteger(obj.y) && obj.x >= 0 && obj.y >= 0 &&
+            obj.x + w <= GRID_W && obj.y + h <= GRID_H) {
+            facilities.push({x:obj.x,y:obj.y,w,h,type,assetId:obj.assetId,designerObjectId:obj.id});
+        } else if (packageAssetKind(asset) === 'tree' && Number.isInteger(obj.x) &&
+            Number.isInteger(obj.y) && obj.x >= 0 && obj.y >= 0 && obj.x < GRID_W && obj.y < GRID_H) {
+            tiles[obj.y][obj.x].nature = 'tree'; nature[obj.y][obj.x] = obj.assetId;
+        } else {
+            objects.push({x:obj.x,y:obj.y,w,h,assetId:obj.assetId,
+                blocksPlayer:Boolean(obj.collision?.blocksPlayer),anchorPx:obj.anchorPx || {x:0,y:0},
+                visualOffsetPx:obj.visualOffsetPx || {x:0,y:0}});
+        }
+    }
+    state.tiles=tiles; state.pitches=pitches; state.caravans=[]; state.guests=[];
+    state.facilities=facilities; state.vehicles=[]; state.cash=1500; state.rating=1;
+    state.satisfaction=60; state.day=1; state.hour=9; state.minute=0; state.handymen=0;
+    state.player={x:5.5,y:10.5}; state.playerPath=[]; state.interactionTarget=null;
+    state.selectedEntity=null; state.camera={x:100,y:100,zoom:1.8};
+    state.parkPackageId=String(pkg.id || pkg.mapTitle || 'custom-park');
+    state.themeImages=images; state.themeTerrain=terrain; state.themeSecondaryTerrain=secondary;
+    state.themeRoads=roads; state.themePaths=paths; state.themeNature=nature;
+    state.themeObjects=objects; state.themeAssetCatalog=pkg.assetCatalog;
+    document.getElementById('park-name').textContent='🌲 '+String(pkg.mapTitle || 'Custom Park');
+    if (!canOccupyPlayer(state.player.x,state.player.y)) {
+        let found=false;
+        for(let y=0;y<GRID_H&&!found;y++) for(let x=0;x<GRID_W&&!found;x++)
+            if(canOccupyPlayer(x+.5,y+.5)){state.player={x:x+.5,y:y+.5};found=true;}
+        if(!found) throw new Error('This park has no walkable starting tile.');
+    }
+    if(showMessage) showToast('✅ Park loaded from Park Designer.');
+}
+async function importParkDesignerPackage(file) {
+    if (!file) return;
+    if (file.size > 25*1024*1024) throw new Error('The park JSON exceeds the 25 MB import limit.');
+    const pkg=JSON.parse(await file.text());
+    await applyParkDesignerPackage(pkg,false);
+    await storeImportedParkPackage(pkg);
+    saveGame();
+    showToast('✅ Park loaded and saved. Player and NPC graphics remain standard.');
+}
+
 function generateNewMap() {
     for (let y = 0; y < GRID_H; y++) {
         state.tiles[y] = [];
@@ -382,6 +584,11 @@ function isGuestAccommodationValid(pitch, accommodation) {
 
 function getPitchHookups(pitch) {
     const hookups = createEmptyUtilities();
+    if (pitch.designerHookups) {
+        hookups.electricity=Boolean(pitch.designerHookups.electricity);
+        hookups.water=Boolean(pitch.designerHookups.water);
+        return hookups;
+    }
     for (let x = pitch.x; x < pitch.x + pitch.w; x++) {
         for (const y of [pitch.y - 1, pitch.y + pitch.h]) {
             const tile = state.tiles[y]?.[x];
@@ -457,14 +664,16 @@ function getTileProperties(x, y) {
         y >= item.pitch.y && y < item.pitch.y + item.pitch.h);
     const pitchIsAvailable = Boolean(pitch && !pitch.occupied);
     const tree = tile.nature === 'tree';
-    const hasObject = Boolean(facility || caravan || guest);
+    const themeObject = state.themeObjects.find(item =>
+        x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h);
+    const hasObject = Boolean(facility || caravan || guest || (themeObject && themeObject.blocksPlayer));
     const buildable = tile.terrain === 'grass' && !tile.road && !tile.path && !tree &&
         !pitch && !hasObject;
 
     return {
         walkable: tile.terrain === 'grass' && !tree && !hasObject,
-        buildable,
-        occupied: Boolean(tree || pitch || hasObject),
+        buildable: buildable && !themeObject,
+        occupied: Boolean(tree || pitch || hasObject || themeObject),
         interactable: Boolean(pitchIsAvailable || caravan || guest || facility)
     };
 }
@@ -671,6 +880,7 @@ function saveGame() {
     try {
         localStorage.setItem('caravan_tycoon_save', JSON.stringify({
             schemaVersion: 5,
+            parkPackageId: state.parkPackageId,
             cash: state.cash,
             tiles: state.tiles,
             pitches: state.pitches,
@@ -1014,8 +1224,12 @@ function draw(timestamp = 0) {
     for(let y=0; y<GRID_H; y++) {
         for(let x=0; x<GRID_W; x++) {
             const t = state.tiles[y][x];
-            ctx.fillStyle = t.terrain === 'grass' ? PALETTE.grass[(x+y)%3] : PALETTE.water;
-            ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            const baseId=state.themeTerrain[y]?.[x], secondaryId=state.themeSecondaryTerrain[y]?.[x];
+            const baseImage=baseId && state.themeImages[baseId], secondaryImage=secondaryId && state.themeImages[secondaryId];
+            if(baseImage) ctx.drawImage(baseImage,x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE);
+            else { ctx.fillStyle=t.terrain==='grass'?PALETTE.grass[(x+y)%3]:PALETTE.water;
+                ctx.fillRect(x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE); }
+            if(secondaryImage) ctx.drawImage(secondaryImage,x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE);
         }
     }
 
@@ -1029,8 +1243,11 @@ function draw(timestamp = 0) {
                 ctx.fillRect(px+4, py+5, 2, 2);
                 ctx.fillRect(px+10, py+11, 2, 2);
             } else if (nature === 'tree') {
-                ctx.fillStyle = '#2d3b1e'; ctx.fillRect(px+6, py+10, 4, 6);
-                ctx.fillStyle = PALETTE.tree; ctx.beginPath(); ctx.arc(px+8, py+6, 6, 0, Math.PI*2); ctx.fill();
+                const id=state.themeNature[y]?.[x], image=id && state.themeImages[id];
+                if(image) ctx.drawImage(image,px+(TILE_SIZE-image.naturalWidth)/2,
+                    py+TILE_SIZE-image.naturalHeight,image.naturalWidth,image.naturalHeight);
+                else { ctx.fillStyle='#2d3b1e'; ctx.fillRect(px+6,py+10,4,6);
+                    ctx.fillStyle=PALETTE.tree; ctx.beginPath(); ctx.arc(px+8,py+6,6,0,Math.PI*2); ctx.fill(); }
             }
         }
     }
@@ -1039,15 +1256,17 @@ function draw(timestamp = 0) {
     for(let y=0; y<GRID_H; y++) {
         for(let x=0; x<GRID_W; x++) {
             if (!state.tiles[y][x].road) continue;
-            ctx.fillStyle = PALETTE.road;
-            ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            const id=state.themeRoads[y]?.[x], image=id && state.themeImages[id];
+            if(image) ctx.drawImage(image,x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE);
+            else { ctx.fillStyle=PALETTE.road; ctx.fillRect(x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE); }
         }
     }
     for(let y=0; y<GRID_H; y++) {
         for(let x=0; x<GRID_W; x++) {
             if (!state.tiles[y][x].path) continue;
-            ctx.fillStyle = PALETTE.path;
-            ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            const id=state.themePaths[y]?.[x], image=id && state.themeImages[id];
+            if(image) ctx.drawImage(image,x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE);
+            else { ctx.fillStyle=PALETTE.path; ctx.fillRect(x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE); }
         }
     }
     const utilityColors = {
@@ -1087,10 +1306,20 @@ function draw(timestamp = 0) {
             entertainment_space: ['#f5b7b1', '#c0392b'], pool: ['#76d7c4', '#148f77'],
             activity_centre: ['#a9dfbf', '#1e8449'], entertainment_hub: ['#d2b4de', '#512e5f']
         };
+        const customImage=f.assetId && state.themeImages[f.assetId];
+        if(customImage){ctx.drawImage(customImage,px,py,f.w*TILE_SIZE,f.h*TILE_SIZE);return;}
         const [wallColor, roofColor] = facilityColors[f.type] || [PALETTE.fac_wall, PALETTE.fac_roof];
         ctx.fillStyle = wallColor; ctx.fillRect(px, py, f.w*TILE_SIZE, f.h*TILE_SIZE);
         ctx.fillStyle = roofColor; ctx.fillRect(px-2, py, (f.w*TILE_SIZE)+4, 4);
         ctx.fillStyle = '#2c3e50'; ctx.font = '8px Arial'; ctx.fillText(f.type.toUpperCase(), px+4, py+14);
+    });
+
+    // Themeable static scenery. Character and NPC rendering remains game-owned.
+    state.themeObjects.forEach(obj => {
+        const image=state.themeImages[obj.assetId]; if(!image)return;
+        const anchor=obj.anchorPx||{x:0,y:0}, offset=obj.visualOffsetPx||{x:0,y:0};
+        ctx.drawImage(image,obj.x*TILE_SIZE-anchor.x+offset.x,obj.y*TILE_SIZE-anchor.y+offset.y,
+            image.naturalWidth,image.naturalHeight);
     });
 
     // Caravans occupy their pitch footprint and belong to the placed-object layer
@@ -1331,6 +1560,14 @@ canvas.addEventListener('wheel', e => {
 window.onload = () => {
     document.getElementById('btn-repair').addEventListener('click', repairSelectedCaravan);
     document.getElementById('btn-upgrade').addEventListener('click', upgradeSelectedCaravan);
+    document.getElementById('load-park-package').addEventListener('click', () =>
+        document.getElementById('park-package-file').click());
+    document.getElementById('park-package-file').addEventListener('change', async event => {
+        const file=event.target.files?.[0];
+        try { await importParkDesignerPackage(file); }
+        catch(error){console.error('Park import failed.',error);showToast('❌ Park import failed: '+(error?.message||'Invalid package.'));}
+        finally {event.target.value='';}
+    });
     document.getElementById('btn-skirting').addEventListener('click', fitSelectedSkirting);
     document.getElementById('btn-sell').addEventListener('click', sellSelectedCaravan);
     document.getElementById('day-length').addEventListener('input', event => {
