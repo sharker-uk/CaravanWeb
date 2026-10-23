@@ -355,7 +355,9 @@ async function storeImportedParkPackage(parkPackage) {
     const db = await openParkPackageDatabase();
     return new Promise((resolve, reject) => {
         const tx = db.transaction(PARK_PACKAGE_STORE, 'readwrite');
-        tx.objectStore(PARK_PACKAGE_STORE).put(parkPackage);
+        const store = tx.objectStore(PARK_PACKAGE_STORE);
+        store.clear();
+        store.put(parkPackage);
         tx.oncomplete = () => { db.close(); resolve(); };
         tx.onerror = () => { db.close(); reject(tx.error); };
     });
@@ -1575,9 +1577,16 @@ window.onload = () => {
     });
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight - 132;
-    init();
-    draw();
-    setInterval(() => update(1), 100);
+    init().then(() => {
+        draw();
+        setInterval(() => update(1), 100);
+    }).catch(error => {
+        console.error('Game initialization failed.', error);
+        generateNewMap();
+        draw();
+        showToast('⚠️ The park could not be restored. A new park was started.');
+        setInterval(() => update(1), 100);
+    });
 };
 </script>
 </body>
