@@ -210,6 +210,8 @@ async function init() {
             console.error('Stored park package could not be loaded.', error);
             showToast('⚠️ Saved custom park could not be loaded. Using the standard park.');
             clearThemeState();
+            state.pitches = []; state.facilities = []; state.caravans = []; state.guests = [];
+            state.vehicles = []; state.player = {x: 5.5, y: 10.5};
             generateNewMap();
         }
     }
