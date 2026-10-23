@@ -963,6 +963,7 @@ function updateCamera() {
 function saveGame() {
     try {
         localStorage.setItem('caravan_tycoon_save', JSON.stringify({
+            parkPackageId: state.parkPackageId || null,
             schemaVersion: SaveMigrations && SaveMigrations.CURRENT_SAVE_SCHEMA
                 ? SaveMigrations.CURRENT_SAVE_SCHEMA
                 : 12,
@@ -1722,13 +1723,19 @@ function draw(timestamp = 0) {
             const t = state.tiles[y][x];
             const px = x * TILE_SIZE;
             const py = y * TILE_SIZE;
+            const customBaseId = state.themeTerrain?.[y]?.[x];
+            const customSecondaryId = state.themeSecondaryTerrain?.[y]?.[x];
+            const customBase = customBaseId && state.themeImages?.[customBaseId];
+            const customSecondary = customSecondaryId && state.themeImages?.[customSecondaryId];
             const terrainKey = t.terrain === 'grass' ? `terrain.grass.${(x + y) % 3}`
                 : t.terrain === 'sand' ? 'terrain.sand' : 'terrain.water';
-            drawAsset(terrainKey, px, py, TILE_SIZE, TILE_SIZE, () => {
+            if (customBase) ctx.drawImage(customBase, px, py, TILE_SIZE, TILE_SIZE);
+            else drawAsset(terrainKey, px, py, TILE_SIZE, TILE_SIZE, () => {
                 ctx.fillStyle = t.terrain === 'grass' ? PALETTE.grass[(x+y)%3] :
                     t.terrain === 'sand' ? '#d6c18e' : PALETTE.water;
                 ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
             });
+            if (customSecondary) ctx.drawImage(customSecondary, px, py, TILE_SIZE, TILE_SIZE);
         }
     }
 
@@ -1744,7 +1751,11 @@ function draw(timestamp = 0) {
                     ctx.fillRect(px+10, py+11, 2, 2);
                 });
             } else if (nature === 'tree') {
-                drawAsset('nature.tree', px, py - TILE_SIZE, TILE_SIZE, TILE_SIZE * 2, () => {
+                const customNatureId = state.themeNature?.[y]?.[x];
+                const customNature = customNatureId && state.themeImages?.[customNatureId];
+                if (customNature) ctx.drawImage(customNature, px + (TILE_SIZE - customNature.naturalWidth) / 2,
+                    py + TILE_SIZE - customNature.naturalHeight, customNature.naturalWidth, customNature.naturalHeight);
+                else drawAsset('nature.tree', px, py - TILE_SIZE, TILE_SIZE, TILE_SIZE * 2, () => {
                     ctx.fillStyle = '#2d3b1e'; ctx.fillRect(px+6, py+10, 4, 6);
                     ctx.fillStyle = PALETTE.tree; ctx.beginPath(); ctx.arc(px+8, py+6, 6, 0, Math.PI*2); ctx.fill();
                 });
@@ -1759,7 +1770,10 @@ function draw(timestamp = 0) {
             const px = x * TILE_SIZE;
             const py = y * TILE_SIZE;
             const mask = connectedSurfaceMask(x, y, 'road');
-            drawAsset(`surface.road.${mask}`, px, py, TILE_SIZE, TILE_SIZE, () => {
+            const customRoadId = state.themeRoads?.[y]?.[x];
+            const customRoad = customRoadId && state.themeImages?.[customRoadId];
+            if (customRoad) ctx.drawImage(customRoad, px, py, TILE_SIZE, TILE_SIZE);
+            else drawAsset(`surface.road.${mask}`, px, py, TILE_SIZE, TILE_SIZE, () => {
                 ctx.fillStyle = PALETTE.road;
                 ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
             });
@@ -1771,7 +1785,10 @@ function draw(timestamp = 0) {
             const px = x * TILE_SIZE;
             const py = y * TILE_SIZE;
             const mask = connectedSurfaceMask(x, y, 'path');
-            drawAsset(`surface.path.${mask}`, px, py, TILE_SIZE, TILE_SIZE, () => {
+            const customPathId = state.themePaths?.[y]?.[x];
+            const customPath = customPathId && state.themeImages?.[customPathId];
+            if (customPath) ctx.drawImage(customPath, px, py, TILE_SIZE, TILE_SIZE);
+            else drawAsset(`surface.path.${mask}`, px, py, TILE_SIZE, TILE_SIZE, () => {
                 ctx.fillStyle = PALETTE.path;
                 ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
             });
@@ -1824,6 +1841,17 @@ function draw(timestamp = 0) {
             ctx.fillText(`Park ${usage}/${capacity}`, f.x*TILE_SIZE + 3, f.y*TILE_SIZE + 12);
         });
     }
+
+
+    // Park Designer scenery is drawn before game-owned entities and characters.
+    (state.themeObjects || []).forEach(obj => {
+        const image = state.themeImages?.[obj.assetId];
+        if (!image) return;
+        const anchor = obj.anchorPx || {x: 0, y: 0};
+        const offset = obj.visualOffsetPx || {x: 0, y: 0};
+        ctx.drawImage(image, obj.x * TILE_SIZE - anchor.x + offset.x,
+            obj.y * TILE_SIZE - anchor.y + offset.y, image.naturalWidth, image.naturalHeight);
+    });
 
     state.landmarks.forEach(landmark => {
         const px = landmark.x * TILE_SIZE;
@@ -2755,6 +2783,57 @@ canvas.addEventListener('wheel', e => {
 });
 
 // Start
+
+/* Park Designer integration adapter. Keeps the simulation and character systems game-owned. */
+window.CaravanWebParkAdapter = {
+    applyPackage(pkg, images, terrain, secondary, roads, paths, nature, objects, pitches, facilities, tiles) {
+        state.tiles = tiles;
+        state.pitches = pitches;
+        state.caravans = [];
+        state.guests = [];
+        state.facilities = facilities;
+        state.vehicles = [];
+        state.landmarks = [];
+        state.constructions = [];
+        state.themeImages = images;
+        state.themeTerrain = terrain;
+        state.themeSecondaryTerrain = secondary;
+        state.themeRoads = roads;
+        state.themePaths = paths;
+        state.themeNature = nature;
+        state.themeObjects = objects;
+        state.themeAssetCatalog = pkg.assetCatalog;
+        state.parkPackageId = String(pkg.id || pkg.mapTitle || 'custom-park');
+        state.cash = 1500;
+        state.rating = 1;
+        state.satisfaction = 60;
+        state.day = 1; state.hour = 9; state.minute = 0;
+        state.player = {x: 5.5, y: 10.5};
+        state.playerPath = [];
+        state.interactionTarget = null;
+        state.selectedEntity = null;
+        state.camera = {x: 100, y: 100, zoom: 2.6};
+        const walkable = (x, y) => {
+            const tile = state.tiles[y]?.[x];
+            return Boolean(tile && tile.terrain !== 'water' && tile.nature !== 'tree' &&
+                !state.themeObjects.some(o => o.blocksPlayer && x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h));
+        };
+        if (!walkable(Math.floor(state.player.x), Math.floor(state.player.y))) {
+            let found = false;
+            for (let y = 0; y < GRID_H && !found; y++) for (let x = 0; x < GRID_W && !found; x++) {
+                if (walkable(x, y)) { state.player = {x: x + 0.5, y: y + 0.5}; found = true; }
+            }
+            if (!found) throw new Error('This park has no walkable starting tile.');
+        }
+        const title = document.getElementById('park-name');
+        if (title) title.textContent = '🌲 ' + String(pkg.mapTitle || 'Custom Park');
+        if (typeof refreshPitchCapabilities === 'function') refreshPitchCapabilities();
+        saveGame();
+        updateUI();
+        showToast('✅ Park imported. Standard player and guest artwork is unchanged.');
+    }
+};
+
 window.onload = () => {
     document.getElementById('start-game').addEventListener('click', startNewGame);
     document.getElementById('randomize-avatar').addEventListener('click', randomizePlayerAvatar);
