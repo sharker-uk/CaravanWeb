@@ -210,6 +210,7 @@ async function init() {
             console.error('Stored park package could not be loaded.', error);
             showToast('⚠️ Saved custom park could not be loaded. Using the standard park.');
             clearThemeState();
+            generateNewMap();
         }
     }
     const saved = localStorage.getItem('caravan_tycoon_save');
