@@ -1986,6 +1986,8 @@ function draw(timestamp = 0) {
     // Placed-object layer
     state.facilities.forEach(f => {
         const px = f.x*TILE_SIZE; const py = f.y*TILE_SIZE;
+        const customFacility = f.assetId && state.themeImages?.[f.assetId];
+        if (customFacility) { ctx.drawImage(customFacility, px, py, f.w*TILE_SIZE, f.h*TILE_SIZE); return; }
         const facilityColors = {
                 toilets: ['#bdc3c7', '#2980b9'], showers: ['#aed6f1', '#2874a6'],
                 laundry: ['#d5f5e3', '#239b56'], shop: ['#f5cba7', '#d35400'],
