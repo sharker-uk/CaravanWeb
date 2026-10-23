@@ -14,6 +14,8 @@
             <h1 id="start-title">Caravan Park Tycoon</h1>
             <div class="start-menu-buttons">
                 <button id="start-game" class="start-button" type="button">Start game</button>
+                <button id="import-park-button" class="menu-button" type="button">🗺️ Import Park Designer park</button>
+                <input id="import-park-file" type="file" accept=".json,application/json" hidden>
                 <button id="randomize-npcs" class="menu-button" type="button">🎲 Create random guest profiles</button>
                 <button id="open-avatar-creator" class="menu-button" type="button" aria-expanded="false" aria-controls="avatar-panel">👤 Create your avatar</button>
                 <button id="open-controls" class="menu-button" type="button" aria-expanded="false" aria-controls="controls-panel">🎮 Game controls</button>
@@ -272,5 +274,6 @@
     <script src="src/character-system.js"></script>
     <script src="src/asset-renderer.js"></script>
     <script src="src/main.js"></script>
+    <script src="src/park-designer-import.js"></script>
 </body>
 </html>
