@@ -97,7 +97,7 @@ test('schema-11 static assets migrate to stable catalogue records without losing
   assert.equal(van.hasSkirting, true);
   assert.equal(pitch.decking.id, `legacy-decking-${pitch.id}`);
   assert.ok(pitch.decking.condition < 100);
-  assert.equal(migrated.schemaVersion, 12);
+  assert.equal(migrated.schemaVersion, 13);
 });
 
 test('static caravan migration prefers its stable pitch ID over a stale array index', () => {

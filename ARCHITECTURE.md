@@ -2,7 +2,7 @@
 
 ## Current delivery model
 
-This project remains a static browser game deployed through Cloudflare Pages. The refactor branch deliberately does not introduce a Worker, database, framework, build step, or external runtime dependency.
+This project remains a static browser game deployed through Cloudflare Pages. The default management surface uses native SVG and the existing simulation; `walkabout.html` retains the classic canvas view. The refactor branch deliberately does not introduce a Worker, database, framework, build step, or external runtime dependency.
 
 ## Refactor strategy
 
@@ -34,3 +34,13 @@ Do not perform this split as one large rewrite. Move one cohesive responsibility
 - Keep upfront guest payment and daily rental income as separate mechanics.
 - Preserve the existing localStorage save envelope and migrate guest/facility structures when adding party bookings, facility capacity, or operating state.
 - Keep the current Pages deployment until a server-side requirement justifies Workers.
+
+## Management map surface
+
+- `src/management-model.js`: read-only place / status / alert projections, real-grid routes, build previews and explicit developed-scenario initialization.
+- `src/management-bridge.js`: commands delegate to existing construction, shop, staffing, maintenance, save migration and ledger functions. No second economy or booking engine.
+- `src/management-map.js`: procedural SVG artwork, camera transforms, labels, utility overlays and build / navigation pointer handling.
+- `src/management-shell.js` and `styles/management.css`: map, inspector, bookings, ledger, tools and settings presentation.
+- `index.html` retains hidden classic DOM hooks needed by the current main module. In management mode the old canvas / avatar loop and keyboard handler are skipped, and UI changes are dispatched to the management surface. The classic entry does not load the management scripts.
+
+The save schema and entity geometry are unchanged. UI preferences are stored separately. A private-preview packaging script prepares a `dist/` copy and is independent of the existing Pages deployment. No backend or runtime dependency is introduced.

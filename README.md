@@ -1,6 +1,28 @@
 # CaravanWeb
 
-2D top-down browser prototype for Caravan Park Tycoon.
+A browser management game for Caravan Park Tycoon, with a procedural coastal map and the existing park simulation.
+
+## Management view
+
+`index.html` opens the management edition: search and inspect real pitches, follow bookings, review the ledger, lay out construction, connect utilities, manage maintenance and hire staff. The map supports drag / wheel / pinch navigation, plan view, Q / E rotation, layers, saved places and routes along the actual road / path grid. Its SVG scenery is drawn in code; no custom tileset is required.
+
+Start from the original £1,500 coastal farm, or choose a playable developed scenario with £20,000, 12 pitches, 4 statics, 7 facilities and connected utilities. The developed scenario includes a broken caravan and a toilet block needing attention. It uses the same booking, condition, utility and finance rules as the original game; some outer pitches need better local service coverage. Both starts begin paused.
+
+- **Park map:** select a pitch or facility for live occupancy, hookup, guest and maintenance details. Orders and accessories are available directly from the village shops.
+- **Guests:** current parties, activities, remaining stays and upfront payments.
+- **Finances:** rolling seven-day totals, cash reconciliation and the most recent 50 ledger entries.
+- **Build:** choose a tool, then drag tile areas for roads / paths / pitches / utility lines. Fixed-size facilities and planting use one click. The game checks placement and funds; new construction still takes two game hours. Right-drag pans even with a build tool selected.
+- **Park:** staff, shovel, timber, pace settings, save export / import and recovery-backup export.
+
+Progress continues to use the existing `caravan_tycoon_save` key and schema 13. Starting another scenario or importing a save creates a recoverable copy in `caravan_tycoon_management_backup` before replacement. Imports over 5 MB, future schemas and files that would discard malformed entity records are rejected. Saved map places and the management camera use separate local keys. Saves are browser-local; importing a file is required to move between different devices or site origins.
+
+The original avatar mode is retained at `walkabout.html`, with a return link to management. It shares the local game save and keeps its existing artwork support. The controls below describe that classic view.
+
+Use **Land & beach** to buy Meadow Field (£6,000), then Dune Field (£9,000). Owned fields can be cleared and developed using the normal construction tools. Beach access (£2,500) requires both fields, a clear coastal approach and a connected park path. It takes two game hours to build; open, connected access costs £1 per game hour, adds 5 demand points and gives visiting parties +3 satisfaction once per game day. The gate can be closed.
+
+**Village map** opens LittleHampton-on-Sea: a compact fictional Caister-inspired world with your current park inset, village shops, beach quarter, church narrows, a bypass and an interactive traffic study. See [village-foundation.md](docs/village-foundation.md) for scope, sources and the later Godot direction.
+
+See [management-map.md](docs/management-map.md) for architecture, validation and current limits.
 
 ## Controls and construction
 

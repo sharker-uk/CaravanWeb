@@ -29,6 +29,7 @@
         dailyGuestArrivals: 0,
         facilities: [],
         landmarks: [],
+        land: null,
         constructions: [],
         vehicles: [],
         handymen: 0,
@@ -190,14 +191,15 @@
         );
         if (facility) return { kind: 'facility', entity: facility, x: facility.x, y: facility.y, w: facility.w, h: facility.h };
 
+        const pitch = state.pitches.find(item => !item.occupied &&
+            x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h);
+        if (pitch) return { kind: 'pitch', entity: pitch, x: pitch.x, y: pitch.y, w: pitch.w, h: pitch.h };
+
         const landmark = state.landmarks?.find(item => item.interactable === true &&
             x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
         );
         if (landmark) return {kind: 'landmark', entity: landmark, x: landmark.x, y: landmark.y, w: landmark.w, h: landmark.h};
 
-        const pitch = state.pitches.find(item => !item.occupied &&
-            x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h);
-        if (pitch) return { kind: 'pitch', entity: pitch, x: pitch.x, y: pitch.y, w: pitch.w, h: pitch.h };
         return null;
     }
 

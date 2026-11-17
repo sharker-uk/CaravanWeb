@@ -1,5 +1,6 @@
 (function (globalScope) {
-    const CURRENT_SAVE_SCHEMA = 12;
+    const CURRENT_SAVE_SCHEMA = 13;
+    const landApi = globalScope.LandExpansion || (typeof require === 'function' ? require('./land-expansion.js') : null);
     const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
     const facilityApi = globalScope.FacilityOperations ||
         (typeof require === 'function' ? require('./facility-operations.js') : null);
@@ -161,6 +162,8 @@
             };
             return {
                 ...guest,
+                lastBeachVisitDay: Number.isInteger(guest.lastBeachVisitDay) && guest.lastBeachVisitDay > 0 ? guest.lastBeachVisitDay : null,
+                beachVisits: Number.isInteger(guest.beachVisits) ? Math.max(0,guest.beachVisits) : 0,
                 party,
                 booking: {
                     ...guest.booking,
@@ -434,6 +437,8 @@
                 : { x: 5.5, y: 10.5 }
         };
 
+        migrated.land = landApi.restoreState(migrated);
+        landApi.syncLandmarks(migrated);
         return migrated;
     }
 

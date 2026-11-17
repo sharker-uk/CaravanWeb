@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caravan Park Tycoon: Deluxe</title>
+        <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+<a href="./" style="position:absolute;top:63px;left:12px;z-index:30;background:#294e40;color:#f7f4e9;border:1px solid #738a66;border-radius:5px;padding:9px 12px;font:12px Arial,sans-serif;text-decoration:none">Park management view</a>
+
+<div id="game-container">
+    <section id="start-screen" class="start-screen" role="dialog" aria-modal="true" aria-labelledby="start-title" hidden>
+        <div class="start-card start-card-compact">
+            <h1 id="start-title">Caravan Park Tycoon</h1>
+            <div class="start-menu-buttons">
+                <button id="start-game" class="start-button" type="button">Start game</button>
+                <button id="import-park-button" class="menu-button" type="button">🗺️ Import Park Designer park</button>
+                <input id="import-park-file" type="file" accept=".json,application/json" hidden>
+                <button id="randomize-npcs" class="menu-button" type="button">🎲 Create random guest profiles</button>
+                <button id="open-avatar-creator" class="menu-button" type="button" aria-expanded="false" aria-controls="avatar-panel">👤 Create your avatar</button>
+                <button id="open-controls" class="menu-button" type="button" aria-expanded="false" aria-controls="controls-panel">🎮 Game controls</button>
+            </div>
+            <p id="visitor-count" class="start-status" aria-live="polite">Your guests will appear when their bookings are accepted.</p>
+
+            <section id="avatar-panel" class="start-options-panel" aria-labelledby="avatar-panel-title" hidden>
+                <div class="panel-heading">
+                    <h2 id="avatar-panel-title">Your park manager</h2>
+                    <button class="panel-close" type="button" data-close-panel="avatar-panel" aria-label="Close avatar creator">✕</button>
+                </div>
+                <div class="avatar-creator">
+                    <div class="avatar-preview-panel">
+                        <canvas id="avatar-preview" width="96" height="112" aria-label="Your park manager preview"></canvas>
+                        <label for="player-name">Your name</label>
+                        <input id="player-name" type="text" maxlength="24" value="Park Manager" autocomplete="off">
+                        <button id="randomize-avatar" class="secondary-button" type="button">🎲 Randomise me</button>
+                    </div>
+                    <div class="avatar-options">
+                        <label for="avatar-skin">Skin tone
+                            <select id="avatar-skin">
+                                <option value="#f7d2b0">Fair</option><option value="#d9a078">Warm</option><option value="#b87550">Tan</option><option value="#87543b">Brown</option><option value="#603b2b">Deep brown</option>
+                            </select>
+                        </label>
+                        <label for="avatar-hair-style">Hair style
+                            <select id="avatar-hair-style">
+                                <option value="short">Short</option><option value="messy">Messy</option><option value="bob">Bob</option><option value="long">Long</option><option value="bald">Bald</option>
+                            </select>
+                        </label>
+                        <label for="avatar-hair-colour">Hair colour
+                            <select id="avatar-hair-colour">
+                                <option value="#33251f">Dark brown</option><option value="#68452f">Brown</option><option value="#b97835">Ginger</option><option value="#d5b66b">Blonde</option><option value="#b94b35">Red</option><option value="#aeb4b8">Grey</option>
+                            </select>
+                        </label>
+                        <label for="avatar-top">Top
+                            <select id="avatar-top">
+                                <option value="#397c9d">Coastal blue</option><option value="#b84d3f">Rusty red</option><option value="#65824c">Park green</option><option value="#d7ad55">Seaside yellow</option><option value="#795d91">Dusky purple</option><option value="#e2d8c6">Cream</option>
+                            </select>
+                        </label>
+                        <label for="avatar-bottom">Trousers
+                            <select id="avatar-bottom">
+                                <option value="#34495e">Navy</option><option value="#5b493b">Brown</option><option value="#536b45">Olive</option><option value="#8d8e8f">Grey</option><option value="#263c54">Dark denim</option>
+                            </select>
+                        </label>
+                        <label for="avatar-accessory">Accessory
+                            <select id="avatar-accessory">
+                                <option value="none">Nothing</option><option value="flatcap">Flat cap</option><option value="bucket-hat">Bucket hat</option><option value="glasses">Glasses</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+                <button class="panel-done" type="button" data-close-panel="avatar-panel">Done</button>
+            </section>
+
+            <section id="controls-panel" class="start-options-panel" aria-labelledby="controls-panel-title" hidden>
+                <div class="panel-heading">
+                    <h2 id="controls-panel-title">How to play</h2>
+                    <button class="panel-close" type="button" data-close-panel="controls-panel" aria-label="Close controls">✕</button>
+                </div>
+                <div class="controls-grid">
+                    <div><strong>WASD / Arrow keys</strong><span>Move around the park</span></div>
+                    <div><strong>Click the ground</strong><span>Walk to that spot</span></div>
+                    <div><strong>Click an object, then E</strong><span>Walk over and interact</span></div>
+                    <div><strong>Choose a tool, then drag</strong><span>Lay roads, paths and pitches</span></div>
+                    <div><strong>Mouse wheel</strong><span>Zoom the view in or out</span></div>
+                    <div><strong>Space</strong><span>Pause or resume time</span></div>
+                </div>
+                <p class="start-tip">New construction takes two in-game hours. You can change the simulation speed or pause at any time.</p>
+                <button class="panel-done" type="button" data-close-panel="controls-panel">Got it</button>
+            </section>
+        </div>
+    </section>
+    <section id="sleep-prompt" class="start-screen" role="dialog" aria-modal="true" aria-labelledby="sleep-title" hidden>
+        <div class="start-card">
+            <p class="start-kicker">OLD FARM HOUSE</p>
+            <h1 id="sleep-title">Sleep through the night?</h1>
+            <p>Rest here and wake up at 8:00am.</p>
+            <div class="sleep-actions">
+                <button id="sleep-confirm" class="start-button" type="button">Sleep through the night</button>
+                <button id="sleep-cancel" class="sleep-cancel" type="button">Not now</button>
+            </div>
+        </div>
+    </section>
+    <div id="sleep-transition" class="sleep-transition" aria-hidden="true"></div>
+
+    <div id="top-bar">
+        <div class="stat-group">
+            <div id="park-name" style="color: var(--accent-bright);">🌊 Caister Coast</div>
+            <div class="stat">📅 <span id="clock-display">Day 1, 09:00</span></div>
+            <div class="stat" id="time-of-day">☀️ Daylight</div>
+            <div class="stat"><span id="weather-display">☀️</span> <span id="weather-text">Sunny</span></div>
+        </div>
+
+        <div class="stat-group">
+            <div class="stat" style="color: #2ecc71;">£ <span id="cash-display">1,500</span></div>
+            <div class="stat">😊 <div style="width: 60px;"><div class="satisfaction-bar"><div id="satisfaction-fill"></div></div></div></div>
+            <div class="stat" title="Timber in storage">🪵 <span id="wood-display">0</span></div>
+            <div class="stat" title="Landscape appeal; a balance of trees and usable space is best">🌿 Beauty <span id="beauty-display">50%</span></div>
+            <div class="stat">⭐ <span id="rating-display">1.0</span></div>
+            <div class="stat demand-stat" title="Estimated guest interest based on park rating and satisfaction">
+                <span>📈 Demand</span><span id="demand-level">Low</span>
+                <div id="demand-track" class="demand-track" role="meter" aria-label="Guest demand" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div id="demand-fill"></div>
+                </div>
+                <span id="demand-capacity">No pitches</span>
+            </div>
+        </div>
+
+        <div class="stat-group sim-controls" aria-label="Simulation controls">
+            <button id="pause-toggle" class="sim-toggle" type="button" aria-label="Pause or resume simulation">⏸️ Pause</button>
+            <div class="speed-selector" aria-label="Simulation speed selector">
+                <button class="speed-btn active" data-speed="1" type="button">1×</button>
+                <button class="speed-btn" data-speed="2" type="button">2×</button>
+                <button class="speed-btn" data-speed="4" type="button">4×</button>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+    <div id="interaction-hint">WASD / Arrows: Move · Click ground: Walk · Click object, then E: Interact</div>
+
+    <aside id="inspector" class="context-panel" aria-live="polite">
+        <div class="context-header">
+            <span class="context-label">Context</span>
+            <button class="context-close" type="button" onclick="state.selectedEntity = null; updateUI();" aria-label="Clear selection">×</button>
+        </div>
+        <div class="inspector-title" id="ins-name">Park Overview</div>
+        <div id="ins-content" class="context-body"></div>
+        <div class="context-actions">
+            <button class="btn-action" id="btn-repair">🔧 Repair Boiler (£40)</button>
+            <button class="btn-action" id="btn-upgrade" style="background: #2980b9;">🔨 Add Veranda (£400)</button>
+            <button class="btn-action" id="btn-skirting" style="background: #8e44ad;">🛡️ Fit Skirting (£150)</button>
+            <button class="btn-action" id="btn-sell" style="background: #7f8c8d; margin-top: 15px;">💰 Sell Unit</button>
+            <button class="btn-action" id="btn-facility-toggle" style="display:none; background:#2980b9;">⏸️ Close facility</button>
+            <button class="btn-action" id="btn-clean-toilets" style="display:none; background:#27ae60;" onclick="cleanSelectedToiletBlock()">🧹 Clean block · 2 in-game hours</button>
+            <button class="btn-action" id="btn-repair-facility" style="display:none; background:#d35400;" onclick="repairSelectedToiletBlock()">🔧 Repair block · 3 in-game hours</button>
+        </div>
+    </aside>
+
+    <aside id="build-menu" aria-label="Park management menu">
+        <nav id="menu-tabs" aria-label="Tool categories">
+            <button class="menu-tab active" data-panel="terrain" onclick="showMenuPanel('terrain', this)" title="Ground, roads and pitches">🧱<span>Ground</span></button>
+            <button class="menu-tab" data-panel="accommodation" onclick="showMenuPanel('accommodation', this)" title="Buy accommodation">🚐<span>Units</span></button>
+            <button class="menu-tab" data-panel="facilities" onclick="showMenuPanel('facilities', this)" title="Build park facilities">🏪<span>Build</span></button>
+            <button class="menu-tab" data-panel="utilities" onclick="showMenuPanel('utilities', this)" title="Lay utility connections">🔌<span>Services</span></button>
+            <button class="menu-tab" data-panel="shop" onclick="showMenuPanel('shop', this)" title="Buy tools and unlock abilities">🛠️<span>Tool Shop</span></button>
+            <button class="menu-tab" data-panel="park" onclick="showMenuPanel('park', this)" title="Park settings and management">⚙️<span>Park</span></button>
+        </nav>
+        <section class="menu-panel active" id="panel-terrain" aria-label="Ground tools">
+            <div class="menu-heading"><strong>Ground & pitches</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <p class="menu-description">The park starts overgrown. Click a tree or brush, walk up to it, then press E to clear it; trees yield saleable timber. WASD moves the player while the camera follows. Drag to lay roads, paths or pitch areas; unfinished construction takes two in-game hours.</p>
+            <div class="tool-grid">
+                <button class="tool-btn active" onclick="setTool('select', this)">🔍<span>Select</span></button>
+                <button class="tool-btn" onclick="setTool('road', this)">🛣️<span>Tarmac · £20</span></button>
+                <button class="tool-btn" onclick="setTool('path', this)">🚶<span>Path · £10</span></button>
+                <button class="tool-btn" onclick="setTool('pitch_grass', this)">⛺<span>Grass pitch · £100</span></button>
+                <button class="tool-btn" onclick="setTool('pitch_gravel', this)">🚛<span>Hardstanding · £250</span></button>
+            </div>
+        </section>
+        <section class="menu-panel" id="panel-accommodation" aria-label="Accommodation tools">
+            <div class="menu-heading"><strong>Accommodation</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <p class="menu-description">Static caravans are purchased at Rusty Resales. Walk to the shop, click it and press E to browse the catalogue, compare trade-in values and schedule a delivery.</p>
+            <p class="menu-description">A static's bedroom configuration determines its guest capacity. Delivery is reserved to the chosen pitch and takes six in-game hours.</p>
+        </section>
+        <section class="menu-panel" id="panel-facilities" aria-label="Facility tools">
+            <div class="menu-heading"><strong>Park facilities</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <p class="menu-description">Toilets are essential for every booking; tent and towed guests also require operational shared showers. Toilet blocks have no hourly charge, but guests make them dirty and wear them out. Click a block to clean or repair it.</p>
+            <div class="tool-grid">
+                <button class="tool-btn" onclick="setTool('build_toilets', this)">🚻<span>Toilets · £800</span></button>
+                <button class="tool-btn" onclick="setTool('build_showers', this)">🚿<span>Shared showers · £1.2k</span></button>
+                <button class="tool-btn" onclick="setTool('build_laundry', this)">🧺<span>Laundry · £1.8k</span></button>
+                <button class="tool-btn" onclick="setTool('build_shop', this)">🛒<span>Shop · £1.5k</span></button>
+                <button class="tool-btn" onclick="setTool('build_playground', this)">🛝<span>Play park · £2.2k</span></button>
+                <button class="tool-btn" onclick="setTool('build_pub', this)">🍺<span>Pub · £3k</span></button>
+                <button class="tool-btn" onclick="setTool('build_restaurant', this)">🍽️<span>Restaurant · £4.5k</span></button>
+                <button class="tool-btn" onclick="setTool('build_arcade', this)">🕹️<span>Arcade · £6k</span></button>
+                <button class="tool-btn" onclick="setTool('build_entertainment_space', this)">🎤<span>Events · £8k</span></button>
+                <button class="tool-btn" onclick="setTool('build_pool', this)">🏊<span>Pool · £12k</span></button>
+                <button class="tool-btn" onclick="setTool('build_activity_centre', this)">🚴<span>Activity · £15k</span></button>
+                <button class="tool-btn" onclick="setTool('build_entertainment_hub', this)">🎭<span>Entertainment hub · £25k</span></button>
+            </div>
+        </section>
+        <section class="menu-panel" id="panel-utilities" aria-label="Utility tools">
+            <div class="menu-heading"><strong>Utility connections</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <p class="menu-description">Requires the shovel. Utility lines only work when they connect continuously to the incoming mains at the park boundary.</p>
+            <p class="menu-description"><strong>Management overlays</strong></p>
+            <div class="tool-grid">
+                <button class="tool-btn" data-overlay="services" onclick="setOverlayMode('services')">🧻<span>Service zones</span></button>
+                <button class="tool-btn" data-overlay="utilities" onclick="setOverlayMode('utilities')">🔗<span>Utility links</span></button>
+                <button class="tool-btn" data-overlay="entertainment" onclick="setOverlayMode('entertainment')">🎟️<span>Entertainment load</span></button>
+                <button class="tool-btn" data-overlay="none" onclick="setOverlayMode('none')">✖<span>Hide overlay</span></button>
+            </div>
+            <div class="tool-grid">
+                <button class="tool-btn utility-btn" onclick="setTool('utility_gas', this)">🔥<span>Gas · £25</span></button>
+                <button class="tool-btn utility-btn" onclick="setTool('utility_water', this)">🚰<span>Water · £20</span></button>
+                <button class="tool-btn utility-btn" onclick="setTool('utility_electricity', this)">⚡<span>Electric · £30</span></button>
+                <button class="tool-btn utility-btn" onclick="setTool('utility_waste', this)">♻️<span>Waste · £35</span></button>
+            </div>
+        </section>
+        <section class="menu-panel" id="panel-shop" aria-label="Tool shop">
+            <div class="menu-heading"><strong>Tool Shop</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <p class="menu-description">Buy tools to unlock work abilities. In this prototype, tools unlock actions; you do not need to equip them or manage durability.</p>
+            <div class="tool-grid">
+                <button class="tool-btn" type="button" disabled>🪓<span>Axe · Owned</span></button>
+                <button class="tool-btn" id="buy-shovel-btn" type="button" onclick="buyTool('shovel')">🪏<span>Shovel · £350</span></button>
+            </div>
+            <p class="menu-description"><strong>Shovel unlocks:</strong> hardstanding pitches and utility trenching for water, gas, electricity and waste lines.</p>
+            <p class="menu-description">More tools can be added later for advanced landscaping, construction and maintenance.</p>
+        </section>
+        <section class="menu-panel" id="panel-park" aria-label="Park management tools">
+            <div class="menu-heading"><strong>Park management</strong><button class="menu-close" onclick="toggleBuildMenu(false)" aria-label="Close menu">×</button></div>
+            <div class="tool-grid">
+                <button class="tool-btn" onclick="setTool('build_tree', this)">🌳<span>Plant tree · £30</span></button>
+                <button class="tool-btn" onclick="sellTimber()">🪵<span>Sell timber · £8 each</span></button>
+                <button class="tool-btn" id="book-handyman-btn" onclick="hireHandyman()">🛠️<span>Book handyman · £100/day</span></button>
+                <button class="tool-btn" id="hire-grounds-staff-btn" onclick="hireGroundsStaff()" disabled>🌿<span>Grounds staff · Unlock at 4 facilities / 6 pitches</span></button>
+                <button class="tool-btn" onclick="resetGame()" style="color:#ff8a80">☢️<span>Reset park</span></button>
+            </div>
+            <div class="settings-group">
+                <label class="speed-control" for="day-length">
+                    <span>In-game day length: <strong><span id="day-length-value">10</span> min</strong></span>
+                    <input id="day-length" type="range" min="3" max="60" step="1" value="10" aria-label="In-game day length in real-time minutes">
+                </label>
+            </div>
+        </section>
+        <button id="menu-reopen" onclick="toggleBuildMenu(true)" aria-label="Open build menu" title="Open park menu">☰</button>
+    </aside>
+
+    <section id="vendor-dialog" class="vendor-dialog" role="dialog" aria-modal="true" aria-labelledby="vendor-title" hidden>
+        <div class="vendor-card">
+            <header class="vendor-heading">
+                <h2 id="vendor-title"></h2>
+                <button id="vendor-close" class="menu-close" type="button" aria-label="Close shop">×</button>
+            </header>
+            <div id="vendor-content" class="vendor-content"></div>
+        </div>
+    </section>
+
+    <div id="toast">Message</div>
+</div>
+
+    <script src="src/park-services.js"></script>
+    <script src="src/static-caravans.js"></script>
+    <script src="src/game-rules.js"></script>
+    <script src="src/land-management.js"></script>
+    <script src="src/game-state.js"></script>
+    <script src="src/simulation-clock.js"></script>
+    <script src="src/construction.js"></script>
+    <script src="src/guest-parties.js"></script>
+    <script src="src/facility-operations.js"></script>
+    <script src="src/pitch-capabilities.js"></script>
+    <script src="src/land-expansion.js"></script>
+    <script src="src/save-migrations.js"></script>
+    <script src="src/economy.js"></script>
+    <script src="src/guest-activities.js"></script>
+    <script src="src/simulation.js"></script>
+    <script src="src/character-system.js"></script>
+    <script src="src/asset-renderer.js"></script>
+    <script src="src/main.js"></script>
+    <script src="src/park-designer-import.js"></script>
+</body>
+</html>
