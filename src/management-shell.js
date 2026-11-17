@@ -24,7 +24,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="management-app">
   <footer class="sidebar-footer"><span class="live-dot"></span><div><b>Live park simulation</b><small id="mg-footer">Saves in this browser</small></div><button id="mg-help" aria-label="Help and controls">?</button></footer>
  </aside>
  <section class="map-shell" aria-label="Live park map">
-  <div class="map-heading"><div><span class="eyebrow">NORFOLK COAST · YOUR PARK</span><h2 id="mg-park-name">Caister Coast <span>Management view</span></h2></div><button id="mobile-list" aria-expanded="false">☰ Places</button></div>
+  <div class="map-heading"><div><span class="eyebrow">NORFOLK COAST · YOUR PARK</span><h2 id="mg-park-name">Caister Coast <span>Management view</span></h2><a class="village-link" href="village.html">Explore the village →</a></div><button id="mobile-list" aria-expanded="false">☰ Places</button></div>
   <div class="map-actions"><button id="mg-plan" aria-pressed="false">◇ Plan view</button><button id="mg-layers" aria-expanded="false">▱ Layers</button></div>
   <div id="layers-panel" class="layers-panel" hidden><h3>Map layers</h3><label><input type="checkbox" id="mg-labels" checked> Place labels</label><label><input type="checkbox" id="mg-people" checked> Guests</label><label><input type="checkbox" id="mg-utilities"> Utility connections</label><label><input type="checkbox" id="mg-grid"> Tile grid</label><p class="fine-print">Utilities: blue water · amber gas · gold electricity · green waste. Dashed lines have no mains connection.</p></div>
   <svg id="park-map" role="group" tabindex="0" aria-label="Live park map. Drag to pan, scroll to zoom. Arrow keys pan, Q and E rotate, zero fits the park."><defs>

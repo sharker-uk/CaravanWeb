@@ -12,7 +12,7 @@ Map routes traverse only real road / path cells and stop at an adjacent location
 
 ## Saves and compatibility
 
-The schema remains 12 and the primary save key remains `caravan_tycoon_save`. The classic view reads the same save; switching views restores the same cash, bookings, game time, assets and terrain. Management camera and saved-place preferences use `caravanweb_management_camera_v1` and `caravanweb_management_saved_v1`.
+The schema is now 13 and the primary save key remains `caravan_tycoon_save`. The classic view reads the same save; switching views restores the same cash, bookings, game time, assets and terrain. Management camera and saved-place preferences use `caravanweb_management_camera_v1` and `caravanweb_management_saved_v1`.
 
 Before a new scenario or imported save replaces an existing game, the current save is copied to `caravan_tycoon_management_backup`. The Park tab can export either version. Replacement aborts if the required backup cannot be written. Imports validate the grid, bounded pitch geometry and supported schema, run existing migrations, reject migrations that would drop entity records, and restore the original state / stored save / recovery backup on restoration failure. Exported files can be moved between site origins; browser storage is not shared across origins or devices.
 
@@ -24,7 +24,7 @@ The original £1,500 farm start is unchanged. The developed scenario explicitly 
 
 ## Validation
 
-`npm run check:syntax` passes. `npm test` passes **136 tests**, including the original 126 plus ten integration tests executing the real browser engine in an isolated Node VM. New coverage checks valid scenario geometry / connected statics / opening ledger, real repair charges and repeat guards, invalid / valid construction and timed completion, toilet maintenance, live status projections, routes / camera transforms / game build minimums, schema-preserving save round trips, corrupt / future imports, rollback and backup-storage failure.
+`npm run check:syntax` passes. `npm test` passes **150 tests**, including the original 126, seventeen real-engine integration tests and seven village / traffic tests executing the real browser engine in an isolated Node VM. New coverage checks valid scenario geometry / connected statics / opening ledger, real repair charges and repeat guards, invalid / valid construction and timed completion, toilet maintenance, live status projections, routes / camera transforms / game build minimums, schema-preserving save round trips, corrupt / future imports, rollback and backup-storage failure.
 
 Managed Chrome browser checks on 17 November 2026:
 
@@ -49,4 +49,14 @@ The narrow check uses an iframe viewport rather than a physical device. Multi-to
 
 The review build is deployed only to the existing owner-private preview. The first standalone explorer is retained under `/explorer/` in that private preview for comparison. No public Pages setting, domain, audience or live main branch is changed by this integration branch.
 
-This is the first management integration, not a balance redesign. It retains current guest prices, maintenance / decay rates, unlocked facilities, staff rules and land restrictions. Land purchase, configurable rental prices, cloud saves, multiplayer and a long-term progression rebalance are not added. The classic DOM hooks are retained for compatibility with the current main module; extracting the engine from that module can be a later refactor.
+This is the first management integration, not a balance redesign. It retains current guest prices, maintenance / decay rates, unlocked facilities, staff rules and most progression rules. Land and beach development are described below. Configurable rental prices, cloud saves, multiplayer and a long-term progression rebalance are not added. The classic DOM hooks are retained for compatibility with the current main module; extracting the engine from that module can be a later refactor.
+
+## Land and beach development
+
+`LandExpansion` splits the original for-sale field into Meadow Field (10 × 16, £6,000) and Dune Field (7 × 16, £9,000, requires Meadow). A purchase is recorded once in the ledger and grants development rights; clearing, paths, pitches, utilities and facilities still need normal work and funding. The developed scenario already owns both fields. Unowned fields reject clearing and construction.
+
+Beach access costs £2,500, reserves the marked 4 × 2 strip and takes 120 game minutes. Both fields, a clear strip and an actual connected road / path from the park-office lane are required. Completion lays the approach and opens the gate. Open, connected access adds 5 demand points (capped at 100); a party reaching the beach between 08:00 and 20:00 gains 3 satisfaction points (capped at 100), at most once per game day. Gate closure or disconnection stops its demand benefit, new beach outings and £1 hourly upkeep. Guests already out can finish and leave. Hourly charges are deduplicated across reloads.
+
+Schema 13 saves ownership, pending construction, gate state, upkeep hour and guest beach visits. Older farm saves preserve prior development rights; custom Park Designer parks do not receive fixed Caister fields. Both management and classic views can use the same purchases.
+
+Chrome checks: cancelled a £6,000 field review with no cash change; bought both fields in sequence (£25,000 QA opening balance → £10,000), reloaded ownership, bought £2,500 beach access in the developed scenario, observed construction completion, closed / reopened the gate across reload and inspected reconciled development / upkeep ledger entries. The 390 × 844 iframe check covered compact Land navigation and scrollable field / beach cards. Physical touch hardware was not exercised.

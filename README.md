@@ -14,9 +14,13 @@ Start from the original £1,500 coastal farm, or choose a playable developed sce
 - **Build:** choose a tool, then drag tile areas for roads / paths / pitches / utility lines. Fixed-size facilities and planting use one click. The game checks placement and funds; new construction still takes two game hours. Right-drag pans even with a build tool selected.
 - **Park:** staff, shovel, timber, pace settings, save export / import and recovery-backup export.
 
-Progress continues to use the existing `caravan_tycoon_save` key and schema 12. Starting another scenario or importing a save creates a recoverable copy in `caravan_tycoon_management_backup` before replacement. Imports over 5 MB, future schemas and files that would discard malformed entity records are rejected. Saved map places and the management camera use separate local keys. Saves are browser-local; importing a file is required to move between different devices or site origins.
+Progress continues to use the existing `caravan_tycoon_save` key and schema 13. Starting another scenario or importing a save creates a recoverable copy in `caravan_tycoon_management_backup` before replacement. Imports over 5 MB, future schemas and files that would discard malformed entity records are rejected. Saved map places and the management camera use separate local keys. Saves are browser-local; importing a file is required to move between different devices or site origins.
 
 The original avatar mode is retained at `walkabout.html`, with a return link to management. It shares the local game save and keeps its existing artwork support. The controls below describe that classic view.
+
+Use **Land & beach** to buy Meadow Field (£6,000), then Dune Field (£9,000). Owned fields can be cleared and developed using the normal construction tools. Beach access (£2,500) requires both fields, a clear coastal approach and a connected park path. It takes two game hours to build; open, connected access costs £1 per game hour, adds 5 demand points and gives visiting parties +3 satisfaction once per game day. The gate can be closed.
+
+**Explore the village** opens LittleHampton-on-Sea: a compact fictional Caister-inspired world with your current park inset, village shops, beach quarter, church narrows, a bypass and an interactive traffic study. See [village-foundation.md](docs/village-foundation.md) for scope, sources and the later Godot direction.
 
 See [management-map.md](docs/management-map.md) for architecture, validation and current limits.
 
