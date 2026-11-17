@@ -141,6 +141,11 @@
     function chooseActivity(state, guest) {
         // Booked guests can take a trip into the village, stroll the park paths, or use facilities.
         const choice = Math.random();
+        if (choice >= 0.8 && globalScope.LandExpansion?.canVisitBeach(state,guest)) {
+            const tile=globalScope.LandExpansion.BEACH.destination;
+            const path=globalScope.GameRules.findPathToAny(guest.position,[tile],(x,y)=>isWalkable(state,x,y,guest));
+            if(path!==null){guest.activity='walking to the beach';guest.activityFacilityType=null;guest.destination={...tile};guest.path=path;guest.activityTimer=ACTIVITY_DURATION;return;}
+        }
         const villageWalk = choice < 0.28 ? reachableWalk(state, guest, true) : null;
         if (villageWalk) {
             guest.activity = 'visiting the village';
@@ -227,6 +232,9 @@
                 const completed = guest.activity;
                 if (completed === 'returning to accommodation') {
                     guest.activity = 'sleeping';
+                } else if (completed === 'walking to the beach') {
+                    globalScope.LandExpansion.recordBeachVisit(state,guest);
+                    guest.activity = 'enjoying the beach';
                 } else if (completed === 'visiting facility') {
                     guest.facilityVisits = (guest.facilityVisits || 0) + 1;
                     guest.activity = 'using facility';

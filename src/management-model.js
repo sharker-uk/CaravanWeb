@@ -5,6 +5,7 @@
     const facilities = root.FacilityOperations || (typeof require === 'function' ? require('./facility-operations.js') : null);
     const capabilities = root.PitchCapabilities || (typeof require === 'function' ? require('./pitch-capabilities.js') : null);
     const rules = root.GameRules || (typeof require === 'function' ? require('./game-rules.js') : null);
+    const land = root.LandExpansion || (typeof require === 'function' ? require('./land-expansion.js') : null);
     const names = {toilets:'Toilet block',showers:'Shower block',laundry:'Laundry',shop:'Park shop',playground:'Playground',pub:'Pub',restaurant:'Restaurant',arcade:'Arcade',entertainment_space:'Events space',pool:'Pool',activity_centre:'Activity centre',entertainment_hub:'Entertainment hub'};
     const symbols = {toilets:'WC',showers:'SH',laundry:'L',shop:'S',playground:'P',pub:'PB',restaurant:'R',arcade:'A',pool:'PL',farmhouse:'H',rusty_resales:'R',fiddl_shop:'F',job_centre:'J',for_sale:'£'};
     function getPlaces(state) {
@@ -18,6 +19,10 @@
         });
         const buildings = (state.facilities || []).map((f,i) => ({id:`facility:${f.type}:${f.x}:${f.y}`,name:f.name || ((state.facilities || []).filter(item=>item.type===f.type).length>1 ? (names[f.type] || f.type)+' '+String((state.facilities || []).slice(0,i+1).filter(item=>item.type===f.type).length).padStart(2,'0') : names[f.type] || f.type),kind:'facility',type:f.type,status:facilities.isFacilityOperational(f)?'open':'closed',entity:f,x:f.x,y:f.y,w:f.w,h:f.h,symbol:symbols[f.type] || 'F',label:`${f.capacity || 0} guests / hour`,index:i}));
         const landmarks = (state.landmarks || []).map(l => ({id:`landmark:${l.type}:${l.x}:${l.y}`,name:l.name,kind:'landmark',type:l.type,status:l.type==='for_sale'?'unavailable':'open',entity:l,x:l.x,y:l.y,w:l.w,h:l.h,symbol:symbols[l.type] || 'i',label:l.subtitle || 'Around the park'}));
+        for(const p of landmarks){
+            if(p.type==='land_plot'){const q=land.purchaseQuote(state,p.entity.plotId);p.id='land:'+p.entity.plotId;p.kind='land';p.status=q.plot.owned?'owned':q.plot.requires.some(id=>!state.land.ownedPlotIds.includes(id))?'locked':'for_sale';p.symbol='£';p.label=q.plot.owned?'Owned · Ready to develop':`£${q.price.toLocaleString('en-GB')} · ${p.w*p.h} tiles`;p.quote=q;}
+            if(p.type==='beach_gate'){p.id='land:beach';p.kind='land';p.status=land.beachStatus(state).status;p.symbol='B';p.label=state.land.beach.purchased?`Beach access · ${p.status}`:'£2,500 · Coastal path & gate';}
+        }
         return [...pitches, ...buildings, ...landmarks];
     }
     function filterPlaces(places, {query='',category='all',status='all',savedOnly=false,saved=[]}={}) {
@@ -39,7 +44,7 @@
     function project(x,y,c,w,h){const a=c.rotation*Math.PI/180,dx=x-c.x,dy=y-c.y;return [w/2+(dx*Math.cos(a)-dy*Math.sin(a))*c.zoom,h/2+(dx*Math.sin(a)+dy*Math.cos(a))*c.zoom*c.tilt];}
     function unproject(x,y,c,w,h){const a=-c.rotation*Math.PI/180,dx=(x-w/2)/c.zoom,dy=(y-h/2)/(c.zoom*c.tilt);return [c.x+dx*Math.cos(a)-dy*Math.sin(a),c.y+dx*Math.sin(a)+dy*Math.cos(a)];}
     function getRoute(state, place) {
-        if(!place || place.type==='for_sale') return null;
+        if(!place || ['for_sale','land_plot'].includes(place.type)) return null;
         const blocked=(x,y)=>(state.facilities||[]).some(f=>x>=f.x&&y>=f.y&&x<f.x+f.w&&y<f.y+f.h)||(state.landmarks||[]).some(l=>l.blocksMovement&&x>=l.x&&y>=l.y&&x<l.x+l.w&&y<l.y+l.h);
         const routeTiles=[];
         state.tiles.forEach((row,y)=>row.forEach((t,x)=>{if((t.path||t.road)&&t.nature!=='tree'&&!blocked(x,y))routeTiles.push([x,y]);}));
@@ -68,6 +73,8 @@
     function applyDevelopedScenario(state, createVan) {
         state.cash=20000;state.initialBalance=20000;state.transactions=[];state.tools={axe:true,shovel:true};
         state.rating=3;state.satisfaction=78;state.isPaused=true;
+        state.land=land.createState(true);state.land.ownedPlotIds=land.PLOTS.map(p=>p.id);
+        land.syncLandmarks(state);
         state.landmarks=state.landmarks.filter(l=>l.type!=='for_sale');
         state.tiles.forEach((row,y)=>row.forEach((t,x)=>{if(x>=10&&x<47&&y<39&&t.terrain==='grass')t.nature=null;}));
         const path=(x,y)=>{const t=state.tiles[y]?.[x];if(t&&t.terrain==='grass'){t.path=true;t.nature=null;}};

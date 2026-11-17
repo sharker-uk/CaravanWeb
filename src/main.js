@@ -41,7 +41,9 @@ function ensurePitchId(pitch) {
 }
 
 function completeConstruction(job) {
-    if (job.kind === 'surface') {
+    if (job.kind === 'beach_access') {
+        return LandExpansion.completeBeach(state, job);
+    } else if (job.kind === 'surface') {
         job.tiles.forEach(({x, y}) => { state.tiles[y][x][job.surface] = true; });
     } else if (job.kind === 'utility') {
         job.tiles.forEach(({x, y}) => { state.tiles[y][x].utilities[job.utility] = true; });
@@ -129,6 +131,7 @@ const GuestActivities = window.GuestActivities;
 const GameRulesApi = window.GameRules;
 const LandManagement = window.LandManagement;
 const Construction = window.Construction;
+const LandExpansion = window.LandExpansion;
 const CharacterSystem = window.CharacterSystem;
 const StaticCaravans = window.StaticCaravans;
 
@@ -286,6 +289,8 @@ function init() {
     state.facilities = Array.isArray(data.facilities) ? data.facilities : [];
     state.landmarks = Array.isArray(data.landmarks) ? data.landmarks : [];
     state.constructions = Array.isArray(data.constructions) ? data.constructions : [];
+    state.land = LandExpansion.restoreState(data);
+    LandExpansion.syncLandmarks(state);
     state.staticDeliveries = Array.isArray(data.staticDeliveries) ? data.staticDeliveries : [];
     state.accessoryInventory = data.accessoryInventory || {bbq: 0, patio: 0, firepit: 0, hot_tub: 0};
     state.staticAssetSequence = Number.isInteger(data.staticAssetSequence)
@@ -434,6 +439,8 @@ function generateNewMap() {
     state.guests = [];
     state.facilities = [];
     state.landmarks = STARTING_LANDMARKS.map(landmark => ({...landmark}));
+    state.land = LandExpansion.createState(true);
+    LandExpansion.syncLandmarks(state);
     state.constructions = [];
     state.player = {x: 15.5, y: 25.5};
     state.isPaused = true;
@@ -449,7 +456,7 @@ function generateNewMap() {
             const overgrownCore = x >= 10 && x <= 43 && y >= 5 && y <= 35;
             let nature = null;
             const landmark = state.landmarks.some(item =>
-                x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
+                !['for_sale','land_plot','beach_gate'].includes(item.type) && x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h
             );
             if (terrain === 'grass' && !road && !path && !safeStart && !landmark) {
                 if (roll < (overgrownCore ? 29 : 15)) nature = 'tree';
@@ -630,6 +637,10 @@ function openVendor(title, renderer) {
     document.getElementById('vendor-close').focus();
 }
 
+function openLandOffice(id) {
+ openVendor('Land & beach office',()=>{const beach=id==='beach',q=beach?LandExpansion.beachQuote(state):LandExpansion.purchaseQuote(state,id),owned=q.plot?.owned,purchased=beach&&state.land.beach.purchased;
+ document.getElementById('vendor-content').innerHTML=`<h3>${escapeHtml(beach?'Beach access':q.plot?.name||'Expansion land')}</h3><p>${escapeHtml(beach?'Build the coastal path and gate in two game hours. Open access costs £1 per game hour, adds 5 demand points and gives visiting parties +3 satisfaction once per day.':q.plot?.description||'')}</p><p>${beach?'Status: '+LandExpansion.beachStatus(state).status:owned?'Owned':'Purchase: £'+q.price?.toLocaleString('en-GB')}</p><ul>${owned||purchased?'':q.reasons.map(r=>`<li>${escapeHtml(r)}</li>`).join('')}</ul>${beach&&state.land.beach.constructed?'<button data-land-toggle>Open / close beach gate</button>':purchased?'<p>Construction is in progress. Resume time to finish.</p>':owned?'':`<button data-land-buy="${escapeHtml(id)}" ${q.ok?'':'disabled'}>Buy · £${q.price?.toLocaleString('en-GB')}</button>`}`;});
+}
 function closeVendor() {
     document.getElementById('vendor-dialog').hidden = true;
 }
@@ -735,6 +746,8 @@ function openFiddlShop() {
 
 function interactWith(target) {
     if (target.kind === 'tree' || target.kind === 'debris') {
+        const plot = LandExpansion.unownedPlotAt(state,target.x,target.y);
+        if (plot) { showToast(`Buy ${plot.name} before clearing or developing it.`); return; }
         const tile = state.tiles[target.y]?.[target.x];
         if (!tile || tile.nature !== target.kind) {
             showToast('That overgrowth has already been cleared.');
@@ -769,6 +782,9 @@ function interactWith(target) {
         return;
     }
     if (target.kind === 'landmark') {
+        if (['land_plot','beach_gate'].includes(target.entity.type)) {
+            openLandOffice(target.entity.type==='land_plot'?target.entity.plotId:'beach'); return;
+        }
         if (target.entity.type === 'farmhouse') {
             if (SimulationClock.canSleep(state)) {
                 showSleepPrompt();
@@ -968,7 +984,7 @@ function saveGame() {
             parkPackageId: state.parkPackageId || null,
             schemaVersion: SaveMigrations && SaveMigrations.CURRENT_SAVE_SCHEMA
                 ? SaveMigrations.CURRENT_SAVE_SCHEMA
-                : 12,
+                : 13,
             cash: state.cash,
             initialBalance: state.initialBalance,
             wood: state.wood,
@@ -993,6 +1009,8 @@ function saveGame() {
                 activityTimer: guest.activityTimer,
                 bedtimeHour: guest.bedtimeHour,
                 lastBedtimeDay: guest.lastBedtimeDay,
+                lastBeachVisitDay: guest.lastBeachVisitDay,
+                beachVisits: guest.beachVisits,
                 facilityVisits: guest.facilityVisits,
                 activityFacilityType: guest.activityFacilityType,
                 routeFailures: guest.routeFailures,
@@ -1011,6 +1029,7 @@ function saveGame() {
             facilities: state.facilities,
             overlayMode: state.overlayMode || 'none',
             landmarks: state.landmarks,
+            land: LandExpansion.restoreState(state),
             constructions: state.constructions,
             handymen: state.handymen,
             groundsStaff: state.groundsStaff || 0,
@@ -1114,6 +1133,7 @@ function applyCaravanDecayForElapsedSeconds(elapsedSeconds) {
 }
 
 function onHourly() {
+    LandExpansion.processHourly(state, recordTransaction);
     let pitchCapabilitiesChanged = advanceMaintenanceTask();
     if (state.handymanContractHoursRemaining > 0) {
         state.handymanContractHoursRemaining--;
@@ -1863,7 +1883,7 @@ function draw(timestamp = 0) {
         const py = landmark.y * TILE_SIZE;
         const width = landmark.w * TILE_SIZE;
         const height = landmark.h * TILE_SIZE;
-        if (landmark.type === 'for_sale') {
+        if (landmark.type === 'for_sale' || landmark.type === 'land_plot') {
             ctx.fillStyle = 'rgba(218, 196, 127, 0.16)';
             ctx.fillRect(px, py, width, height);
             ctx.strokeStyle = '#f3df9b';
@@ -1873,8 +1893,12 @@ function draw(timestamp = 0) {
             ctx.setLineDash([]);
             ctx.fillStyle = '#fff4c2';
             ctx.font = 'bold 9px Arial';
-            ctx.fillText('LAND FOR SALE', px + 6, py + 14);
+            ctx.fillText(landmark.type==='land_plot' ? landmark.name.toUpperCase() + (landmark.blocksBuilding?' · FOR SALE':' · OWNED') : 'LAND FOR SALE', px + 6, py + 14);
             return;
+        }
+        if (landmark.type === 'beach_gate') {
+            ctx.strokeStyle = LandExpansion.beachStatus(state).operational ? '#a4ce9a' : '#d2b37a';
+            ctx.strokeRect(px, py, width, height); ctx.fillText('BEACH',px,py-4); return;
         }
         const isFarmhouse = landmark.type === 'farmhouse';
         const hasArtwork = drawAsset(`landmark.${landmark.type}`, px, py, width, height, () => {
@@ -2808,6 +2832,7 @@ window.CaravanWebParkAdapter = {
         state.facilities = facilities;
         state.vehicles = [];
         state.landmarks = [];
+        state.land = LandExpansion.createState(false);
         state.constructions = [];
         state.themeImages = images;
         state.themeTerrain = terrain;
@@ -2865,6 +2890,10 @@ window.onload = () => {
         if (event.target.id === 'rusty-pitch') renderRustyResales(event.target.value);
     });
     document.getElementById('vendor-content').addEventListener('click', event => {
+        const landBuy=event.target.closest('[data-land-buy]');
+        if(landBuy){const id=landBuy.dataset.landBuy,q=id==='beach'?LandExpansion.beachQuote(state):LandExpansion.purchaseQuote(state,id);if(!q.ok){showToast(q.reasons.join(' '));return;}if(!window.confirm(`Buy ${id==='beach'?'beach access':q.plot.name} for £${q.price.toLocaleString('en-GB')}?`))return;const result=id==='beach'?LandExpansion.purchaseBeach(state,recordTransaction):LandExpansion.purchasePlot(state,id,recordTransaction);if(result.ok){saveGame();updateUI();openLandOffice(id);}else showToast(result.reasons.join(' '));return;}
+        if(event.target.closest('[data-land-toggle]')){const result=LandExpansion.toggleBeach(state);if(result.ok){saveGame();updateUI();openLandOffice('beach');}else showToast(result.reasons.join(' '));return;}
+
         const button = event.target.closest('button');
         if (!button) return;
         if (button.dataset.vendorBuy) {

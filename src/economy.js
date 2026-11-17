@@ -57,7 +57,7 @@
         const satisfaction = Math.min(Math.max(Number(state?.satisfaction) || 0, 0), 100) / 100;
         const baseScore = (rating * 50) + (satisfaction * 50);
         const beauty = Math.min(Math.max(Number.isFinite(state?.beauty) ? state.beauty : 50, 0), 100);
-        const score = Math.round(Math.min(100, Math.max(0, baseScore + (beauty - 50) * 0.2)));
+        const score = Math.round(Math.min(100, Math.max(0, baseScore + (beauty - 50) * 0.2 + (globalScope.LandExpansion?.demandBonus(state) || 0))));
         return {
             score,
             level: score >= 67 ? 'High' : score >= 34 ? 'Moderate' : 'Low'

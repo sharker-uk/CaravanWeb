@@ -9,6 +9,8 @@
     const fail=message=>{showToast(message);return {ok:false,reason:message};};
     window.CaravanGame = {
         getState:()=>state,
+        purchaseLand(id){const result=id==='beach'?LandExpansion.purchaseBeach(state,recordTransaction):LandExpansion.purchasePlot(state,id,recordTransaction);if(result.ok){saveGame();changed();showToast(id==='beach'?'Beach access construction started.':'Field purchased. Clear and connect it to develop more pitches.');}else showToast(result.reasons.join(' '));return result;},
+        toggleBeach(){const result=LandExpansion.toggleBeach(state);if(result.ok){saveGame();changed();}else showToast(result.reasons.join(' '));return result;},
         getCapabilities:()=>PitchCapabilities.rebuild(state),
         getDemand:()=>getGuestDemand(),
         getBalance:()=>Economy.getSevenDayBalance(state),

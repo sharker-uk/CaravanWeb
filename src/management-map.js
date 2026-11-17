@@ -24,9 +24,11 @@ root.ManagementArt={tree,building};
     'use strict';
     const M=root.ManagementModel,A=root.ManagementArt,unit=20;
     const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const statusColor={available:'#5a876a',occupied:'#aaa088',reserved:'#c39757',closed:'#be7653',open:'#74948c',unavailable:'#b5a274'};
+    const statusColor={available:'#5a876a',occupied:'#aaa088',reserved:'#c39757',closed:'#be7653',open:'#74948c',unavailable:'#b5a274',owned:'#63876b',for_sale:'#b59658',locked:'#a69b7c',building:'#c39757'};
     function placeArt(p) {
         const x=(p.x+p.w/2)*unit,y=(p.y+p.h/2)*unit;
+        if(p.type==='land_plot')return `<rect x="${p.x*unit+2}" y="${p.y*unit+2}" width="${p.w*unit-4}" height="${p.h*unit-4}" rx="3" fill="${p.status==='owned'?'#93ac7c10':'#ddc98e28'}" stroke="${p.status==='owned'?'#829c74':'#a18e59'}" stroke-width="2" stroke-dasharray="${p.status==='owned'?'3 8':'9 5'}"/><text x="${p.x*unit+9}" y="${p.y*unit+16}" fill="#6b714e" font-size="10" font-family="Arial">${esc(p.name.toUpperCase())} · ${p.status==='owned'?'OWNED':esc(p.label.split(' · ')[0])}</text>`;
+        if(p.type==='beach_gate')return `<path d="M920 480H1000V520H920" fill="#d3c9a4" stroke="#a4946c" stroke-dasharray="4 4"/><path d="M925 480V520m10-40v40m-10-30h10m-10 20h10" stroke="${p.status==='open'?'#65866a':'#a18b61'}" stroke-width="3"/>`;
         if(p.type==='for_sale')return `<rect x="${p.x*unit}" y="${p.y*unit}" width="${p.w*unit}" height="${p.h*unit}" fill="#d1c89d30" stroke="#8c9870" stroke-width="2" stroke-dasharray="5 5"/><rect x="${x-34}" y="${y-22}" width="68" height="32" rx="2" fill="#e9e1c3" stroke="#9c946e"/><path d="M${x-24} ${y+10}v25m48-25v25" stroke="#9c946e" stroke-width="3"/>`;
         const obj={id:p.type,x,y,w:Math.min(100,p.w*unit-10),h:Math.min(50,p.h*unit-16),type:p.kind==='pitch'?(p.van?'static':p.guest?.accommodation==='tent'?'tent':'touring'):'facility',tier:p.van?root.StaticCaravans.getModel(p.van.modelId)?.tierName:'Silver'};
         if(p.kind==='pitch'){
@@ -84,10 +86,10 @@ root.ManagementArt={tree,building};
             }
             if(layers.grid||tool!=='select'){for(let x=0;x<=60;x++)grid+=`M${x*unit} 0V800`;for(let y=0;y<=40;y++)grid+=`M0 ${y*unit}H1200`;}
             const lots=places.filter(p=>p.kind==='pitch').map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
-            const buildings=places.filter(p=>p.kind!=='pitch').sort((a,b)=>(a.y+a.h)-(b.y+b.h)).map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
+            const buildings=places.filter(p=>p.kind!=='pitch'&&p.type!=='land_plot').sort((a,b)=>(a.y+a.h)-(b.y+b.h)).map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
             const jobs=game.constructions.map(j=>{const b=j.footprint;return b?`<rect x="${b.x*unit+1}" y="${b.y*unit+1}" width="${b.w*unit-2}" height="${b.h*unit-2}" fill="#d6ad5c55" stroke="#a88948" stroke-width="2" stroke-dasharray="6 4"/>`:'';}).join('');
             const people=layers.people?game.guests.flatMap(g=>(g.party?.members||[{}]).map((m,i)=>{const pos=g.position||{x:g.pitch.x+1,y:g.pitch.y+1},x=pos.x*unit+(i%3)*5,y=pos.y*unit+Math.floor(i/3)*5;return `<g><ellipse cx="${x+1}" cy="${y+8}" rx="3" ry="1.5" fill="#446a4c44"/><path d="M${x} ${y+2}v6" stroke="${/^#[0-9a-fA-F]{6}$/.test(m.appearance?.top||'')?m.appearance.top:'#7a91a0'}" stroke-width="4"/><circle cx="${x}" cy="${y}" r="2.5" fill="#dcbb96"/></g>`;})).join(''):'';
-            return `<rect x="-500" y="-500" width="2400" height="1800" fill="url(#water)"/><rect x="-800" y="-800" width="1740" height="2400" fill="url(#grass)"/><rect x="940" y="-800" width="60" height="2400" fill="url(#sand)"/>${ground}<path d="M0 0H1200V800H0Z" fill="none" stroke="#829b6d" stroke-width="1.5" stroke-dasharray="4 7"/>${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
+            return `<rect x="-500" y="-500" width="2400" height="1800" fill="url(#water)"/><rect x="-800" y="-800" width="1740" height="2400" fill="url(#grass)"/><rect x="940" y="-800" width="60" height="2400" fill="url(#sand)"/>${ground}<path d="M0 0H1200V800H0Z" fill="none" stroke="#829b6d" stroke-width="1.5" stroke-dasharray="4 7"/>${places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
         }
         function drawPins(){
             const focusedId=document.activeElement?.dataset.place;
