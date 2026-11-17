@@ -113,6 +113,7 @@ function updateStaticDeliveries() {
     }
 }
 
+const MANAGEMENT_MODE = document.body.dataset.management === 'true';
 const TILE_SIZE = 16;
 const GRID_W = 60;
 const GRID_H = 40;
@@ -418,6 +419,7 @@ function init() {
     // Upgrade older saves to use booked guests and persist a one-time random player avatar.
     if (!Array.isArray(data.guestProfilePool) || !data.playerAvatar ||
         (Array.isArray(data.parkNpcs) && data.parkNpcs.length)) saveGame();
+    return true;
 }
 
 function generateNewMap() {
@@ -1030,9 +1032,11 @@ function saveGame() {
             guestArrivalProgress: state.guestArrivalProgress,
             dailyGuestArrivals: state.dailyGuestArrivals
         }));
+        return true;
     } catch (error) {
         console.error('Unable to save the game.', error);
         showToast('❌ Unable to save the game.');
+        return false;
     }
 }
 
@@ -1708,6 +1712,7 @@ function resizeCanvas() {
 let lastFrameTime = 0;
 
 function draw(timestamp = 0) {
+    if (MANAGEMENT_MODE) return;
     const deltaSeconds = lastFrameTime ? Math.min((timestamp - lastFrameTime) / 1000, 0.05) : 0;
     lastFrameTime = timestamp;
     updatePlayerMovement(deltaSeconds);
@@ -2160,6 +2165,11 @@ function draw(timestamp = 0) {
 
 // --- UI & Controls ---
 function updateUI() {
+    if (MANAGEMENT_MODE) {
+        state.beauty = LandManagement.calculateBeauty(state.tiles, state.pitches, state.facilities);
+        window.dispatchEvent(new Event('caravan:change'));
+        return;
+    }
     state.beauty = LandManagement.calculateBeauty(state.tiles, state.pitches, state.facilities);
     document.getElementById('cash-display').innerText = Math.floor(state.cash).toLocaleString();
     const woodDisplay = document.getElementById('wood-display');
@@ -2728,6 +2738,7 @@ canvas.addEventListener('mousedown', event => {
     state.pointerTile = state.dragStart;
 });
 window.addEventListener('keydown', e => {
+    if (MANAGEMENT_MODE) return;
     if (!document.getElementById('start-screen').hidden) return;
     const key = e.key.toLowerCase();
     const vendorDialog = document.getElementById('vendor-dialog');
@@ -2776,6 +2787,7 @@ window.addEventListener('mouseup', e => {
     state.dragStart = null;
 });
 window.addEventListener('mousemove', e => {
+    if (MANAGEMENT_MODE) return;
     state.pointerTile = gridFromPointer(e.clientX, e.clientY);
 });
 canvas.addEventListener('wheel', e => {
@@ -2943,5 +2955,6 @@ window.onload = () => {
     window.addEventListener('resize', resizeCanvas);
     init();
     draw();
+    if (MANAGEMENT_MODE) window.dispatchEvent(new Event('caravan:ready'));
     setInterval(() => update(1), 100);
 };

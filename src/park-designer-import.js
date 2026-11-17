@@ -156,5 +156,9 @@
         } finally { input.value=''; }
     });
     // Wait for the game adapter before restoring a saved package.
-    window.addEventListener('load',()=>setTimeout(restorePackage,0),{once:true});
+    window.addEventListener('load',()=>{
+        // The vector management view reads the saved gameplay geometry directly.
+        // Restoring package artwork here would replace a progressed game with its initial layout.
+        if(document.body.dataset.management !== 'true') setTimeout(restorePackage,0);
+    },{once:true});
 })();
