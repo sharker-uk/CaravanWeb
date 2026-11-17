@@ -17,7 +17,7 @@ The design draws on Caister's north–south main-road spine, eastward beach lane
 
 ## Working behavior
 
-`village.html` opens from “Explore the village” in the park view. It supports pointer pan, wheel zoom, keyboard navigation, zoom / fit buttons, location inspection, a responsive places drawer, source information and world-layout export. The park inset reads the same browser-local saved game without changing it or advancing the park clock. It includes the current terrain, pitches, caravans, buildings and expansion field boundaries.
+`village.html` opens from “Village map” in the park view. It supports pointer pan, wheel zoom, keyboard navigation, zoom / fit buttons, location inspection, a responsive places drawer, source information and world-layout export. The park inset reads the same browser-local saved game without changing it or advancing the park clock. It includes the current terrain, pitches, caravans, buildings and expansion field boundaries.
 
 The traffic study routes journeys over the authored graph. Through traffic prefers the faster bypass; closing the bypass reroutes new journeys through the village. Park guest traffic in the current-park scenario depends on the saved pitch / booking counts. Holiday changeover is an explicit stress scenario. Vehicles leave following gaps, use left-side lane offsets, wait at alternating signals and do not enter the single-lane section while opposing traffic remains inside. Queues and completed-journey delay are measured from the running model. Bypass closures show a map marker; pause and restart controls are available.
 
@@ -34,3 +34,5 @@ Sources consulted on 17 November 2026:
 - [Caister Parish Council newsletter: traffic concerns](https://caisterparishcouncil.gov.uk/wp-content/uploads/2025/03/CaisterNewsletter-No24-1.pdf)
 
 Validation includes connected routes, bypass rerouting, finite vehicle positions, following gaps, single-lane exclusion, pause, bounded traffic and park-save isolation. An identical 400-second changeover simulation produces greater completed-journey delay and fewer completed journeys with bypass works than with the bypass open. Browser checks are recorded with the private preview evidence.
+
+Browser validation on 17 November 2026: place inspection; keyboard pan, zoom and fit; changeover / bypass-works selection; a paused five-minute study showing 85 vehicles, 45 waiting and 53 seconds mean completed delay; return to the saved park; and pointer selection in a 390 × 844 iframe without outer horizontal overflow. The responsive check is not a physical-device touch test.

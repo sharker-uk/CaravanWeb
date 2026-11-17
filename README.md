@@ -20,7 +20,7 @@ The original avatar mode is retained at `walkabout.html`, with a return link to 
 
 Use **Land & beach** to buy Meadow Field (£6,000), then Dune Field (£9,000). Owned fields can be cleared and developed using the normal construction tools. Beach access (£2,500) requires both fields, a clear coastal approach and a connected park path. It takes two game hours to build; open, connected access costs £1 per game hour, adds 5 demand points and gives visiting parties +3 satisfaction once per game day. The gate can be closed.
 
-**Explore the village** opens LittleHampton-on-Sea: a compact fictional Caister-inspired world with your current park inset, village shops, beach quarter, church narrows, a bypass and an interactive traffic study. See [village-foundation.md](docs/village-foundation.md) for scope, sources and the later Godot direction.
+**Village map** opens LittleHampton-on-Sea: a compact fictional Caister-inspired world with your current park inset, village shops, beach quarter, church narrows, a bypass and an interactive traffic study. See [village-foundation.md](docs/village-foundation.md) for scope, sources and the later Godot direction.
 
 See [management-map.md](docs/management-map.md) for architecture, validation and current limits.
 
