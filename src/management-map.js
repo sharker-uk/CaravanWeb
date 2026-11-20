@@ -100,8 +100,9 @@ root.ManagementArt={tree,building};
             if(!externalParcels||!W.usesFarmBoundary(game))return '';
             return externalParcels.PARCELS.map(p=>{
                 const owned=externalParcels.ownsParcel(game.land,p.id);
+                if(root.CaravanFieldArt)return root.CaravanFieldArt.render(p,{unit,owned});
                 const x=p.x*unit,y=p.y*unit,w=p.w*unit,h=p.h*unit;
-                return `<g class="land-1-external-preview" pointer-events="none"><rect x="${x+2}" y="${y+2}" width="${w-4}" height="${h-4}" fill="${owned?'#93ac7c20':'#ddc98e35'}" stroke="${owned?'#829c74':'#a18e59'}" stroke-width="3" stroke-dasharray="9 5"/><text x="${x+10}" y="${y+20}" fill="#44553b" font-size="12" font-weight="bold" paint-order="stroke" stroke="#f3eddb" stroke-width="3">${esc(p.name.toUpperCase())} · ${owned?'LEGACY OWNERSHIP':'PLANNED'} · PREVIEW</text></g>`;
+                return `<g pointer-events="none"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#b5ad7930" stroke="#6d7650" stroke-dasharray="8 5"/><text x="${x+10}" y="${y+20}" fill="#44553b" font-size="12">${esc(p.name)} · PREVIEW</text></g>`;
             }).join('');
         }
         function worldMarkup() {
