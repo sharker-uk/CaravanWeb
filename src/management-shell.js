@@ -2,6 +2,7 @@
 (() => {
 'use strict';
 if(document.body.dataset.management!=='true')return;
+document.body.classList.remove('tablet-open');
 document.body.insertAdjacentHTML('afterbegin', `<div id="management-app">
 <header class="masthead">
  <a class="brand" href="./" aria-label="Caravan Web home"><svg viewBox="0 0 46 40" aria-hidden="true"><path d="M4 28V13q0-5 5-5h22q5 0 5 5v15Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 15h12v8H8Zm17 0h7v13h-7M36 27h6v4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="30" r="4" fill="currentColor"/><circle cx="29" cy="30" r="4" fill="currentColor"/></svg><span>CARAVAN<span class="brand-web">WEB</span><small>A LITTLE SPACE. A GROWING BUSINESS.</small></span></a>
