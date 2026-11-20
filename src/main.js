@@ -458,8 +458,9 @@ function generateNewMap() {
     for (let y = 0; y < GRID_H; y++) {
         state.tiles[y] = [];
         for (let x = 0; x < GRID_W; x++) {
-            const terrain = x >= 50 ? 'water' : x >= 47 ? 'sand' :
-                Math.hypot(x - 23, y - 20) < 2.5 ? 'water' : 'grass';
+            // The public beach and sea are village scenery, not duplicate park tiles.
+            // Preserve the inland pond and the beach-access approach tiles.
+            const terrain = Math.hypot(x - 23, y - 20) < 2.5 ? 'water' : 'grass';
             const road = terrain === 'grass' && x >= 8 && x <= 9 && y >= 24 && y <= 25;
             const path = terrain === 'grass' && y >= 24 && y <= 25 && x >= 10 && x <= 16;
             const roll = Math.abs((x * 73 + y * 37 + x * y * 11 + 19) % 100);
