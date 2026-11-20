@@ -23,6 +23,14 @@ try{
   for(const l of (saved.landmarks||[]).filter(l=>l.type==='land_plot'))content+=`<rect x="${l.x*20}" y="${l.y*20}" width="${l.w*20}" height="${l.h*20}" fill="none" stroke="${l.blocksBuilding?'#aa9869':'#83a078'}" stroke-width="3" stroke-dasharray="8 5"/>`;
   return out+`<g transform="translate(${box.x} ${box.y}) scale(${z/20})">${content}</g>`;
  }
+ function parcelArt(){
+  if(!window.CoastalFarmLayout)return '';
+  const layout=window.CoastalFarmLayout.plan(world);
+  const fences=layout.fields.map(p=>`<g><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="#a8bb8c" fill-opacity=".3" stroke="#77895f" stroke-width="2" stroke-dasharray="7 4"/><text x="${p.x+p.w/2}" y="${p.y+p.h/2}" text-anchor="middle" font-size="9" fill="#536a48" stroke="#d6dfbf" stroke-width="2" paint-order="stroke">${p.name}</text></g>`).join('');
+  // Farmhouse is authoritative in the park save, rendered by parkArt().
+  // Do not draw the outdated duplicate from the planning overlay.
+  return `<g id="v-farm-parcels">${fences}</g>`;
+ }
  function terrain(){
   let out='<rect x="-1000" y="-1000" width="4000" height="4000" fill="url(#v-water)"/><path d="M-1000-1000H1187V363L1270 580 1300 980 1250 2300H-1000Z" fill="url(#v-grass)"/><path d="M1187-1000H1208V363L1350 580 1380 980 1330 2300H1250L1300 980 1270 580 1187 363Z" fill="#e0d4a8"/><path d="M1198-1000V363L1290 580 1320 980 1270 2300" fill="none" stroke="#ede2bd" stroke-width="13"/>';
   out+='<path d="M350 55H715V340H335Z" fill="#b9c8a0" stroke="#8ba777" stroke-width="2"/><path d="M365 70H710M360 160H710M350 250H710" stroke="#a9bd8e" stroke-width="2"/><rect x="340" y="790" width="300" height="270" rx="12" fill="#b5c596" stroke="#8faa7d" stroke-dasharray="5 6"/><rect x="1000" y="420" width="205" height="175" rx="8" fill="#a1b68b" stroke="#8da77a"/>';
@@ -40,7 +48,7 @@ try{
 
   out+='<path d="M1294 831v23h22v-23" fill="#718d83"/><path d="M1320 842h17v42h-17" stroke="#b9ad87" fill="#ddcda7"/>';
   out+='<rect x="1210" y="705" width="83" height="61" rx="4" fill="#bdc1a9" stroke="#a3af94"/><path d="M1222 716v18m17-18v18m17-18v18m17-18v18m-51 10v13m17-13v13m17-13v13m17-13v13" stroke="#e4e5d4" stroke-width="1.5"/>';
-  out+=parkArt();
+  out+=parkArt();out+=parcelArt();
   for(let i=0;i<190;i++){const x=70+(i*197%1240),y=50+(i*137%1200);if((x>330&&x<1285&&y<1200)||roads.some(r=>toSegment([x,y],world.nodes[r.a],world.nodes[r.b])<30))continue;out+=A.tree(x,y,8+i%5,i%4);}
   for(const [x,y] of [[350,370],[395,420],[580,420],[980,400],[1210,430],[1210,580],[920,550],[680,570],[920,1070],[1120,1180],[440,1120],[1240,270],[440,1070],[625,830]])out+=A.tree(x,y,14,(x+y)%4);
   out+='<g class="district-label"><text x="1065" y="50" text-anchor="middle">HAMPTONVILLA</text><text x="1095" y="612" text-anchor="middle" font-size="11">KINGFISHER GREEN</text><text x="515" y="330" text-anchor="middle" font-size="12">OLD FORT MEADOW</text><text x="475" y="1080" text-anchor="middle" font-size="11">WEST FIELD</text><text x="1480" y="620" text-anchor="middle" transform="rotate(90 1480 620)" font-size="29" letter-spacing="9">NORTH SEA</text></g>';
@@ -70,7 +78,64 @@ try{
  $('#mobile-places').onclick=()=>{const aside=document.querySelector('aside'),open=aside.classList.toggle('mobile-open');$('#mobile-places').setAttribute('aria-expanded',String(open));if(open)aside.scrollTop=0;};$('#about-map').onclick=()=>$('#map-about').showModal();$('#close-about').onclick=()=>$('#map-about').close();$('#source-links').innerHTML=world.sources.map(s=>`<li><a target="_blank" rel="noopener" href="${esc(s.url)}">${esc(s.title)}</a></li>`).join('');
  $('#export-world').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(world,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='littlehampton-world-v1.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
  terrain();pins();new ResizeObserver(()=>{const r=svg.getBoundingClientRect();width=r.width;height=r.height;svg.setAttribute('viewBox',`0 0 ${width} ${height}`);fit();}).observe(svg);
- function frame(now){const dt=last?Math.min(.2,(now-last)/1000):0;last=now;V.advance(sim,dt);$('#v-cars').innerHTML=sim.cars.map(c=>{const p=V.position(sim,c),color={Guest:'#e7e6d5',Village:'#819d98',Through:'#a19580',Service:'#b99e7c'}[c.kind];return `<g transform="translate(${p.x} ${p.y}) rotate(${p.angle})"><rect x="-${c.length/2}" y="-3.5" width="${c.length}" height="7" rx="2" fill="${color}" stroke="#637a67" stroke-width=".8"/><rect x="1" y="-2.6" width="3" height="5.2" fill="#8ba6a0"/>${c.kind==='Guest'?'<path d="M-2-4v8" stroke="#7c8e77"/>':''}</g>`;}).join('');$('#signal-north').setAttribute('fill',V.signal(sim,true)?'#7da379':'#c08166');$('#signal-south').setAttribute('fill',V.signal(sim,false)?'#7da379':'#c08166');if(now-statsAt>250){statsAt=now;const m=V.metrics(sim);$('#traffic-vehicles').textContent=m.vehicles;$('#traffic-queue').textContent=m.queued;$('#traffic-delay').textContent=m.meanDelay+'s';$('#traffic-pressure').textContent=m.pressure;$('#traffic-status').textContent=`Traffic study ${sim.paused?'paused':'running'} · ${Math.floor(sim.time/60)}m ${Math.floor(sim.time%60)}s`;}requestAnimationFrame(frame);}
+ // Village walkabout is entered only from the park gate; traffic and village remain visible.
+ const gate=window.CaravanRegionGate;
+ const walkingVillage=Boolean(gate&&location.hash==='#walk'&&gate.consume(sessionStorage,'village'));
+ const villagePlayer={x:world.nodes.parkGate[0],y:world.nodes.parkGate[1]};
+ const villageKeys=new Set();
+ let villageHint=null,villageAvatar=null,villageFacing='down',villageFrameKey='',villageWalking=false;
+ if(walkingVillage){
+  villageAvatar=document.createElementNS('http://www.w3.org/2000/svg','g');
+  villageAvatar.setAttribute('id','village-player');
+  villageAvatar.setAttribute('pointer-events','none');
+  villageAvatar.setAttribute('shape-rendering','crispEdges');
+  villageAvatar.innerHTML='<g id="village-character-art" transform="translate(-12 -22.5) scale(.75)"></g>';
+  group.append(villageAvatar);
+  villageHint=document.createElement('div');
+  villageHint.setAttribute('role','status');
+  villageHint.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#f8f2df;color:#315039;padding:10px 16px;border-radius:10px;z-index:20;box-shadow:0 2px 12px #0003;font-weight:600';
+  villageHint.textContent='WASD / arrows: walk village roads · E: interact / return at park gate';
+  document.body.append(villageHint);
+  camera.x=villagePlayer.x;camera.y=villagePlayer.y;camera.zoom=Math.max(camera.zoom,.85);
+  document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;const k=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','e'].includes(k)){e.preventDefault();e.stopPropagation();villageKeys.add(k);}},true);
+  document.addEventListener('keyup',e=>villageKeys.delete(e.key.toLowerCase()),true);
+  window.addEventListener('blur',()=>villageKeys.clear());
+ }
+ function walkVillage(dt){
+  if(!walkingVillage)return;
+  const dx=Number(villageKeys.has('d')||villageKeys.has('arrowright'))-Number(villageKeys.has('a')||villageKeys.has('arrowleft'));
+  const dy=Number(villageKeys.has('s')||villageKeys.has('arrowdown'))-Number(villageKeys.has('w')||villageKeys.has('arrowup'));
+  const previous={...villagePlayer};
+  villageWalking=window.CaravanVillageMovement.advance(world,villagePlayer,dt,{
+   left:dx<0,right:dx>0,up:dy<0,down:dy>0
+  });
+  if(villageWalking){
+   const mx=villagePlayer.x-previous.x,my=villagePlayer.y-previous.y;
+   villageFacing=Math.abs(mx)>Math.abs(my)?(mx<0?'left':'right'):(my<0?'up':'down');
+  }
+  const frame=villageWalking?Math.floor(performance.now()/130)%4:0;
+  const key=(villageWalking?'walk':'idle')+villageFacing+frame;
+  if(key!==villageFrameKey){
+   const avatar=saved?.playerAvatar||{};
+   const palette={skin:avatar.skin,hair:avatar.hairColour,top:avatar.top,trousers:avatar.bottom};
+   for(const k of Object.keys(palette))if(!/^#[0-9a-f]{6}$/i.test(palette[k]||''))delete palette[k];
+   villageAvatar.querySelector('#village-character-art').innerHTML=CaravanPlayerSprites.frameSvg(villageFacing,frame,villageWalking?'walk':'idle',palette);
+   villageFrameKey=key;
+  }
+  const gateDistance=Math.hypot(villagePlayer.x-world.nodes.parkGate[0],villagePlayer.y-world.nodes.parkGate[1]);
+  const nearby=world.places.filter(p=>p.id!=='park').map(p=>({p,d:Math.hypot(villagePlayer.x-p.x,villagePlayer.y-p.y)})).sort((a,b)=>a.d-b.d)[0];
+  if(villageKeys.has('e')){
+   villageKeys.delete('e');
+   if(gateDistance<24){gate.write(sessionStorage,'park');location.assign('index.html');return;}
+   if(nearby&&nearby.d<65){select(nearby.p.id);villageHint.textContent=nearby.p.name+' · '+nearby.p.description; }
+  }else if(gateDistance<24)villageHint.textContent='Park entrance · Press E to return to your farm';
+  else if(nearby&&nearby.d<65)villageHint.textContent=nearby.p.name+' · Press E to explore';
+  else villageHint.textContent='WASD / arrows: walk village roads · Follow Natwinch Road towards the High Street';
+  villageAvatar.setAttribute('transform',`translate(${villagePlayer.x} ${villagePlayer.y})`);
+  const t=Math.min(1,dt*3.5);
+  camera.x+=(villagePlayer.x-camera.x)*t;camera.y+=(villagePlayer.y-camera.y)*t;transform();
+ }
+ function frame(now){const dt=last?Math.min(.2,(now-last)/1000):0;last=now;V.advance(sim,dt);walkVillage(dt);$('#v-cars').innerHTML=sim.cars.map(c=>{const p=V.position(sim,c),color={Guest:'#e7e6d5',Village:'#819d98',Through:'#a19580',Service:'#b99e7c'}[c.kind];return `<g transform="translate(${p.x} ${p.y}) rotate(${p.angle})"><rect x="-${c.length/2}" y="-3.5" width="${c.length}" height="7" rx="2" fill="${color}" stroke="#637a67" stroke-width=".8"/><rect x="1" y="-2.6" width="3" height="5.2" fill="#8ba6a0"/>${c.kind==='Guest'?'<path d="M-2-4v8" stroke="#7c8e77"/>':''}</g>`;}).join('');$('#signal-north').setAttribute('fill',V.signal(sim,true)?'#7da379':'#c08166');$('#signal-south').setAttribute('fill',V.signal(sim,false)?'#7da379':'#c08166');if(now-statsAt>250){statsAt=now;const m=V.metrics(sim);$('#traffic-vehicles').textContent=m.vehicles;$('#traffic-queue').textContent=m.queued;$('#traffic-delay').textContent=m.meanDelay+'s';$('#traffic-pressure').textContent=m.pressure;$('#traffic-status').textContent=`Traffic study ${sim.paused?'paused':'running'} · ${Math.floor(sim.time/60)}m ${Math.floor(sim.time%60)}s`;}requestAnimationFrame(frame);}
  requestAnimationFrame(frame);
 }catch(error){$('#v-error').hidden=false;$('#v-error').textContent=error.message;}
 })();

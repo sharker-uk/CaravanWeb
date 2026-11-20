@@ -44,7 +44,7 @@ root.ManagementArt={tree,building};
         const world=svg.querySelector('#mg-world'),labels=svg.querySelector('#mg-map-labels');
         let width=1,height=1,baseZoom=.8,game=null,places=[],selected=null,visibleIds=null,route=null,tool='select',layers={labels:true,people:true,utilities:false,grid:false},worldKey='',pointer=null,moved=false,pinchDistance=null;
         const camera={x:570,y:400,zoom:.8,rotation:0,tilt:.8},touches=new Map();
-        try{const saved=JSON.parse(localStorage.getItem('caravanweb_management_camera_v1'));if(saved&&['x','y','zoom','rotation','tilt'].every(k=>Number.isFinite(saved[k]))){camera.x=Math.max(-300,Math.min(1500,saved.x));camera.y=Math.max(-300,Math.min(1100,saved.y));camera.zoom=Math.max(.3,Math.min(4,saved.zoom));camera.rotation=saved.rotation%360;camera.tilt=saved.tilt===1?1:.8;}}catch{}
+        try{const saved=JSON.parse(localStorage.getItem('caravanweb_management_camera_v1'));if(saved&&['x','y','zoom','rotation','tilt'].every(k=>Number.isFinite(saved[k]))){camera.x=Math.max(-650,Math.min(1500,saved.x));camera.y=Math.max(-300,Math.min(1100,saved.y));camera.zoom=Math.max(.3,Math.min(4,saved.zoom));camera.rotation=saved.rotation%360;camera.tilt=saved.tilt===1?1:.8;}}catch{}
         function persist(){try{localStorage.setItem('caravanweb_management_camera_v1',JSON.stringify(camera));}catch{}}
         function dimensions(){const rect=svg.getBoundingClientRect();width=rect.width;height=rect.height;svg.setAttribute('viewBox',`0 0 ${width} ${height}`);baseZoom=Math.max(.3,Math.min((width-50)/1200,(height-140)/(800*camera.tilt)));}
         function cameraChanged(shouldPersist=true){
@@ -60,8 +60,30 @@ root.ManagementArt={tree,building};
         }
         function zoom(factor,x=width/2,y=height/2){const before=M.unproject(x,y,camera,width,height);camera.zoom=Math.max(.3,Math.min(4,camera.zoom*factor));const after=M.unproject(x,y,camera,width,height);camera.x+=before[0]-after[0];camera.y+=before[1]-after[1];cameraChanged();}
         function fit(){dimensions();Object.assign(camera,{x:570,y:400,rotation:0,zoom:baseZoom});cameraChanged();}
-        function pan(dx,dy){const xy=M.unproject(width/2+dx,height/2+dy,camera,width,height);camera.x=Math.max(-300,Math.min(1500,xy[0]));camera.y=Math.max(-300,Math.min(1100,xy[1]));cameraChanged();}
+        function pan(dx,dy){const xy=M.unproject(width/2+dx,height/2+dy,camera,width,height);camera.x=Math.max(-650,Math.min(1500,xy[0]));camera.y=Math.max(-300,Math.min(1100,xy[1]));cameraChanged();}
         function focus(p){if(!p)return;camera.zoom=Math.max(camera.zoom,width<650?.68:1);camera.x=(p.x+p.w/2)*unit+(width<650?0:140);camera.y=(p.y+p.h/2)*unit+(width<650?160:20);cameraChanged();}
+        // Draw the actual village's roads and buildings in the park's coordinate system.
+        // The village's park footprint is mapped onto the existing 60x40 playable grid.
+        let villageData=null;
+        fetch('data/village-world.json').then(r=>{if(!r.ok)throw Error('Village data unavailable');return r.json();}).then(data=>{
+            villageData=data;worldKey='';if(game)render(game,places,{selected,visibleIds,route,tool,layers});
+        }).catch(err=>console.warn('Village scenery could not load:',err));
+        function villageFringe(){
+            if(!villageData)return '';
+            const v=villageData,p=v.park,sx=1200/p.w,sy=800/p.h;
+            const x=n=>(n-p.x)*sx,y=n=>(n-p.y)*sy;
+            const roads=v.roads.map(r=>{
+                const a=v.nodes[r.a],b=v.nodes[r.b];if(!a||!b)return '';
+                return `<path d="M${x(a[0])} ${y(a[1])}L${x(b[0])} ${y(b[1])}" fill="none" stroke="#d0d0b9" stroke-width="${Math.max(8,r.width*sx)}"/>`;
+            }).join('');
+            const buildings=v.buildings.map(b=>{
+                const bx=x(b.x),by=y(b.y),w=b.w*sx,h=b.h*sy;
+                return `<g><rect x="${bx-5}" y="${by-5}" width="${w+10}" height="${h+10}" fill="#a8bf96" stroke="#8ca77e"/><rect x="${bx}" y="${by}" width="${w}" height="${h}" fill="${b.roof||'#b29a7c'}" stroke="#75846e"/>${b.kind==='shop'?`<path d="M${bx} ${by+h*.72}h${w}" stroke="#e3d8b9" stroke-width="6"/>`:''}</g>`;
+            }).join('');
+            const labels=v.places.filter(q=>q.id!=='park').map(q=>`<text x="${x(q.x)}" y="${y(q.y)+30}" text-anchor="middle" font-size="12" fill="#4f674d" paint-order="stroke" stroke="#dce6cf" stroke-width="3">${String(q.name).replace(/[&<>]/g,'')}</text>`).join('');
+            const coast=x(1200);
+            return `<g id="mg-village-context"><rect x="-2400" y="-2400" width="4800" height="4800" fill="#b6c89e"/><rect x="${coast}" y="-2400" width="2400" height="4800" fill="#e4d5ac"/><rect x="${x(1300)}" y="-2400" width="2300" height="4800" fill="#a7cbd0"/>${roads}${buildings}${labels}<text x="${x(790)}" y="${y(700)}" font-size="20" fill="#5b7650">LITTLEHAMPTON-ON-SEA</text></g>`;
+        }
         function worldMarkup() {
             let ground='',nature='',grid='',utilities='';
             for(let y=0;y<game.tiles.length;y++){
@@ -89,7 +111,7 @@ root.ManagementArt={tree,building};
             const buildings=places.filter(p=>p.kind!=='pitch'&&p.type!=='land_plot').sort((a,b)=>(a.y+a.h)-(b.y+b.h)).map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
             const jobs=game.constructions.map(j=>{const b=j.footprint;return b?`<rect x="${b.x*unit+1}" y="${b.y*unit+1}" width="${b.w*unit-2}" height="${b.h*unit-2}" fill="#d6ad5c55" stroke="#a88948" stroke-width="2" stroke-dasharray="6 4"/>`:'';}).join('');
             const people=layers.people?game.guests.flatMap(g=>(g.party?.members||[{}]).map((m,i)=>{const pos=g.position||{x:g.pitch.x+1,y:g.pitch.y+1},x=pos.x*unit+(i%3)*5,y=pos.y*unit+Math.floor(i/3)*5;return `<g><ellipse cx="${x+1}" cy="${y+8}" rx="3" ry="1.5" fill="#446a4c44"/><path d="M${x} ${y+2}v6" stroke="${/^#[0-9a-fA-F]{6}$/.test(m.appearance?.top||'')?m.appearance.top:'#7a91a0'}" stroke-width="4"/><circle cx="${x}" cy="${y}" r="2.5" fill="#dcbb96"/></g>`;})).join(''):'';
-            return `<rect x="-500" y="-500" width="2400" height="1800" fill="url(#water)"/><rect x="-800" y="-800" width="1740" height="2400" fill="url(#grass)"/><rect x="940" y="-800" width="60" height="2400" fill="url(#sand)"/>${ground}<path d="M0 0H1200V800H0Z" fill="none" stroke="#829b6d" stroke-width="1.5" stroke-dasharray="4 7"/>${places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
+            return `<rect x="-500" y="-500" width="2400" height="1800" fill="url(#water)"/><rect x="-800" y="-800" width="1740" height="2400" fill="url(#grass)"/><rect x="940" y="-800" width="60" height="2400" fill="url(#sand)"/>${villageFringe()}${ground}<g id="park-boundary" pointer-events="none"><path d="M160 0V470M160 510V800" stroke="#56794d" stroke-width="11" stroke-linecap="round"/><path d="M160 0V470M160 510V800" stroke="#83a16b" stroke-width="6" stroke-dasharray="4 7"/><path d="M160 470v40" stroke="#d9d1ac" stroke-width="3" stroke-dasharray="3 5"/><path d="M151 470h18m-18 40h18" stroke="#755c3e" stroke-width="4"/><text x="175" y="465" font-size="12" font-weight="600" fill="#405d3c" paint-order="stroke" stroke="#e8edda" stroke-width="3">FARM GATE</text></g><path d="M160 0H1200V800H160Z" fill="none" stroke="#829b6d" stroke-width="1.5" stroke-dasharray="4 7"/>${places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
         }
         function drawPins(){
             const focusedId=document.activeElement?.dataset.place;
@@ -145,7 +167,7 @@ root.ManagementArt={tree,building};
             if(!pointer)return;
             const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(dx,dy)>4)moved=true;
             if(pointer.build){preview(pointer.start,pointerGrid(e));return;}
-            if(moved){const a=M.unproject(0,0,pointer.camera,width,height),b=M.unproject(dx,dy,pointer.camera,width,height);camera.x=Math.max(-300,Math.min(1500,pointer.camera.x+a[0]-b[0]));camera.y=Math.max(-300,Math.min(1100,pointer.camera.y+a[1]-b[1]));cameraChanged();}
+            if(moved){const a=M.unproject(0,0,pointer.camera,width,height),b=M.unproject(dx,dy,pointer.camera,width,height);camera.x=Math.max(-650,Math.min(1500,pointer.camera.x+a[0]-b[0]));camera.y=Math.max(-300,Math.min(1100,pointer.camera.y+a[1]-b[1]));cameraChanged();}
         });
         function end(e){
             if(pointer&&e.type==='pointerup'&&touches.size===1){if(pointer.build)callbacks.onBuild?.(tool,pointer.start,pointerGrid(e));else if(!moved){if(callbacks.onGround&&callbacks.isWalking?.())callbacks.onGround(pointerGrid(e));else callbacks.onSelect?.(pointer.place||null);}}
@@ -155,7 +177,7 @@ root.ManagementArt={tree,building};
         labels.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&e.target.dataset.place){e.preventDefault();e.stopPropagation();callbacks.onSelect(e.target.dataset.place);}});
         new ResizeObserver(()=>{dimensions();cameraChanged();}).observe(svg);
         dimensions();
-        const api={render,updatePlayer,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},followPlayer:p=>{camera.x=p.x*unit;camera.y=p.y*unit;cameraChanged(false);},invalidate:()=>{worldKey='';}};
+        const api={render,updatePlayer,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},followPlayer:(p,dt=1/60)=>{const framing=root.CaravanWorldCamera;if(framing){const target=framing.target(p,{width,height});const next=framing.smooth(camera,target,dt);camera.x=next.x;camera.y=next.y;camera.zoom=next.zoom;}else{camera.x=p.x*unit;camera.y=p.y*unit;}cameraChanged(false);},invalidate:()=>{worldKey='';}};
         return api;
     }
     root.ManagementMap={create,placeArt};

@@ -145,10 +145,7 @@ const PALETTE = {
     tree: '#1e8449'
 };
 const STARTING_LANDMARKS = [
-    {type: 'farmhouse', name: 'Run-down farmhouse', x: 13, y: 17, w: 6, h: 5, blocksBuilding: true, blocksMovement: true, interactable: true},
-    {type: 'rusty_resales', name: 'Rusty Resales', subtitle: 'Caravan Emporium', x: 2, y: 7, w: 5, h: 3, blocksBuilding: true, blocksMovement: true, interactable: true},
-    {type: 'fiddl_shop', name: 'Fiddl', subtitle: 'Convenience shop', x: 2, y: 14, w: 5, h: 3, blocksBuilding: true, blocksMovement: true, interactable: true},
-    {type: 'job_centre', name: 'Job Centre', subtitle: 'Park staff', x: 2, y: 21, w: 5, h: 3, blocksBuilding: true, blocksMovement: true, interactable: true},
+    {type: 'farmhouse', name: 'Run-down farmhouse', x: 10, y: 18, w: 6, h: 5, blocksBuilding: true, blocksMovement: true, interactable: true},
     {type: 'for_sale', name: 'Land for sale', x: 29, y: 12, w: 17, h: 16, blocksBuilding: true, blocksMovement: false, interactable: false}
 ];
 
@@ -284,10 +281,31 @@ function init() {
         ? data.dailyGuestArrivals
         : 0;
     state.tiles = data.tiles.map(row => row.map(normalizeTile));
+    // Retire the original full-height road through the farm. Keep its short
+    // entrance section and any player-built infrastructure elsewhere intact.
+    // Only clear the original generated strip where it still has the legacy road.
+    for (let y = 0; y < state.tiles.length; y++) {
+        if (y >= 24 && y <= 25) continue;
+        for (const x of [8, 9]) {
+            const tile = state.tiles[y]?.[x];
+            if (tile?.road && tile.terrain === 'grass') tile.road = false;
+        }
+    }
     state.overlayMode = ['none', 'services', 'utilities', 'entertainment'].includes(data.overlayMode) ? data.overlayMode : 'none';
     state.pitches = data.pitches.map(pitch => ({...pitch, occupied: false}));
     state.facilities = Array.isArray(data.facilities) ? data.facilities : [];
-    state.landmarks = Array.isArray(data.landmarks) ? data.landmarks : [];
+    // Village businesses no longer occupy the farm. Preserve all other saved landmarks.
+    state.landmarks = (Array.isArray(data.landmarks) ? data.landmarks : [])
+        .filter(item => !['rusty_resales', 'fiddl_shop', 'job_centre'].includes(item?.type));
+    // Migrate only the untouched original farmhouse footprint. Never overwrite
+    // a customised layout or place a building on existing player constructions.
+    const oldFarmhouse=state.landmarks.find(item=>item.type==='farmhouse'&&item.x===13&&item.y===17&&item.w===6&&item.h===5);
+    if(oldFarmhouse){
+        const overlaps=(item,x,y,w,h)=>item.x<x+w&&item.x+item.w>x&&item.y<y+h&&item.y+item.h>y;
+        const blocked=[...state.facilities,...state.pitches,...state.constructions.map(j=>j.footprint).filter(Boolean)]
+            .some(item=>overlaps(item,10,18,6,5));
+        if(!blocked){oldFarmhouse.x=10;oldFarmhouse.y=18;}
+    }
     state.constructions = Array.isArray(data.constructions) ? data.constructions : [];
     state.land = LandExpansion.restoreState(data);
     LandExpansion.syncLandmarks(state);
@@ -449,7 +467,7 @@ function generateNewMap() {
         for (let x = 0; x < GRID_W; x++) {
             const terrain = x >= 50 ? 'water' : x >= 47 ? 'sand' :
                 Math.hypot(x - 23, y - 20) < 2.5 ? 'water' : 'grass';
-            const road = terrain === 'grass' && x >= 8 && x <= 9;
+            const road = terrain === 'grass' && x >= 8 && x <= 9 && y >= 24 && y <= 25;
             const path = terrain === 'grass' && y >= 24 && y <= 25 && x >= 10 && x <= 16;
             const roll = Math.abs((x * 73 + y * 37 + x * y * 11 + 19) % 100);
             const safeStart = x >= 1 && x <= 20 && y >= 5 && y <= 29;

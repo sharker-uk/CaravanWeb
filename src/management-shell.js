@@ -85,11 +85,16 @@ function walkingFrame(timestamp){
  const dt=Math.min((timestamp-(lastFrame||timestamp))/1000,.05);lastFrame=timestamp;
  if(!walking||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  const state=api.getState();
+ // Gate crossing is the only supported park-to-village transition.
+ const gate=window.CaravanRegionGate;
+ if(gate&&gate.canExit(state.player,held.has('a')||held.has('arrowleft'))){
+  api.save();gate.write(sessionStorage,'village');location.assign('village.html#walk');return;
+ }
  const input={left:held.has('a')||held.has('arrowleft'),right:held.has('d')||held.has('arrowright'),up:held.has('w')||held.has('arrowup'),down:held.has('s')||held.has('arrowdown')};
  const moving=LivingParkMovement.advance(state,dt,input,GameStateApi.getTileProperties,GameStateApi.canOccupyPlayer);
  map.updatePlayer(state.player);
  if(moving){
-  map.followPlayer(state.player);
+  map.followPlayer(state.player,dt);
   if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
  }
 }
@@ -290,6 +295,13 @@ document.addEventListener('keydown',e=>{
 window.addEventListener('caravan:change',()=>{if(ready&&!renderTimer)renderTimer=setTimeout(()=>{renderTimer=null;render();},250);});
 window.addEventListener('caravan:ready',()=>{
     api=window.CaravanGame;ready=true;
+    // Return at the actual entrance road, not the last pre-transition position.
+    if(window.CaravanRegionGate?.consume(sessionStorage,'park')){
+      const player=api.getState().player,entrance=window.CaravanRegionGate.GATE.park;
+      player.x=entrance.x;player.y=entrance.y;
+      api.getState().playerPath=[];
+      api.save();
+    }
     map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,onGround:target=>{
         const nature=api.getState().tiles[target.y]?.[target.x]?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;

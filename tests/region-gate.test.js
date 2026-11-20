@@ -1,0 +1,5 @@
+const test=require('node:test');const assert=require('node:assert/strict');const G=require('../src/region-gate.js');
+test('exit requires walking west through the designated roadside gate',()=>{assert.equal(G.canExit({x:8.5,y:24.5},true),true);assert.equal(G.canExit({x:2,y:21},false),false);assert.equal(G.canExit({x:8.5,y:5},true),false);assert.equal(G.canExit({x:12,y:24.5},true),false);});
+test('transfers are single-use and destination-bound',()=>{const m=new Map();const storage={setItem:(k,v)=>m.set(k,v),getItem:k=>m.get(k),removeItem:k=>m.delete(k)};G.write(storage,'village');assert.equal(G.consume(storage,'park'),false);assert.equal(G.consume(storage,'village'),false);G.write(storage,'village');assert.equal(G.consume(storage,'village'),true);assert.equal(G.consume(storage,'village'),false);});
+
+test('road entrance aligns with generated map road and connecting path',()=>{assert.equal(G.GATE.park.x,9.5);assert.ok(G.GATE.park.y>=24&&G.GATE.park.y<=25.5);assert.equal(G.canExit({x:8.5,y:24.5},true),true);assert.equal(G.canExit({x:2,y:24.5},true),false);});

@@ -283,9 +283,53 @@
       "kind": "Through route",
       "x": 250,
       "y": 745,
-      "symbol": "\u2194",
+      "symbol": "↔",
       "description": "Through traffic can skirt the village on the western route. Closing it in the traffic study sends those journeys through the church narrows instead.",
       "next": "Use the bypass-works switch to compare the effect on queues."
+    },
+    {
+      "id": "quickstop",
+      "name": "QuickStop",
+      "kind": "Convenience shop",
+      "x": 886,
+      "y": 687.5,
+      "symbol": "Q",
+      "description": "Groceries, drinks and everyday essentials for guests and residents.",
+      "next": "Future gameplay: buy supplies here rather than placing every shop inside the park.",
+      "buildingId": "shop-1"
+    },
+    {
+      "id": "village-supplies",
+      "name": "Village Supplies",
+      "kind": "Hardware & supplies",
+      "x": 886,
+      "y": 732.5,
+      "symbol": "H",
+      "description": "Tools and practical supplies for maintaining and developing the old farm.",
+      "next": "Future gameplay: collect or order park supplies, with delivery traffic on village roads.",
+      "buildingId": "shop-2"
+    },
+    {
+      "id": "village-cafe",
+      "name": "Village Café",
+      "kind": "Café",
+      "x": 947,
+      "y": 666,
+      "symbol": "C",
+      "description": "A place for guests to visit for breakfast and refreshments.",
+      "next": "Future gameplay: off-site guest visits and local spending.",
+      "buildingId": "cafe"
+    },
+    {
+      "id": "village-pub",
+      "name": "The Village Pub",
+      "kind": "Pub",
+      "x": 997,
+      "y": 665,
+      "symbol": "P",
+      "description": "A local meeting place for residents and holidaymakers.",
+      "next": "Future gameplay: guest leisure trips and community relationships.",
+      "buildingId": "pub"
     }
   ],
   "sources": [
