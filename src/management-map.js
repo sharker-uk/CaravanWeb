@@ -160,21 +160,26 @@ root.ManagementArt={tree,building};
         let playerFacing='down',lastPlayerPosition=null,lastSpriteFrame='',playerMotionSince=0;
         function updatePlayer(p){
             if(!p)return;
-            const sprites=root.CaravanPlayerSprites;
+            // Use the same avatar renderer as the walking game, rather than a
+            // second SVG sprite design that changes the player's appearance.
             let marker=world.querySelector('#living-park-player');
             if(!marker){world.insertAdjacentHTML('beforeend','<g id="living-park-player" pointer-events="none"></g>');marker=world.querySelector('#living-park-player');lastSpriteFrame='';}
-            const dx=lastPlayerPosition?p.x-lastPlayerPosition.x:0,dy=lastPlayerPosition?p.y-lastPlayerPosition.y:0;
-            const moving=Math.hypot(dx,dy)>.0001;
-            if(moving){playerFacing=Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down');playerMotionSince=Date.now();}
-            const walking=Date.now()-playerMotionSince<120;
-            const frame=walking?Math.floor(Date.now()/130)%4:0;
             const avatar=root.CharacterSystem.normalizeAvatar(game.playerAvatar);
-            const frameKey=JSON.stringify([walking,playerFacing,frame,avatar]);
-            const palette={skin:avatar.skin,hair:avatar.hairColour,top:avatar.top,trousers:avatar.bottom};
-            const style={hairStyle:avatar.hairStyle,accessory:avatar.accessory};
-            if(sprites&&lastSpriteFrame!==frameKey){
-                marker.innerHTML=`<g transform="translate(-12 -22.5) scale(.75)" shape-rendering="crispEdges">${sprites.frameSvg(playerFacing,frame,walking?'walk':'idle',palette,style)}</g>`;
-                lastSpriteFrame=frameKey;
+            const avatarKey=JSON.stringify(avatar);
+            if(lastSpriteFrame!==avatarKey){
+                const canvas=document.createElement('canvas');
+                canvas.width=32;canvas.height=40;
+                const ctx=canvas.getContext('2d');
+                if(ctx){
+                    root.CharacterSystem.drawCharacter(ctx,avatar,16,23,2);
+                    const image=document.createElementNS('http://www.w3.org/2000/svg','image');
+                    image.setAttribute('x','-16');image.setAttribute('y','-23');
+                    image.setAttribute('width','32');image.setAttribute('height','40');
+                    image.setAttribute('href',canvas.toDataURL('image/png'));
+                    image.setAttribute('style','image-rendering:pixelated');
+                    marker.replaceChildren(image);
+                    lastSpriteFrame=avatarKey;
+                }
             }
             marker.setAttribute('transform',`translate(${p.x*unit} ${p.y*unit})`);
             lastPlayerPosition={x:p.x,y:p.y};
