@@ -19,7 +19,7 @@
  ];
  root.insertAdjacentHTML('afterbegin',`<div id="parkpad-bar" class="parkpad-bar"><button type="button" id="parkpad-home-button">▦ ParkPad</button><span id="parkpad-location">Home</span><span id="parkpad-balance">£1,500</span><button type="button" id="parkpad-save">Save</button><button type="button" id="parkpad-close">✕ Close tablet</button></div><section id="parkpad-screen" class="parkpad-screen" aria-label="ParkPad tablet"><div id="parkpad-content"></div></section>`);
  const screen=document.querySelector('#parkpad-screen'),content=document.querySelector('#parkpad-content'),locationLabel=document.querySelector('#parkpad-location'),balance=document.querySelector('#parkpad-balance');
- let current='home',ready=false;
+ let current='home',ready=false,pendingSouthPurchase=false,purchaseFeedback='';
  const tabletOpen=()=>document.body.classList.contains('tablet-open');
  function showTablet(open){document.querySelector('#parkpad-bar').hidden=!open;screen.hidden=!open||!['home','estate','jobs'].includes(current);root.dataset.parkpadVisible=String(open);}
  window.addEventListener('caravan:tablet',event=>{if(event.detail.open){navigate('home');showTablet(true);}else showTablet(false);});
@@ -28,6 +28,7 @@
  const land=()=>window.CaravanLandParcels;
  function syncBalance(){const s=state();if(s)balance.textContent=money(Math.floor(s.cash));}
  function navigate(view){
+  if(view!=='estate'){pendingSouthPurchase=false;purchaseFeedback='';}
   current=view;root.dataset.parkpadView=view;locationLabel.textContent=view==='home'?'Home':apps.find(a=>a[0]===view)?.[2]||view;
   const legacy=view==='estate'?'land':view==='utilities'?'build':view;
   if(!['home','estate','jobs'].includes(view)){
@@ -53,16 +54,30 @@
    const owned=P.ownsParcel(s.land,p.id);
    const canBuy=test&&p.id==='south_field'&&!owned&&game().southFieldQuote().ok;
    const reason=p.id==='south_field'&&test&&!owned?game().southFieldQuote().reasons.join(' '):'';
-   return `<article class="parkpad-property"><div class="parkpad-property-art" aria-hidden="true"><span>🌳</span>${p.id==='south_field'?'<span>🏚️</span>':''}</div><div class="parkpad-property-info"><p class="parkpad-kicker">${esc(p.side)} · CAISTER COASTAL ESTATES</p><h2>${esc(p.name)}</h2><p>${p.id==='south_field'?'Partially overgrown agricultural land with an old barn.':'Neighbouring agricultural land available for future expansion.'}</p><div class="parkpad-property-meta"><strong>${money(p.price)}</strong><span>${p.w} × ${p.h} tiles</span><span>${owned?'Owned':'For sale'}</span></div>${owned?'<p class="parkpad-owned">✓ This land belongs to your park.</p>':canBuy?'<button class="parkpad-buy" data-parkpad-buy="south_field">Buy instantly · development test</button>':`<p class="parkpad-pending">${esc(reason||(test?'Purchase integration coming in a later milestone.':'Offers and two-day conveyancing are planned for normal gameplay.'))}</p>`}</div></article>`;
+   return `<article class="parkpad-property"><div class="parkpad-property-art" aria-hidden="true"><span>🌳</span>${p.id==='south_field'?'<span>🏚️</span>':''}</div><div class="parkpad-property-info"><p class="parkpad-kicker">${esc(p.side)} · CAISTER COASTAL ESTATES</p><h2>${esc(p.name)}</h2><p>${p.id==='south_field'?'Partially overgrown agricultural land with an old barn.':'Neighbouring agricultural land available for future expansion.'}</p><div class="parkpad-property-meta"><strong>${money(p.price)}</strong><span>${p.w} × ${p.h} tiles</span><span>${owned?'Owned':'For sale'}</span></div>${owned?'<p class="parkpad-owned">✓ This land belongs to your park.</p>':canBuy?'<button type="button" class="parkpad-buy" data-parkpad-buy="south_field">Buy instantly · development test</button>':`<p class="parkpad-pending">${esc(reason||(test?'Purchase integration coming in a later milestone.':'Offers and two-day conveyancing are planned for normal gameplay.'))}</p>`}</div></article>`;
   }).join('');
-  content.innerHTML=`<div class="parkpad-intro"><p class="parkpad-kicker">CAISTER COASTAL ESTATES</p><h1>Find room to grow.</h1><p>Neighbouring land and future opportunities around your park.</p>${test?'<p class="parkpad-test">Development test enabled · South Field completes instantly. A new test farm receives £12,000 extra starting capital.</p>':''}</div><div class="parkpad-properties">${listing}</div>`;
+  content.innerHTML=`<div class="parkpad-intro"><p class="parkpad-kicker">CAISTER COASTAL ESTATES</p><h1>Find room to grow.</h1><p>Neighbouring land and future opportunities around your park.</p>${test?'<p class="parkpad-test">Development test enabled · South Field completes instantly. A new test farm receives £12,000 extra starting capital.</p>':''}</div>${purchaseFeedback?`<p class="parkpad-test" role="status">${esc(purchaseFeedback)}</p>`:''}${pendingSouthPurchase?`<div class="parkpad-purchase-confirm" role="group" aria-label="Confirm South Field purchase"><strong>Confirm purchase of South Field for £6,500?</strong><p>This immediately purchases the field in the development test.</p><button type="button" class="parkpad-buy" data-parkpad-confirm="south_field">Confirm purchase · £6,500</button> <button type="button" data-parkpad-cancel>Cancel</button></div>`:''}<div class="parkpad-properties">${listing}</div>`;
  }
- root.addEventListener('click',event=>{
-  const open=event.target.closest('[data-parkpad-open]');if(open){navigate(open.dataset.parkpadOpen);return;}
-  const buy=event.target.closest('[data-parkpad-buy]');if(buy){
-   const q=game()?.southFieldQuote?.();if(!q?.ok){renderEstate();return;}
-   if(!window.confirm('Buy South Field for '+money(q.price)+'? This is an instant development-test purchase.'))return;
-   game().purchaseSouthFieldTest();renderEstate();return;
+ // Handle tablet interactions on the visible screen, independently of the
+ // legacy management shell's delegated click handling.
+ screen.addEventListener('click',event=>{
+  const target=event.target;
+  const open=target.closest('[data-parkpad-open]');
+  const buy=target.closest('[data-parkpad-buy]');
+  const confirm=target.closest('[data-parkpad-confirm]');
+  const cancel=target.closest('[data-parkpad-cancel]');
+  if(!open&&!buy&&!confirm&&!cancel)return;
+  event.preventDefault();event.stopPropagation();
+  if(open){navigate(open.dataset.parkpadOpen);return;}
+  if(cancel){pendingSouthPurchase=false;purchaseFeedback='';renderEstate();return;}
+  if(buy){pendingSouthPurchase=true;purchaseFeedback='';renderEstate();content.querySelector('[data-parkpad-confirm]')?.focus();return;}
+  if(confirm){
+   const q=game()?.southFieldQuote?.();
+   if(!q?.ok){pendingSouthPurchase=false;purchaseFeedback=q?.reasons?.join(' ')||'Purchase is unavailable.';renderEstate();return;}
+   const result=game()?.purchaseSouthFieldTest?.();
+   pendingSouthPurchase=false;
+   purchaseFeedback=result?.ok?'South Field purchased successfully. You now own this field.':result?.reasons?.join(' ')||result?.reason||'Purchase failed. Please try again.';
+   syncBalance();renderEstate();
   }
  });
  document.querySelector('#parkpad-home-button').addEventListener('click',()=>navigate('home'));
