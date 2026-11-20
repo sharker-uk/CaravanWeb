@@ -89,7 +89,7 @@ function walkingFrame(timestamp){
  const moving=LivingParkMovement.advance(state,dt,input,GameStateApi.getTileProperties,GameStateApi.canOccupyPlayer);
  map.updatePlayer(state.player);
  if(moving){
-  map.followPlayer(state.player);
+  map.followPlayer(state.player,dt);
   if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
  }
 }
