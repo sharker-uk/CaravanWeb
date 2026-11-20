@@ -1,6 +1,7 @@
 (function(root){
 'use strict';
 const C=root.Construction||(typeof require==='function'?require('./construction.js'):null);
+const External=root.CaravanLandParcels||(typeof require==='function'?require('./land-parcels.js'):null);
 const PLOTS=[{id:'meadow',name:'Meadow Field',x:29,y:12,w:10,h:16,price:6000,requires:[],description:'An overgrown neighbouring field. Clear it, extend the park lanes and utilities, then lay out more pitches.'},{id:'dunes',name:'Dune Field',x:39,y:12,w:7,h:16,price:9000,requires:['meadow'],description:'The coastal field beside the dunes. More room for caravans and a connection to the beach entrance.'}];
 const BEACH={id:'beach',name:'Beach access',x:46,y:24,w:4,h:2,price:2500,durationMinutes:120,hourlyCost:1,demandBonus:5,visitBonus:3,destination:{x:48,y:24}};
 const contains=(b,x,y)=>x>=b.x&&y>=b.y&&x<b.x+b.w&&y<b.y+b.h;
@@ -12,7 +13,7 @@ function restoreState(s){
  const starterFarm=(s.landmarks||[]).some(l=>l.type==='farmhouse'&&
   (l.name==='Run-down farmhouse'&&l.w===6&&l.h===5||l.x===13&&l.y===17));
  const next=createState(saved?.version===1?saved.enabled===true:!s.parkPackageId&&starterFarm);
- if(saved?.version===1){next.ownedPlotIds=PLOTS.filter(p=>Array.isArray(saved.ownedPlotIds)&&saved.ownedPlotIds.includes(p.id)).map(p=>p.id);const b=saved.beach||{};Object.assign(next.beach,{purchased:b.purchased===true,constructed:b.purchased===true&&b.constructed===true,isOpen:b.purchased===true&&b.constructed===true&&b.isOpen===true,completedAtMinutes:Number.isFinite(b.completedAtMinutes)&&b.completedAtMinutes>=0?b.completedAtMinutes:null,lastUpkeepHour:Number.isInteger(b.lastUpkeepHour)&&b.lastUpkeepHour>=0?b.lastUpkeepHour:null});return next;}
+ if(saved?.version===1){next.ownedPlotIds=[...PLOTS.filter(p=>Array.isArray(saved.ownedPlotIds)&&saved.ownedPlotIds.includes(p.id)).map(p=>p.id),...External.migrateOwnedIds(saved.ownedPlotIds).filter(id=>!PLOTS.some(p=>p.id===id))];const b=saved.beach||{};Object.assign(next.beach,{purchased:b.purchased===true,constructed:b.purchased===true&&b.constructed===true,isOpen:b.purchased===true&&b.constructed===true&&b.isOpen===true,completedAtMinutes:Number.isFinite(b.completedAtMinutes)&&b.completedAtMinutes>=0?b.completedAtMinutes:null,lastUpkeepHour:Number.isInteger(b.lastUpkeepHour)&&b.lastUpkeepHour>=0?b.lastUpkeepHour:null});return next;}
  if(next.enabled){const sale=(s.landmarks||[]).filter(l=>l.type==='for_sale'&&overlaps(l,{x:29,y:12,w:17,h:16})),assets=[...(s.pitches||[]),...(s.facilities||[]),...(s.constructions||[]).map(j=>j.footprint).filter(Boolean)];next.ownedPlotIds=PLOTS.filter(p=>!sale.some(l=>overlaps(l,p))||assets.some(a=>overlaps(a,p))).map(p=>p.id);}return next;
 }
 const land=s=>s.land||restoreState(s);
@@ -33,5 +34,7 @@ function processHourly(s,tx){if(!beachStatus(s).operational||s.land.beach.lastUp
 const demandBonus=s=>beachStatus(s).operational?5:0;
 const canVisitBeach=(s,g)=>beachStatus(s).operational&&s.hour>=8&&s.hour<20&&g.lastBeachVisitDay!==s.day;
 function recordBeachVisit(s,g){if(!canVisitBeach(s,g))return false;g.lastBeachVisitDay=s.day;g.beachVisits=(Number.isInteger(g.beachVisits)?g.beachVisits:0)+1;if(g.party?.needs)g.party.needs.satisfaction=Math.min(100,(Number.isFinite(g.party.needs.satisfaction)?g.party.needs.satisfaction:75)+3);return true;}
-const api={PLOTS,BEACH,createState,restoreState,getPlots,unownedPlotAt,syncLandmarks,purchaseQuote,purchasePlot,approachRoute,beachQuote,purchaseBeach,completeBeach,beachStatus,toggleBeach,processHourly,demandBonus,canVisitBeach,recordBeachVisit};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.LandExpansion=api;
+function southFieldQuote(s){const p=External.PARCELS.find(p=>p.id==='south_field'),reasons=[];if(!land(s).enabled)reasons.push('Expansion land is unavailable in this park.');if(External.ownsParcel(land(s),p.id))reasons.push('South Field already belongs to your park.');if(!Number.isFinite(s.cash)||s.cash<p.price)reasons.push('You need £'+p.price.toLocaleString('en-GB')+' available.');return {ok:reasons.length===0,plot:{...p,owned:External.ownsParcel(land(s),p.id)},price:p.price,reasons};}
+function purchaseSouthFieldTest(s,tx){const q=southFieldQuote(s);if(!q.ok)return q;if(typeof tx!=='function'||tx(-q.price,'land purchase','Bought South Field (development test)')===false)return {ok:false,reasons:['The purchase could not be recorded.']};s.land=land(s);s.land.ownedPlotIds.push('south_field');return {ok:true,plot:q.plot,price:q.price};}
+const api={southFieldQuote,purchaseSouthFieldTest,PLOTS,BEACH,createState,restoreState,getPlots,unownedPlotAt,syncLandmarks,purchaseQuote,purchasePlot,approachRoute,beachQuote,purchaseBeach,completeBeach,beachStatus,toggleBeach,processHourly,demandBonus,canVisitBeach,recordBeachVisit};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.LandExpansion=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
