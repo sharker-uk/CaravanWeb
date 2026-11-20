@@ -101,7 +101,7 @@ root.ManagementArt={tree,building};
             return externalParcels.PARCELS.map(p=>{
                 const owned=externalParcels.ownsParcel(game.land,p.id);
                 const x=p.x*unit,y=p.y*unit,w=p.w*unit,h=p.h*unit;
-                return `<g class="land-1-external-preview" pointer-events="none"><rect x="${x+2}" y="${y+2}" width="${w-4}" height="${h-4}" fill="${owned?'#93ac7c20':'#ddc98e35'}" stroke="${owned?'#829c74':'#a18e59'}" stroke-width="3" stroke-dasharray="9 5"/><text x="${x+10}" y="${y+20}" fill="#44553b" font-size="12" font-weight="bold" paint-order="stroke" stroke="#f3eddb" stroke-width="3">${esc(p.name.toUpperCase())} · ${owned?'OWNED':'£'+p.price.toLocaleString('en-GB')} · PREVIEW</text></g>`;
+                return `<g class="land-1-external-preview" pointer-events="none"><rect x="${x+2}" y="${y+2}" width="${w-4}" height="${h-4}" fill="${owned?'#93ac7c20':'#ddc98e35'}" stroke="${owned?'#829c74':'#a18e59'}" stroke-width="3" stroke-dasharray="9 5"/><text x="${x+10}" y="${y+20}" fill="#44553b" font-size="12" font-weight="bold" paint-order="stroke" stroke="#f3eddb" stroke-width="3">${esc(p.name.toUpperCase())} · ${owned?'LEGACY OWNERSHIP':'PLANNED'} · PREVIEW</text></g>`;
             }).join('');
         }
         function worldMarkup() {
@@ -131,7 +131,7 @@ root.ManagementArt={tree,building};
             const buildings=places.filter(p=>p.kind!=='pitch'&&p.type!=='land_plot').sort((a,b)=>(a.y+a.h)-(b.y+b.h)).map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
             const jobs=game.constructions.map(j=>{const b=j.footprint;return b?`<rect x="${b.x*unit+1}" y="${b.y*unit+1}" width="${b.w*unit-2}" height="${b.h*unit-2}" fill="#d6ad5c55" stroke="#a88948" stroke-width="2" stroke-dasharray="6 4"/>`:'';}).join('');
             const people=layers.people?game.guests.flatMap(g=>(g.party?.members||[{}]).map((m,i)=>{const pos=g.position||{x:g.pitch.x+1,y:g.pitch.y+1},x=pos.x*unit+(i%3)*5,y=pos.y*unit+Math.floor(i/3)*5;return `<g><ellipse cx="${x+1}" cy="${y+8}" rx="3" ry="1.5" fill="#446a4c44"/><path d="M${x} ${y+2}v6" stroke="${/^#[0-9a-fA-F]{6}$/.test(m.appearance?.top||'')?m.appearance.top:'#7a91a0'}" stroke-width="4"/><circle cx="${x}" cy="${y}" r="2.5" fill="#dcbb96"/></g>`;})).join(''):'';
-            return `<rect x="-2400" y="-2400" width="4800" height="4800" fill="url(#grass)"/>${villageFringe()}${ground}${farmBoundary()}${places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
+            return `<rect x="-2400" y="-2400" width="4800" height="4800" fill="url(#grass)"/>${villageFringe()}${ground}${farmBoundary()}${externalFieldPreview()}${W.usesFarmBoundary(game)?'':places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
         }
         function farmBoundary(){
             if(!W.usesFarmBoundary(game))return '';
@@ -149,7 +149,7 @@ root.ManagementArt={tree,building};
         }
         function drawPins(){
             const focusedId=document.activeElement?.dataset.place;
-            labels.innerHTML='<path class="route-outer" data-route/><path class="route-line" stroke-width="4" data-route/>'+places.map(p=>{
+            labels.innerHTML='<path class="route-outer" data-route/><path class="route-line" stroke-width="4" data-route/>'+places.filter(p=>!(W.usesFarmBoundary(game)&&p.type==='land_plot')).map(p=>{
                 const match=!visibleIds||visibleIds.has(p.id),isSelected=p.id===selected;
                 const short=p.kind==='pitch'?p.name.replace('Pitch ',''):p.symbol;
                 return `<g data-place="${esc(p.id)}" class="map-pin${isSelected?' selected':''}${match?'':' dimmed'}" role="button" tabindex="${match?0:-1}" aria-label="${esc(p.name+', '+p.label+', '+p.status)}" aria-pressed="${isSelected}" ${match?'':'aria-hidden="true"'}><title>${esc(p.name)} · ${p.status}</title><circle class="pin-ring" r="21" fill="#fffbee80" stroke="#355c42" stroke-width="2"/><circle r="13" fill="#faf9eb" stroke="#8fa27e" filter="url(#pin-shadow)"/><text y="3" text-anchor="middle" font-size="8" font-family="Arial" fill="#476341" font-weight="600">${esc(short)}</text><circle cx="10" cy="-9" r="3.5" fill="${statusColor[p.status]}" stroke="#faf9eb" stroke-width="1.5"/><text class="map-label pin-name" text-anchor="middle" y="29">${esc(p.kind==='pitch'?'':p.name)}</text></g>`;
