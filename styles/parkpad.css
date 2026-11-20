@@ -1,0 +1,36 @@
+/* ParkPad is the primary management UI. Legacy engine stays alive underneath. */
+body[data-management="true"] #management-app {padding-top:66px}
+#management-app .masthead {display:none}
+.parkpad-bar{position:fixed;z-index:120;top:0;left:0;right:0;min-height:66px;background:#faf9f2;border-bottom:1px solid #d6d9c9;display:flex;align-items:center;gap:18px;padding:10px clamp(12px,3vw,42px);font-family:system-ui,sans-serif;color:#314b3b}
+.parkpad-bar button{border:1px solid #a7b5a2;border-radius:9px;padding:9px 15px;background:#fffdf4;color:#314b3b;cursor:pointer;font-weight:700}
+#parkpad-home-button{font-size:17px}
+#parkpad-location{font-size:14px;flex:1}
+#parkpad-balance{font-weight:700;font-size:20px}
+.parkpad-screen{position:fixed;z-index:95;top:66px;bottom:0;left:0;right:0;overflow-y:auto;background:#f2f1e8;color:#2c4438;padding:clamp(22px,4vw,55px)}
+.parkpad-screen[hidden]{display:none}
+#parkpad-content{max-width:1150px;margin:auto}
+.parkpad-intro{margin:0 0 28px}
+.parkpad-kicker{font-size:11px;letter-spacing:.17em;text-transform:uppercase;color:#657e65;font-weight:800}
+.parkpad-intro h1{font-family:Georgia,serif;font-size:clamp(30px,4vw,50px);font-weight:400;margin:9px 0}
+.parkpad-intro>p{max-width:750px}
+.parkpad-app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px}
+.parkpad-app{border:1px solid #d9d9c9;border-radius:16px;background:#fffdf7;text-align:left;padding:24px;min-height:188px;display:flex;flex-direction:column;align-items:flex-start;gap:9px;cursor:pointer;box-shadow:0 5px 20px #233e2a0c}
+.parkpad-app:hover,.parkpad-app:focus-visible{outline:2px solid #739775;outline-offset:2px}
+.parkpad-icon{font-size:34px;background:#e4e9d8;border-radius:13px;padding:12px}
+.parkpad-app strong{font-family:Georgia,serif;font-size:21px}
+.parkpad-app small{font-size:13px;color:#657064;line-height:1.5}
+.parkpad-properties{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:20px}
+.parkpad-property{border:1px solid #d6d9c9;border-radius:14px;overflow:hidden;background:#fffdf7}
+.parkpad-property-art{height:112px;background:linear-gradient(155deg,#8fa77b 0%,#b7c49a 53%,#d4c9a0 54%,#c5b88d 100%);display:flex;align-items:center;justify-content:space-evenly;font-size:37px}
+.parkpad-property-info{padding:20px}
+.parkpad-property h2{font-family:Georgia,serif;font-size:27px;font-weight:400;margin:8px 0}
+.parkpad-property-info>p{line-height:1.5}
+.parkpad-property-meta{display:flex;flex-wrap:wrap;align-items:center;gap:14px;border-top:1px solid #e4e4d9;padding-top:12px;margin-top:15px;font-size:13px}
+.parkpad-property-meta strong{font-size:23px}
+.parkpad-buy{margin-top:17px;border:0;background:#416b4b;color:white;padding:13px 16px;border-radius:8px;cursor:pointer;font-weight:700}
+.parkpad-buy:hover{background:#2e5138}
+.parkpad-test,.parkpad-owned{background:#e6eddd;border-radius:8px;padding:12px}
+.parkpad-pending{font-size:13px;color:#8c6944}
+#management-app[data-parkpad-view="map"] .sidebar,#management-app[data-parkpad-view="map"] #mg-detail{display:none!important}
+#management-app[data-parkpad-view="map"] .map-shell{width:100%;flex:1}
+@media(max-width:650px){.parkpad-bar{gap:9px;padding:8px}.parkpad-bar button{padding:8px}.parkpad-screen{padding:16px}.parkpad-properties{grid-template-columns:1fr}.parkpad-app-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.parkpad-app{padding:14px;min-height:160px}}
