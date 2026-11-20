@@ -77,7 +77,53 @@ try{
  $('#mobile-places').onclick=()=>{const aside=document.querySelector('aside'),open=aside.classList.toggle('mobile-open');$('#mobile-places').setAttribute('aria-expanded',String(open));if(open)aside.scrollTop=0;};$('#about-map').onclick=()=>$('#map-about').showModal();$('#close-about').onclick=()=>$('#map-about').close();$('#source-links').innerHTML=world.sources.map(s=>`<li><a target="_blank" rel="noopener" href="${esc(s.url)}">${esc(s.title)}</a></li>`).join('');
  $('#export-world').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(world,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='littlehampton-world-v1.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
  terrain();pins();new ResizeObserver(()=>{const r=svg.getBoundingClientRect();width=r.width;height=r.height;svg.setAttribute('viewBox',`0 0 ${width} ${height}`);fit();}).observe(svg);
- function frame(now){const dt=last?Math.min(.2,(now-last)/1000):0;last=now;V.advance(sim,dt);$('#v-cars').innerHTML=sim.cars.map(c=>{const p=V.position(sim,c),color={Guest:'#e7e6d5',Village:'#819d98',Through:'#a19580',Service:'#b99e7c'}[c.kind];return `<g transform="translate(${p.x} ${p.y}) rotate(${p.angle})"><rect x="-${c.length/2}" y="-3.5" width="${c.length}" height="7" rx="2" fill="${color}" stroke="#637a67" stroke-width=".8"/><rect x="1" y="-2.6" width="3" height="5.2" fill="#8ba6a0"/>${c.kind==='Guest'?'<path d="M-2-4v8" stroke="#7c8e77"/>':''}</g>`;}).join('');$('#signal-north').setAttribute('fill',V.signal(sim,true)?'#7da379':'#c08166');$('#signal-south').setAttribute('fill',V.signal(sim,false)?'#7da379':'#c08166');if(now-statsAt>250){statsAt=now;const m=V.metrics(sim);$('#traffic-vehicles').textContent=m.vehicles;$('#traffic-queue').textContent=m.queued;$('#traffic-delay').textContent=m.meanDelay+'s';$('#traffic-pressure').textContent=m.pressure;$('#traffic-status').textContent=`Traffic study ${sim.paused?'paused':'running'} · ${Math.floor(sim.time/60)}m ${Math.floor(sim.time%60)}s`;}requestAnimationFrame(frame);}
+ // Village walkabout is entered only from the park gate; traffic and village remain visible.
+ const gate=window.CaravanRegionGate;
+ const walkingVillage=Boolean(gate&&location.hash==='#walk'&&gate.consume(sessionStorage,'village'));
+ const villagePlayer={x:world.nodes.parkGate[0],y:world.nodes.parkGate[1]};
+ const villageKeys=new Set();
+ let villageHint=null,villageAvatar=null;
+ if(walkingVillage){
+  villageAvatar=document.createElementNS('http://www.w3.org/2000/svg','g');
+  villageAvatar.setAttribute('id','village-player');
+  villageAvatar.innerHTML='<circle r="9" fill="#e8bc68" stroke="#fff6df" stroke-width="3"/><path d="M-4-3h8M0-5v10" stroke="#665a44" stroke-width="2"/>';
+  group.append(villageAvatar);
+  villageHint=document.createElement('div');
+  villageHint.setAttribute('role','status');
+  villageHint.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#f8f2df;color:#315039;padding:10px 16px;border-radius:10px;z-index:20;box-shadow:0 2px 12px #0003;font-weight:600';
+  villageHint.textContent='WASD / arrows: walk village roads · E: interact / return at park gate';
+  document.body.append(villageHint);
+  camera.x=villagePlayer.x;camera.y=villagePlayer.y;camera.zoom=Math.max(camera.zoom,1.15);
+  document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;const k=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','e'].includes(k)){e.preventDefault();e.stopPropagation();villageKeys.add(k);}},true);
+  document.addEventListener('keyup',e=>villageKeys.delete(e.key.toLowerCase()),true);
+  window.addEventListener('blur',()=>villageKeys.clear());
+ }
+ function walkVillage(dt){
+  if(!walkingVillage)return;
+  const dx=Number(villageKeys.has('d')||villageKeys.has('arrowright'))-Number(villageKeys.has('a')||villageKeys.has('arrowleft'));
+  const dy=Number(villageKeys.has('s')||villageKeys.has('arrowdown'))-Number(villageKeys.has('w')||villageKeys.has('arrowup'));
+  const len=Math.hypot(dx,dy),speed=105;
+  if(len){
+   const nx=villagePlayer.x+dx/len*speed*dt,ny=villagePlayer.y+dy/len*speed*dt;
+   // Roads are the first navigable corridor; private gardens remain inaccessible.
+   const passable=(x,y)=>roads.some(r=>toSegment([x,y],world.nodes[r.a],world.nodes[r.b])<=Math.max(10,r.width*.65));
+   if(passable(nx,villagePlayer.y))villagePlayer.x=nx;
+   if(passable(villagePlayer.x,ny))villagePlayer.y=ny;
+  }
+  const gateDistance=Math.hypot(villagePlayer.x-world.nodes.parkGate[0],villagePlayer.y-world.nodes.parkGate[1]);
+  const nearby=world.places.filter(p=>p.id!=='park').map(p=>({p,d:Math.hypot(villagePlayer.x-p.x,villagePlayer.y-p.y)})).sort((a,b)=>a.d-b.d)[0];
+  if(villageKeys.has('e')){
+   villageKeys.delete('e');
+   if(gateDistance<24){gate.write(sessionStorage,'park');location.assign('index.html');return;}
+   if(nearby&&nearby.d<65){select(nearby.p.id);villageHint.textContent=nearby.p.name+' · '+nearby.p.description; }
+  }else if(gateDistance<24)villageHint.textContent='Park entrance · Press E to return to your farm';
+  else if(nearby&&nearby.d<65)villageHint.textContent=nearby.p.name+' · Press E to explore';
+  else villageHint.textContent='WASD / arrows: walk village roads · Follow Natwinch Road towards the High Street';
+  villageAvatar.setAttribute('transform',`translate(${villagePlayer.x} ${villagePlayer.y})`);
+  const t=Math.min(1,dt*5);
+  camera.x+=(villagePlayer.x-camera.x)*t;camera.y+=(villagePlayer.y-camera.y)*t;transform();
+ }
+ function frame(now){const dt=last?Math.min(.2,(now-last)/1000):0;last=now;V.advance(sim,dt);walkVillage(dt);$('#v-cars').innerHTML=sim.cars.map(c=>{const p=V.position(sim,c),color={Guest:'#e7e6d5',Village:'#819d98',Through:'#a19580',Service:'#b99e7c'}[c.kind];return `<g transform="translate(${p.x} ${p.y}) rotate(${p.angle})"><rect x="-${c.length/2}" y="-3.5" width="${c.length}" height="7" rx="2" fill="${color}" stroke="#637a67" stroke-width=".8"/><rect x="1" y="-2.6" width="3" height="5.2" fill="#8ba6a0"/>${c.kind==='Guest'?'<path d="M-2-4v8" stroke="#7c8e77"/>':''}</g>`;}).join('');$('#signal-north').setAttribute('fill',V.signal(sim,true)?'#7da379':'#c08166');$('#signal-south').setAttribute('fill',V.signal(sim,false)?'#7da379':'#c08166');if(now-statsAt>250){statsAt=now;const m=V.metrics(sim);$('#traffic-vehicles').textContent=m.vehicles;$('#traffic-queue').textContent=m.queued;$('#traffic-delay').textContent=m.meanDelay+'s';$('#traffic-pressure').textContent=m.pressure;$('#traffic-status').textContent=`Traffic study ${sim.paused?'paused':'running'} · ${Math.floor(sim.time/60)}m ${Math.floor(sim.time%60)}s`;}requestAnimationFrame(frame);}
  requestAnimationFrame(frame);
 }catch(error){$('#v-error').hidden=false;$('#v-error').textContent=error.message;}
 })();
