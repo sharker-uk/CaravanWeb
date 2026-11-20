@@ -154,7 +154,12 @@ function renderResults(){
     $('#mg-saved').setAttribute('aria-pressed',app.savedOnly);
     document.querySelectorAll('[data-category]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.category===app.category)));
     let last='';const html=list.map(p=>{const group=p.kind==='pitch'?'PITCHES & CARAVANS':p.kind==='facility'?'PARK FACILITIES':p.kind==='land'?'LAND & BEACH':'AROUND THE PARK',heading=group!==last?`<div class="result-group">${group}</div>`:'';last=group;return `${heading}<button class="result-item" data-select="${esc(p.id)}" aria-label="Manage ${esc(p.name)}" aria-pressed="${p.id===app.selected}"><span class="result-icon">${p.van?'<svg viewBox="0 0 40 32" aria-hidden="true"><path d="M4 24V10q0-4 4-4h24q4 0 4 4v14Z" fill="#b6c9a2" stroke="#789773"/><path d="M9 11h11v7H9Zm17 0h6v13h-6" fill="#f8f8e8" stroke="#789773"/><circle cx="12" cy="25" r="3" fill="#67805d"/><circle cx="29" cy="25" r="3" fill="#67805d"/></svg>':esc(p.symbol)}</span><span class="result-copy"><strong>${esc(p.name)}</strong><small>${esc(p.label)}</small></span><span class="result-end"><i class="status-dot ${p.status}" title="${p.status}"></i><span class="sr-only">${p.status}</span>${app.saved.includes(p.id)?'♥':'›'}</span></button>`;}).join('')||'<div class="empty">A little room to grow.<small>No places match these filters. A new park starts with just the farm and village shops.</small><button data-reset class="text-button">Reset filters</button></div>';
-    if(html!==lastResults){replaceKeepingFocus($('#mg-results'),html);lastResults=html;}
+    if(app.view==='land'&&api.landTestEnabled?.()){
+        const q=api.southFieldQuote();
+        const card='<div class="result-group">CAISTER COASTAL ESTATES · DEVELOPMENT TEST</div><div class="result-item" style="display:block;padding:14px"><strong>South Field · '+money(q.price)+'</strong><p>Old barn and overgrown ground. Instant completion is enabled for this development test only.</p><p>'+ (q.plot?.owned?'Purchased · South Field is now owned':q.reasons.map(esc).join(' ')) +'</p>'+(!q.plot?.owned?'<button class="primary" data-test-south-buy '+(q.ok?'':'disabled')+'>Purchase South Field instantly</button>':'')+'</div>';
+        const output=card+html;
+        if(output!==lastResults){replaceKeepingFocus($('#mg-results'),output);lastResults=output;}
+    }else if(html!==lastResults){replaceKeepingFocus($('#mg-results'),html);lastResults=html;}
 }
 function detailHero(p){if(p.kind==='land')return `<svg viewBox="0 0 285 104" aria-hidden="true"><rect width="285" height="104" fill="#dce5ce"/><path d="M0 86H285" stroke="#d0c5a4" stroke-width="20"/>${ManagementArt.tree(58,76,19,2)}${ManagementArt.tree(225,68,16,1)}${p.type==='beach_gate'?'<path d="M120 54v40m40-40v40m-40-29h40m-40 16h40" stroke="#9a8966" stroke-width="4"/>':'<path d="M99 84V40h85v44Z" fill="#eae3c9" stroke="#a3926c"/><text x="141" y="68" text-anchor="middle" fill="#6a7857" font-size="13">'+(p.status==='owned'?'YOUR FIELD':'FOR SALE')+'</text>'}</svg>`;const obj={id:p.type,x:145,y:55,w:95,h:42,type:p.kind==='pitch'?(p.van?'static':p.guest?.accommodation==='tent'?'tent':'touring'):'facility',tier:p.van?StaticCaravans.getModel(p.van.modelId)?.tierName:'Silver'};return `<svg viewBox="0 0 285 104" aria-hidden="true"><rect width="285" height="104" fill="#dce5ce"/><path d="M0 87H285" stroke="#c3c7a4" stroke-width="18"/>${ManagementArt.tree(42,64,17,2)}${ManagementArt.tree(242,64,17,1)}${ManagementArt.building(obj)}</svg>`;}
 function actionButton(action,label,disabled=false,primary=false){return `<button data-action="${action}" ${disabled?'disabled':''} class="${primary?'primary':''}" id="mg-action-${action}">${label}</button>`;}
@@ -261,6 +266,12 @@ function showWelcome(){if(api.getState().pitches.length||localStorage.getItem('c
 function runAction(action){const p=current(),entity=p?.van||p?.entity;const result=api.action(action,entity);render(true);return result;}
 $('#mg-search').addEventListener('input',e=>{app.query=e.target.value;render(true);});$('#mg-status').addEventListener('change',e=>{app.status=e.target.value;render(true);});
 $('#mg-saved').addEventListener('click',()=>{app.savedOnly=!app.savedOnly;render(true);});$('#mg-reset-filters').addEventListener('click',resetFilters);
+$('#mg-results').addEventListener('click',event=>{
+    const button=event.target.closest('[data-test-south-buy]');if(!button)return;
+    const q=api.southFieldQuote();if(!q.ok){announce(q.reasons.join(' '));render(true);return;}
+    if(!window.confirm('Development test: buy South Field instantly for '+money(q.price)+'?'))return;
+    const result=api.purchaseSouthFieldTest();if(!result.ok)announce(result.reasons.join(' '));render(true);
+});
 $('#mg-pause').addEventListener('click',()=>{api.pause();render(true);});$('#mg-save').addEventListener('click',()=>{if(api.save()){setText('save-status','Saved just now');announce('Park saved in this browser.');}});
 $('#mg-plan').addEventListener('click',()=>{const plan=map.togglePlan();$('#mg-plan').setAttribute('aria-pressed',String(plan));$('#mg-plan').textContent=plan?'◇ Landscape view':'◇ Plan view';});
 $('#mg-layers').addEventListener('click',()=>{const open=$('#layers-panel').hidden;$('#layers-panel').hidden=!open;$('#mg-layers').setAttribute('aria-expanded',String(open));});
