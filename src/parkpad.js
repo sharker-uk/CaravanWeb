@@ -16,9 +16,12 @@
   ['guests','🧳','Guests','Bookings and visitor needs'],
   ['settings','🏠','Park Office','Staff, saves and settings']
  ];
- root.insertAdjacentHTML('afterbegin',`<div id="parkpad-bar" class="parkpad-bar"><button type="button" id="parkpad-home-button">▦ ParkPad</button><span id="parkpad-location">Home</span><span id="parkpad-balance">£1,500</span><button type="button" id="parkpad-save">Save</button></div><section id="parkpad-screen" class="parkpad-screen" aria-label="ParkPad tablet"><div id="parkpad-content"></div></section>`);
+ root.insertAdjacentHTML('afterbegin',`<div id="parkpad-bar" class="parkpad-bar"><button type="button" id="parkpad-home-button">▦ ParkPad</button><span id="parkpad-location">Home</span><span id="parkpad-balance">£1,500</span><button type="button" id="parkpad-save">Save</button><button type="button" id="parkpad-close">✕ Close tablet</button></div><section id="parkpad-screen" class="parkpad-screen" aria-label="ParkPad tablet"><div id="parkpad-content"></div></section>`);
  const screen=document.querySelector('#parkpad-screen'),content=document.querySelector('#parkpad-content'),locationLabel=document.querySelector('#parkpad-location'),balance=document.querySelector('#parkpad-balance');
  let current='home',ready=false;
+ const tabletOpen=()=>document.body.classList.contains('tablet-open');
+ function showTablet(open){document.querySelector('#parkpad-bar').hidden=!open;screen.hidden=!open||!['home','estate'].includes(current);root.dataset.parkpadVisible=String(open);}
+ window.addEventListener('caravan:tablet',event=>{if(event.detail.open){navigate('home');showTablet(true);}else showTablet(false);});
  const game=()=>window.CaravanGame;
  const state=()=>game()?.getState();
  const land=()=>window.CaravanLandParcels;
@@ -29,7 +32,7 @@
   if(!['home','estate'].includes(view)){
    const button=root.querySelector('.main-nav [data-view="'+legacy+'"]');button?.click();
   }
-  screen.hidden=!['home','estate'].includes(view);
+  screen.hidden=!tabletOpen()||!['home','estate'].includes(view);
   if(view==='home')renderHome();
   if(view==='estate')renderEstate();
   syncBalance();
@@ -57,10 +60,12 @@
   }
  });
  document.querySelector('#parkpad-home-button').addEventListener('click',()=>navigate('home'));
+ document.querySelector('#parkpad-close').addEventListener('click',()=>document.querySelector('#mg-walk-mode')?.click());
  document.querySelector('#parkpad-save').addEventListener('click',()=>{if(game()?.save())window.showToast?.('Park saved.');});
  window.addEventListener('caravan:ready',()=>{ready=true;navigate('home');});
  window.addEventListener('caravan:change',()=>{if(ready){syncBalance();if(current==='estate')renderEstate();}});
  // Existing management shell has already registered its own ready listener.
  // On a late injection the game may already exist.
  if(game()?.getState?.()){ready=true;navigate('home');}
+ showTablet(tabletOpen());
 })();
