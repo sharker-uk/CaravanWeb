@@ -36,3 +36,14 @@
 - [ ] Confirm tree interaction only grants timber once and remains cleared after reload.
 
 **Review rule:** no merge or public deployment until these checks pass and the Owner approves the playable preview.
+
+## Follow-up: walk-first and tablet management (20 Nov 2026)
+
+- Default mode is **Walk**, with the management masthead/sidebar/finance/build tools visually hidden. **Tablet** button and Tab (outside form fields/dialogs) reveal the existing management UI; Tab/Escape returns to walking.
+- Smooth movement uses requestAnimationFrame delta-time, 4 logical tiles/sec, normalized diagonals and the existing `GameStateApi.canOccupyPlayer` collision predicate. WASD/arrows move continuously while held; click-to-walk follows tile-centre waypoints with continuous interpolation.
+- Character remains in the same world and simulation; switching modes does not create a second game or pause the clock.
+- Walk mode handles physical clearing with E after approaching trees/debris. Planning/building, roads, pitches, utilities, bookings and finances remain in the tablet. Walk mode does not expose the build UI.
+- Avatar position updates without reconstructing the whole SVG map; camera-follow does not write localStorage every frame.
+- Movement unit tests expanded for frame-time movement, diagonal normalization, collision and path completion.
+
+**Outstanding verification:** GitHub connector edits were not run in a browser or local Node process. Cloudflare preview smoke test and `npm test` remain required. Additional physical interactions, sprite animations, mobile touch movement and improved character appearance remain separate work.
