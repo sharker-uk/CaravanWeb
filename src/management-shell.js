@@ -28,7 +28,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="management-app">
   <div class="map-heading"><div><span class="eyebrow">NORFOLK COAST · YOUR PARK</span><h2 id="mg-park-name">HamptonVilla <span>Management view</span></h2></div><button id="mobile-list" aria-expanded="false">☰ Places</button></div>
   <div class="map-actions"><a class="village-link" href="village.html">Village map</a><button id="mg-plan" aria-pressed="false">◇ Plan view</button><button id="mg-layers" aria-expanded="false">▱ Layers</button></div>
   <div id="layers-panel" class="layers-panel" hidden><h3>Map layers</h3><label><input type="checkbox" id="mg-labels" checked> Place labels</label><label><input type="checkbox" id="mg-people" checked> Guests</label><label><input type="checkbox" id="mg-utilities"> Utility connections</label><label><input type="checkbox" id="mg-grid"> Tile grid</label><p class="fine-print">Utilities: blue water · amber gas · gold electricity · green waste. Dashed lines have no mains connection.</p></div>
-  <svg id="park-map" role="group" tabindex="0" aria-label="Live park map. Drag to pan, scroll to zoom. Arrow keys pan, Q and E rotate, zero fits the park."><defs>
+  <svg id="park-map" role="group" tabindex="0" aria-label="Park and village. Use WASD or the arrow keys to walk. Open the tablet to manage the park."><defs>
    <pattern id="grass" width="36" height="36" patternUnits="userSpaceOnUse"><rect width="36" height="36" fill="#aabe94"/><path d="m5 8 2-3m19 19 2-3M11 31l2-3" stroke="#879f76" stroke-width=".8" opacity=".32"/></pattern>
    <pattern id="water" width="60" height="36" patternUnits="userSpaceOnUse"><rect width="60" height="36" fill="#9fc3c4"/><path d="M5 15q12-5 24 0m8 12q8-3 15 0" fill="none" stroke="#d4e3d9" stroke-width="1.5" opacity=".55"/></pattern>
    <pattern id="sand" width="30" height="30" patternUnits="userSpaceOnUse"><rect width="30" height="30" fill="#e7d7ac"/><path d="M3 6h2m13 15h2" stroke="#c6b78e" opacity=".6"/></pattern>
@@ -59,6 +59,23 @@ const title=s=>String(s||'').replaceAll('_',' ').replace(/^\w/,c=>c.toUpperCase(
 const app={view:'map',selected:null,query:'',category:'all',status:'all',savedOnly:false,saved:[],route:false,layers:{labels:true,people:true,utilities:false,grid:false}};
 let api,map,places=[],renderTimer,ready=false,lastDetail='',lastResults='',lastPanel='',lastBuild='';
 let walking=true,interaction=null,lastFrame=0,lastAutosave=0;
+let walker=null, walkerState=null;
+const world=window.CaravanConnectedWorld;
+
+function walkingPosition(){
+ const state=api.getState();
+ if(state!==walkerState){
+  walkerState=state;
+  walker={...state.player};
+  if(world.usesFarmBoundary(state)&&walker.x<world.farm.west){
+   const candidates=[{x:world.gate.x+.5,y:world.gate.y-.5},...state.tiles.flatMap((row,y)=>
+    row.map((tile,x)=>({x:x+.5,y:y+.5})))];
+   const safe=candidates.find(p=>world.inFarm(p.x,p.y)&&GameStateApi.canOccupyPlayer(state,p.x,p.y));
+   if(safe)walker=safe;
+  }
+ }
+ return walker;
+}
 const held=new Set();
 const canWalk=(state,x,y)=>GameStateApi.getTileProperties(state,x,y).walkable;
 function stopWalking(){held.clear();if(api){api.getState().playerPath=[];}}
@@ -66,14 +83,23 @@ function setTablet(open){
  if(!ready)return;
  walking=!open;stopWalking();interaction=null;api.tool('select');
  document.body.classList.toggle('tablet-open',open);
+ $('#park-map').setAttribute('aria-label',open
+  ? 'Park management map. Drag to pan, scroll to zoom, or select a place.'
+  : 'Park and village. Use WASD or the arrow keys to walk. Open the tablet to manage the park.');
  const button=document.getElementById('mg-walk-mode');
- if(button){button.textContent=open?'🚶 Return to park':'📱 Tablet';button.setAttribute('aria-label',open?'Close tablet and return to walking':'Open management tablet');button.setAttribute('aria-pressed',String(open));}
- if(!open){map.followPlayer(api.getState().player);document.getElementById('park-map').focus({preventScroll:true});}
+ if(button){button.textContent=open?'🚶 Resume walking':'📱 Tablet';button.setAttribute('aria-label',open?'Close tablet and return to walking':'Open management tablet');button.setAttribute('aria-pressed',String(open));}
+ if(open&&api.getState().walkingInVillage)map.followPlayer(api.getState().player);
+ if(!open){map.followPlayer(walkingPosition());document.getElementById('park-map').focus({preventScroll:true});}
  map.invalidate();render(true);
 }
 function walkTo(target,approach=false){
  if(!walking)return false;
- const state=api.getState(),path=LivingParkMovement.route(state,state.player,target,canWalk,approach);
+ const state=api.getState(),player=walkingPosition();
+ if(world.usesFarmBoundary(state)&&(!world.inFarm(player.x,player.y)||!world.inFarm(target.x,target.y))){
+  announce('Use WASD or the arrow keys to walk in the village.');return false;
+ }
+ const walkable=(s,x,y)=>canWalk(s,x,y)&&(!world.usesFarmBoundary(s)||world.inFarm(x,y));
+ const path=LivingParkMovement.route(state,player,target,walkable,approach);
  if(!path){announce('No walkable route to that spot.');return false;}
  state.playerPath=path.map(p=>({x:p.x+.5,y:p.y+.5}));
  if(!path.length)render(true);
@@ -85,18 +111,20 @@ function walkingFrame(timestamp){
  const dt=Math.min((timestamp-(lastFrame||timestamp))/1000,.05);lastFrame=timestamp;
  if(!walking||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  const state=api.getState();
- // Gate crossing is the only supported park-to-village transition.
- const gate=window.CaravanRegionGate;
- if(gate&&gate.canExit(state.player,held.has('a')||held.has('arrowleft'))){
-  api.save();gate.write(sessionStorage,'village');location.assign('village.html#walk');return;
- }
+ const player=walkingPosition();
  const input={left:held.has('a')||held.has('arrowleft'),right:held.has('d')||held.has('arrowright'),up:held.has('w')||held.has('arrowup'),down:held.has('s')||held.has('arrowdown')};
- const moving=LivingParkMovement.advance(state,dt,input,GameStateApi.getTileProperties,GameStateApi.canOccupyPlayer);
- map.updatePlayer(state.player);
- if(moving){
-  map.followPlayer(state.player,dt);
+ const moving=LivingParkMovement.advance(state,dt,input,GameStateApi.getTileProperties,map.canWalk,4,player);
+ const inVillage=world.usesFarmBoundary(state)&&!world.inFarm(player.x,player.y);
+ if(inVillage!==Boolean(state.walkingInVillage)){
+  state.walkingInVillage=inVillage;
+  interaction=null;
+ }
+ map.updatePlayer(player);
+ if(moving&&!inVillage){
+  Object.assign(state.player,player);
   if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
  }
+ map.followPlayer(player,dt);
 }
 requestAnimationFrame(walkingFrame);
 try{const ids=JSON.parse(localStorage.getItem('caravanweb_management_saved_v1')||'[]');if(Array.isArray(ids))app.saved=ids.filter(id=>typeof id==='string');}catch{}
@@ -204,7 +232,7 @@ function renderPanel(state){
         html+=transactions.length?`<div class="table-scroll"><table><thead><tr><th>Day</th><th>Transaction</th><th>Amount</th><th>Balance</th></tr></thead><tbody>${transactions.map(t=>`<tr><td>${t.day}</td><td>${esc(t.description)}<small>${esc(title(t.category))}</small></td><td class="${t.amount<0?'negative':'positive'}">${money(t.amount)}</td><td>${money(t.balance)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="panel-empty"><h3>A clean set of books.</h3><p>Your first building project or guest booking will appear here. The starting scenario includes its opening assets.</p></div>';
     }
     if(app.view==='settings'){
-        html=panelHeader('THE PARK OFFICE','Keep the park ticking.','Staff, tools, time settings and a safe place for your progress.')+`<div class="settings-grid"><article><h3>Your team</h3><p>${state.groundsStaff?'Grounds staff are cleaning and maintaining toilets for £1 per game hour.':'Grounds staff unlock at 4 facilities and 6 pitches. Hiring costs £250, then £1 per game hour.'}</p><button class="primary" data-action="grounds" ${!state.groundsStaff&&(state.facilities.length<4||state.pitches.length<6||state.cash<250)?'disabled':''}>${state.groundsStaff?'Dismiss grounds staff':'Hire grounds staff · £250'}</button><p>A handyman can cover urgent repairs for 24 game hours.</p><button data-action="handyman" ${state.handymanContractHoursRemaining>0||state.cash<100?'disabled':''}>${state.handymanContractHoursRemaining>0?'Handyman booked · '+state.handymanContractHoursRemaining+'h left':'Book handyman · £100'}</button></article><article><h3>Tools & timber</h3><p>The shovel unlocks hardstanding preparation and utility trenching.</p><button data-action="shovel" ${state.tools.shovel||state.cash<350?'disabled':''}>${state.tools.shovel?'Shovel owned':'Buy shovel · £350'}</button><p>${state.wood} timber in storage.</p><button data-action="timber" ${state.wood<=0?'disabled':''}>Sell timber · ${money(LandManagement.getTimberSaleValue(state.wood))}</button><h3>Game pace</h3><label for="mg-day-length">Day length setting: ${state.dayLengthMinutes} min</label><input id="mg-day-length" type="range" min="3" max="60" value="${state.dayLengthMinutes}"></article><article><h3>Your save</h3><p>Progress is saved in this browser. Export a game file to keep a portable copy or move to another device.</p><button class="primary" id="mg-export">Export game save</button><button id="mg-import">Import game save</button><button id="mg-export-backup" ${!api.getBackup()?'disabled':''}>Export recovery backup</button><p>A previous-save backup is created before loading a file or starting another scenario.</p></article><article><h3>A different perspective</h3><p>The classic avatar view uses the same simulation and local save. Your management camera is stored separately.</p><a class="button-link" href="walkabout.html">Open classic walkabout</a><h3>Start another park</h3><p>Choose a new farm or a developed park. Your current park is kept as a recovery backup.</p><button id="mg-new-park">Choose a new scenario</button></article></div>`;
+        html=panelHeader('THE PARK OFFICE','Keep the park ticking.','Staff, tools, time settings and a safe place for your progress.')+`<div class="settings-grid"><article><h3>Your team</h3><p>${state.groundsStaff?'Grounds staff are cleaning and maintaining toilets for £1 per game hour.':'Grounds staff unlock at 4 facilities and 6 pitches. Hiring costs £250, then £1 per game hour.'}</p><button class="primary" data-action="grounds" ${!state.groundsStaff&&(state.facilities.length<4||state.pitches.length<6||state.cash<250)?'disabled':''}>${state.groundsStaff?'Dismiss grounds staff':'Hire grounds staff · £250'}</button><p>A handyman can cover urgent repairs for 24 game hours.</p><button data-action="handyman" ${state.handymanContractHoursRemaining>0||state.cash<100?'disabled':''}>${state.handymanContractHoursRemaining>0?'Handyman booked · '+state.handymanContractHoursRemaining+'h left':'Book handyman · £100'}</button></article><article><h3>Tools & timber</h3><button data-action="fiddl">Browse pitch accessories</button><p>The shovel unlocks hardstanding preparation and utility trenching.</p><button data-action="shovel" ${state.tools.shovel||state.cash<350?'disabled':''}>${state.tools.shovel?'Shovel owned':'Buy shovel · £350'}</button><p>${state.wood} timber in storage.</p><button data-action="timber" ${state.wood<=0?'disabled':''}>Sell timber · ${money(LandManagement.getTimberSaleValue(state.wood))}</button><h3>Game pace</h3><label for="mg-day-length">Day length setting: ${state.dayLengthMinutes} min</label><input id="mg-day-length" type="range" min="3" max="60" value="${state.dayLengthMinutes}"></article><article><h3>Your save</h3><p>Progress is saved in this browser. Export a game file to keep a portable copy or move to another device.</p><button class="primary" id="mg-export">Export game save</button><button id="mg-import">Import game save</button><button id="mg-export-backup" ${!api.getBackup()?'disabled':''}>Export recovery backup</button><p>A previous-save backup is created before loading a file or starting another scenario.</p></article><article><h3>A different perspective</h3><p>The classic avatar view uses the same simulation and local save. Your management camera is stored separately.</p><a class="button-link" href="walkabout.html">Open classic walkabout</a><h3>Start another park</h3><p>Choose a new farm or a developed park. Your current park is kept as a recovery backup.</p><button id="mg-new-park">Choose a new scenario</button></article></div>`;
     }
     if(html!==lastPanel){replaceKeepingFocus($('#mg-panel'),html);lastPanel=html;}
 }
@@ -249,7 +277,7 @@ $('#management-app').addEventListener('click',e=>{
     const tool=e.target.closest('[data-tool]');if(tool){setTool(tool.dataset.tool);return;}
     const speed=e.target.closest('[data-game-speed]');if(speed){api.speed(speed.dataset.gameSpeed);render(true);return;}
     const category=e.target.closest('[data-category]');if(category){app.category=category.dataset.category;render(true);return;}
-    const start=e.target.closest('[data-start]');if(start){const result=api.begin(start.dataset.start);if(result.ok){app.selected=null;app.route=false;app.view='map';resetFilters();$('#mg-welcome').close();map.invalidate();map.fit();render(true);}return;}
+    const start=e.target.closest('[data-start]');if(start){const result=api.begin(start.dataset.start);if(result.ok){app.selected=null;app.route=false;app.view='map';resetFilters();$('#mg-welcome').close();map.invalidate();map.fit();if(walking)map.followPlayer(walkingPosition());render(true);}return;}
     if(e.target.closest('[data-reset]')){resetFilters();return;}
     if(e.target.closest('.detail-close')){select(null,false);return;}
     if(e.target.closest('[data-open-settings]')){setView('settings');return;}
@@ -263,7 +291,7 @@ $('#management-app').addEventListener('click',e=>{
     if(e.target.closest('#mg-new-park'))showWelcome();
 });
 $('#mg-panel').addEventListener('change',e=>{if(e.target.id==='mg-day-length'){api.dayLength(e.target.value);render(true);}});
-$('#mg-import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>5*1024*1024)throw new Error('Choose a game save under 5 MB.');const result=api.importSave(await file.text());if(result.ok){stopWalking();interaction=null;app.selected=null;app.route=false;map.invalidate();resetFilters();if(walking)map.followPlayer(api.getState().player);}}catch(error){announce(error.message);}finally{e.target.value='';render(true);}});
+$('#mg-import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>5*1024*1024)throw new Error('Choose a game save under 5 MB.');const result=api.importSave(await file.text());if(result.ok){stopWalking();interaction=null;app.selected=null;app.route=false;map.invalidate();resetFilters();if(walking)map.followPlayer(walkingPosition());}}catch(error){announce(error.message);}finally{e.target.value='';render(true);}});
 window.addEventListener('hashchange',()=>{const id=new URLSearchParams(location.hash.slice(1)).get('place');select(id);});
 document.addEventListener('keyup',e=>held.delete(e.key.toLowerCase()));
 window.addEventListener('blur',()=>held.clear());
@@ -278,7 +306,7 @@ document.addEventListener('keydown',e=>{
  if(walking){
   if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();held.add(key);return;}
   if(key==='e'&&interaction){
-   e.preventDefault();const p=LivingParkMovement.tile(api.getState().player);
+   e.preventDefault();const p=LivingParkMovement.tile(walkingPosition());
    if(LivingParkMovement.adjacent(p,interaction)&&['tree','debris'].includes(api.getState().tiles[interaction.y]?.[interaction.x]?.nature)){
     const result=api.build('clear',interaction,interaction);
     if(result.ok){interaction=null;map.invalidate();render(true);}
@@ -302,7 +330,7 @@ window.addEventListener('caravan:ready',()=>{
       api.getState().playerPath=[];
       api.save();
     }
-    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,onGround:target=>{
+    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,onGround:target=>{
         const nature=api.getState().tiles[target.y]?.[target.x]?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
         if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press E to clear it.');
@@ -312,7 +340,7 @@ window.addEventListener('caravan:ready',()=>{
     if(!cameraSaved)map.fit();render(true);
     const walkButton=document.createElement('button');walkButton.id='mg-walk-mode';walkButton.type='button';walkButton.textContent='📱 Tablet';walkButton.setAttribute('aria-pressed','false');walkButton.setAttribute('aria-label','Open management tablet');walkButton.style.cssText='position:absolute;bottom:52px;right:18px;z-index:5;padding:10px 14px;border-radius:12px;background:#fff8e8;color:#294a36;border:2px solid #718c70;cursor:pointer;font-weight:700;box-shadow:0 3px 12px #223c3522';
     $('.map-shell').append(walkButton);walkButton.addEventListener('click',()=>setTablet(walking));
-    map.followPlayer(api.getState().player);
+    map.followPlayer(walkingPosition());
     const plan=map.getCamera().tilt===1;$('#mg-plan').setAttribute('aria-pressed',String(plan));$('#mg-plan').textContent=plan?'◇ Landscape view':'◇ Plan view';
     let exists=false;try{exists=Boolean(localStorage.getItem('caravan_tycoon_save'));}catch{}
     if(!exists)showWelcome();

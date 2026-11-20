@@ -8,7 +8,10 @@ const overlaps=(a,b)=>a&&b&&a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 const hour=s=>(s.day-1)*24+s.hour;
 function createState(enabled=false){return {version:1,enabled,ownedPlotIds:[],beach:{purchased:false,constructed:false,isOpen:false,completedAtMinutes:null,lastUpkeepHour:null}};}
 function restoreState(s){
- const saved=s.land,next=createState(saved?.version===1?saved.enabled===true:!s.parkPackageId&&(s.landmarks||[]).some(l=>l.type==='farmhouse'&&l.x===13&&l.y===17));
+ const saved=s.land;
+ const starterFarm=(s.landmarks||[]).some(l=>l.type==='farmhouse'&&
+  (l.name==='Run-down farmhouse'&&l.w===6&&l.h===5||l.x===13&&l.y===17));
+ const next=createState(saved?.version===1?saved.enabled===true:!s.parkPackageId&&starterFarm);
  if(saved?.version===1){next.ownedPlotIds=PLOTS.filter(p=>Array.isArray(saved.ownedPlotIds)&&saved.ownedPlotIds.includes(p.id)).map(p=>p.id);const b=saved.beach||{};Object.assign(next.beach,{purchased:b.purchased===true,constructed:b.purchased===true&&b.constructed===true,isOpen:b.purchased===true&&b.constructed===true&&b.isOpen===true,completedAtMinutes:Number.isFinite(b.completedAtMinutes)&&b.completedAtMinutes>=0?b.completedAtMinutes:null,lastUpkeepHour:Number.isInteger(b.lastUpkeepHour)&&b.lastUpkeepHour>=0?b.lastUpkeepHour:null});return next;}
  if(next.enabled){const sale=(s.landmarks||[]).filter(l=>l.type==='for_sale'&&overlaps(l,{x:29,y:12,w:17,h:16})),assets=[...(s.pitches||[]),...(s.facilities||[]),...(s.constructions||[]).map(j=>j.footprint).filter(Boolean)];next.ownedPlotIds=PLOTS.filter(p=>!sale.some(l=>overlaps(l,p))||assets.some(a=>overlaps(a,p))).map(p=>p.id);}return next;
 }

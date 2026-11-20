@@ -6,7 +6,7 @@
     function isRoute(tile) { return Boolean(tile && (tile.road || tile.path)); }
 
     // A utility only works if its laid tiles form a contiguous route to a park-edge
-    // connection, which represents the incoming mains feed in this prototype.
+    // connection or to an explicitly marked mains inlet.
     function getConnectedUtilityTiles(tileMap = [], type) {
         if (!UTILITY_TYPES.includes(type) || !Array.isArray(tileMap) || !tileMap.length) return new Set();
         const height = tileMap.length;
@@ -22,6 +22,9 @@
         };
         for (let x = 0; x < width; x++) { add(x, 0); add(x, height - 1); }
         for (let y = 0; y < height; y++) { add(0, y); add(width - 1, y); }
+        tileMap.forEach((row, y) => row?.forEach((tile, x) => {
+            if (tile?.utilityInlet === true) add(x, y);
+        }));
         for (let i = 0; i < queue.length; i++) {
             const {x, y} = queue[i];
             [[0,-1],[1,0],[0,1],[-1,0]].forEach(([dx,dy]) => add(x + dx, y + dy));

@@ -60,7 +60,7 @@ test('routes stay on real park paths, camera transforms invert, and build previe
 });
 test('save roundtrips preserve the schema, cash, pitch identities and caravan classes; rejected imports preserve the current game',()=>{
     const e=engine();e.api.begin('developed');e.api.action('repair',e.api.getState().caravans.find(v=>v.isBroken));const saved=e.api.getSave(),parsed=JSON.parse(saved);
-    assert.equal(parsed.schemaVersion,13);e.api.begin('new');assert.equal(e.api.getState().cash,1500);assert.equal(e.api.getBackup(),saved);
+    assert.equal(parsed.schemaVersion,e.ctx.SaveMigrations.CURRENT_SAVE_SCHEMA);e.api.begin('new');assert.equal(e.api.getState().cash,1500);assert.equal(e.api.getBackup(),saved);
     assert.equal(e.api.importSave(saved).ok,true);assert.equal(e.api.getState().cash,19960);assert.equal(e.api.getState().pitches.length,12);assert.equal(typeof e.api.getState().caravans[0].getDailyRent,'function');
     const before=e.api.getSave(),beforeState=e.api.getState();assert.equal(e.api.importSave('{bad json').ok,false);assert.equal(e.api.getSave(),before);assert.equal(e.api.getState(),beforeState);
     parsed.schemaVersion=999;assert.equal(e.api.importSave(JSON.stringify(parsed)).ok,false);assert.equal(e.api.getSave(),before);
@@ -103,5 +103,52 @@ test('real guest paths reach the beach; visits reward satisfaction at most once 
  const e=engine(),s=beachPark(e),L=e.ctx.LandExpansion;e.api.purchaseLand('beach');s.hour=11;e.run('updateConstructions()');const g={pitch:s.pitches[0],position:{x:45.5,y:24.5},activityTimer:0,path:[],party:{type:'solo',needs:{satisfaction:97}}};s.guests=[g];const random=e.ctx.Math.random;e.ctx.Math.random=()=>.9;try{e.ctx.GuestActivities.updateGuestActivities(s,10);assert.equal(g.activity,'enjoying the beach');assert.equal(g.beachVisits,1);assert.equal(g.party.needs.satisfaction,100);assert.equal(L.recordBeachVisit(s,g),false);s.day++;g.party.needs.satisfaction=0;assert.equal(L.recordBeachVisit(s,g),true);assert.equal(g.party.needs.satisfaction,3);s.day++;e.api.toggleBeach();assert.equal(L.canVisitBeach(s,g),false);}finally{e.ctx.Math.random=random;}
 });
 test('old farm saves preserve prior rights and development; custom parks receive no fixed expansion fields',()=>{
- const e=engine();e.api.begin('new');const old=JSON.parse(e.api.getSave());delete old.land;old.schemaVersion=12;old.landmarks=old.landmarks.filter(l=>!['land_plot','beach_gate'].includes(l.type));old.landmarks.push({type:'for_sale',x:29,y:12,w:17,h:16,blocksBuilding:true});let m=e.ctx.SaveMigrations.migrateSave(old);assert.equal(m.schemaVersion,13);assert.equal(m.land.enabled,true);assert.equal(m.land.ownedPlotIds.length,0);old.pitches=[{id:'legacy',x:30,y:13,w:4,h:6,type:'grass'}];m=e.ctx.SaveMigrations.migrateSave(old);assert.deepEqual(Array.from(m.land.ownedPlotIds),['meadow']);old.landmarks=old.landmarks.filter(l=>l.type!=='for_sale');m=e.ctx.SaveMigrations.migrateSave(old);assert.equal(m.land.ownedPlotIds.length,2);old.parkPackageId='custom';m=e.ctx.SaveMigrations.migrateSave(old);assert.equal(m.land.enabled,false);assert.equal(m.landmarks.some(l=>l.type==='land_plot'),false);
+ const e=engine();e.api.begin('new');const old=JSON.parse(e.api.getSave());delete old.land;old.schemaVersion=12;old.landmarks=old.landmarks.filter(l=>!['land_plot','beach_gate'].includes(l.type));old.landmarks.push({type:'for_sale',x:29,y:12,w:17,h:16,blocksBuilding:true});let m=e.ctx.SaveMigrations.migrateSave(old);assert.equal(m.schemaVersion,e.ctx.SaveMigrations.CURRENT_SAVE_SCHEMA);assert.equal(m.land.enabled,true);assert.equal(m.land.ownedPlotIds.length,0);old.pitches=[{id:'legacy',x:30,y:13,w:4,h:6,type:'grass'}];m=e.ctx.SaveMigrations.migrateSave(old);assert.deepEqual(Array.from(m.land.ownedPlotIds),['meadow']);old.landmarks=old.landmarks.filter(l=>l.type!=='for_sale');m=e.ctx.SaveMigrations.migrateSave(old);assert.equal(m.land.ownedPlotIds.length,2);old.parkPackageId='custom';m=e.ctx.SaveMigrations.migrateSave(old);assert.equal(m.land.enabled,false);assert.equal(m.landmarks.some(l=>l.type==='land_plot'),false);
+});
+
+test('browser startup backs up the original save and preserves roads and developed hookups on reload', () => {
+    const e = engine();
+    assert.equal(e.api.begin('developed').ok, true);
+    const key = 'caravan_tycoon_save';
+    const previous = JSON.parse(e.api.getSave());
+    previous.schemaVersion = 13;
+    delete previous.tiles[24][8].utilityInlet;
+    previous.tiles[4][8] = {...previous.tiles[4][8], road: true};
+    const original = JSON.stringify(previous, null, 2);
+    e.storage.set(key, original);
+
+    assert.equal(e.run('init()'), true);
+    const migrated = e.storage.get(key);
+    assert.equal(e.api.getBackup(), original);
+    assert.equal(JSON.parse(migrated).schemaVersion, e.ctx.SaveMigrations.CURRENT_SAVE_SCHEMA);
+    assert.equal(e.api.getState().tiles[4][8].road, true);
+    assert.equal(e.run('init()'), true);
+    assert.equal(e.storage.get(key), migrated);
+    assert.equal(e.api.getBackup(), original);
+    const state = e.api.getState();
+    for (const pitch of state.pitches.filter(item => item.type === 'gravel')) {
+        assert.equal(Object.values(e.ctx.ParkServices.getPitchHookups(pitch, state.tiles)).every(Boolean), true);
+    }
+    assert.equal(e.api.getBalance().isValid, true);
+});
+
+test('browser startup leaves the original save intact when it cannot write a migration backup', () => {
+    const e = engine();
+    assert.equal(e.api.begin('new').ok, true);
+    const key = 'caravan_tycoon_save';
+    const previous = JSON.parse(e.api.getSave());
+    previous.schemaVersion = 13;
+    const original = JSON.stringify(previous);
+    e.storage.set(key, original);
+    const write = e.ctx.localStorage.setItem;
+    e.ctx.console = {...console, error() {}};
+    e.ctx.localStorage.setItem = (name, value) => {
+        if (name === 'caravan_tycoon_management_backup') throw new Error('Storage quota exceeded');
+        write(name, value);
+    };
+
+    assert.equal(e.run('init()'), true);
+    assert.equal(e.storage.get(key), original);
+    assert.equal(e.api.save(), false);
+    assert.equal(e.storage.get(key), original);
 });
