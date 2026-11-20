@@ -82,11 +82,13 @@ try{
  const walkingVillage=Boolean(gate&&location.hash==='#walk'&&gate.consume(sessionStorage,'village'));
  const villagePlayer={x:world.nodes.parkGate[0],y:world.nodes.parkGate[1]};
  const villageKeys=new Set();
- let villageHint=null,villageAvatar=null;
+ let villageHint=null,villageAvatar=null,villageFacing='down',villageFrameKey='',villageWalking=false;
  if(walkingVillage){
   villageAvatar=document.createElementNS('http://www.w3.org/2000/svg','g');
   villageAvatar.setAttribute('id','village-player');
-  villageAvatar.innerHTML='<circle r="9" fill="#e8bc68" stroke="#fff6df" stroke-width="3"/><path d="M-4-3h8M0-5v10" stroke="#665a44" stroke-width="2"/>';
+  villageAvatar.setAttribute('pointer-events','none');
+  villageAvatar.setAttribute('shape-rendering','crispEdges');
+  villageAvatar.innerHTML='<g id="village-character-art" transform="translate(-12 -22.5) scale(.75)"></g>';
   group.append(villageAvatar);
   villageHint=document.createElement('div');
   villageHint.setAttribute('role','status');
@@ -102,13 +104,22 @@ try{
   if(!walkingVillage)return;
   const dx=Number(villageKeys.has('d')||villageKeys.has('arrowright'))-Number(villageKeys.has('a')||villageKeys.has('arrowleft'));
   const dy=Number(villageKeys.has('s')||villageKeys.has('arrowdown'))-Number(villageKeys.has('w')||villageKeys.has('arrowup'));
-  const len=Math.hypot(dx,dy),speed=105;
-  if(len){
-   const nx=villagePlayer.x+dx/len*speed*dt,ny=villagePlayer.y+dy/len*speed*dt;
-   // Roads are the first navigable corridor; private gardens remain inaccessible.
-   const passable=(x,y)=>roads.some(r=>toSegment([x,y],world.nodes[r.a],world.nodes[r.b])<=Math.max(10,r.width*.65));
-   if(passable(nx,villagePlayer.y))villagePlayer.x=nx;
-   if(passable(villagePlayer.x,ny))villagePlayer.y=ny;
+  const previous={...villagePlayer};
+  villageWalking=window.CaravanVillageMovement.advance(world,villagePlayer,dt,{
+   left:dx<0,right:dx>0,up:dy<0,down:dy>0
+  });
+  if(villageWalking){
+   const mx=villagePlayer.x-previous.x,my=villagePlayer.y-previous.y;
+   villageFacing=Math.abs(mx)>Math.abs(my)?(mx<0?'left':'right'):(my<0?'up':'down');
+  }
+  const frame=villageWalking?Math.floor(performance.now()/130)%4:0;
+  const key=(villageWalking?'walk':'idle')+villageFacing+frame;
+  if(key!==villageFrameKey){
+   const avatar=saved?.playerAvatar||{};
+   const palette={skin:avatar.skin,hair:avatar.hairColour,top:avatar.top,trousers:avatar.bottom};
+   for(const k of Object.keys(palette))if(!/^#[0-9a-f]{6}$/i.test(palette[k]||''))delete palette[k];
+   villageAvatar.querySelector('#village-character-art').innerHTML=CaravanPlayerSprites.frameSvg(villageFacing,frame,villageWalking?'walk':'idle',palette);
+   villageFrameKey=key;
   }
   const gateDistance=Math.hypot(villagePlayer.x-world.nodes.parkGate[0],villagePlayer.y-world.nodes.parkGate[1]);
   const nearby=world.places.filter(p=>p.id!=='park').map(p=>({p,d:Math.hypot(villagePlayer.x-p.x,villagePlayer.y-p.y)})).sort((a,b)=>a.d-b.d)[0];
@@ -120,7 +131,7 @@ try{
   else if(nearby&&nearby.d<65)villageHint.textContent=nearby.p.name+' · Press E to explore';
   else villageHint.textContent='WASD / arrows: walk village roads · Follow Natwinch Road towards the High Street';
   villageAvatar.setAttribute('transform',`translate(${villagePlayer.x} ${villagePlayer.y})`);
-  const t=Math.min(1,dt*5);
+  const t=Math.min(1,dt*3.5);
   camera.x+=(villagePlayer.x-camera.x)*t;camera.y+=(villagePlayer.y-camera.y)*t;transform();
  }
  function frame(now){const dt=last?Math.min(.2,(now-last)/1000):0;last=now;V.advance(sim,dt);walkVillage(dt);$('#v-cars').innerHTML=sim.cars.map(c=>{const p=V.position(sim,c),color={Guest:'#e7e6d5',Village:'#819d98',Through:'#a19580',Service:'#b99e7c'}[c.kind];return `<g transform="translate(${p.x} ${p.y}) rotate(${p.angle})"><rect x="-${c.length/2}" y="-3.5" width="${c.length}" height="7" rx="2" fill="${color}" stroke="#637a67" stroke-width=".8"/><rect x="1" y="-2.6" width="3" height="5.2" fill="#8ba6a0"/>${c.kind==='Guest'?'<path d="M-2-4v8" stroke="#7c8e77"/>':''}</g>`;}).join('');$('#signal-north').setAttribute('fill',V.signal(sim,true)?'#7da379':'#c08166');$('#signal-south').setAttribute('fill',V.signal(sim,false)?'#7da379':'#c08166');if(now-statsAt>250){statsAt=now;const m=V.metrics(sim);$('#traffic-vehicles').textContent=m.vehicles;$('#traffic-queue').textContent=m.queued;$('#traffic-delay').textContent=m.meanDelay+'s';$('#traffic-pressure').textContent=m.pressure;$('#traffic-status').textContent=`Traffic study ${sim.paused?'paused':'running'} · ${Math.floor(sim.time/60)}m ${Math.floor(sim.time%60)}s`;}requestAnimationFrame(frame);}
