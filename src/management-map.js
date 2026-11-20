@@ -87,8 +87,11 @@ root.ManagementArt={tree,building};
                 return `<g><rect x="${bx-5}" y="${by-5}" width="${w+10}" height="${h+10}" fill="#a8bf96" stroke="#8ca77e"/><rect x="${bx}" y="${by}" width="${w}" height="${h}" fill="${b.roof||'#b29a7c'}" stroke="#75846e"/>${b.kind==='shop'?`<path d="M${bx} ${by+h*.72}h${w}" stroke="#e3d8b9" stroke-width="6"/>`:''}</g>`;
             }).join('');
             const labels=v.places.filter(q=>q.id!=='park').map(q=>`<text x="${x(q.x)}" y="${y(q.y)+30}" text-anchor="middle" font-size="12" fill="#4f674d" paint-order="stroke" stroke="#dce6cf" stroke-width="3">${String(q.name).replace(/[&<>]/g,'')}</text>`).join('');
-            const coast=x(v.park.x+v.park.w);
-            return `<g id="mg-village-context"><rect x="-2400" y="-2400" width="4800" height="4800" fill="#b6c89e"/><rect x="${coast}" y="-2400" width="2400" height="4800" fill="#a7cbd0"/>${roads}${buildings}${labels}<text x="${x(790)}" y="${y(700)}" font-size="20" fill="#5b7650">LITTLEHAMPTON-ON-SEA</text></g>`;
+            // Village park ends at the shore; the public beach continues east of it.
+            // Keep the sand outside the saved park tiles, so the coast is not a buildable expansion.
+            const shoreline=x(v.park.x+v.park.w);
+            const seaEdge=x(v.park.x+v.park.w+70);
+            return `<g id="mg-village-context"><rect x="-2400" y="-2400" width="4800" height="4800" fill="#b6c89e"/><rect x="${shoreline}" y="-2400" width="${seaEdge-shoreline}" height="4800" fill="#e4d5ac"/><rect x="${seaEdge}" y="-2400" width="2400" height="4800" fill="#a7cbd0"/>${roads}${buildings}${labels}<text x="${x(790)}" y="${y(700)}" font-size="20" fill="#5b7650">LITTLEHAMPTON-ON-SEA</text></g>`;
         }
         // LAND-1 step 1: geometry preview only. Do not redirect purchases or saves.
         function externalFieldPreview(){
