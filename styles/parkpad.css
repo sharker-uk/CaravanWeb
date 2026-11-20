@@ -44,17 +44,16 @@ body.tablet-open #management-app{padding-top:66px}
 
 /* ParkPad device shell: lightweight physical tablet, with the live park visible
    around it. Only the launcher and estate-agent website use this shell. */
-body.tablet-open #management-app[data-parkpad-view="home"]::before,
-body.tablet-open #management-app[data-parkpad-view="estate"]::before{
+body.tablet-open #management-app[data-parkpad-visible="true"]::before{
  content:"";position:fixed;inset:0;background:rgba(18,31,24,.46);
  backdrop-filter:blur(3px);z-index:90;pointer-events:none;
 }
-body.tablet-open #management-app:is([data-parkpad-view="home"],[data-parkpad-view="estate"]){
+body.tablet-open #management-app[data-parkpad-visible="true"]{
  --parkpad-edge:clamp(12px,3.4vw,54px);
  --parkpad-top:clamp(22px,5vh,55px);
  --parkpad-bottom:clamp(20px,5vh,55px);
 }
-body.tablet-open #management-app:is([data-parkpad-view="home"],[data-parkpad-view="estate"]) .parkpad-bar{
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-bar{
  top:var(--parkpad-top);left:var(--parkpad-edge);right:var(--parkpad-edge);
  min-height:66px;border:12px solid #29352f;border-bottom:0;
  border-radius:27px 27px 0 0;
@@ -62,11 +61,11 @@ body.tablet-open #management-app:is([data-parkpad-view="home"],[data-parkpad-vie
  box-shadow:0 0 0 2px #66766c,0 16px 52px #101c14a8;
  padding:8px clamp(12px,2.5vw,34px);z-index:121;
 }
-body.tablet-open #management-app:is([data-parkpad-view="home"],[data-parkpad-view="estate"]) .parkpad-bar::after{
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-bar::after{
  content:"";position:absolute;top:-8px;left:50%;width:5px;height:5px;
  border-radius:50%;background:#687c74;box-shadow:0 0 0 2px #18231e;
 }
-body.tablet-open #management-app:is([data-parkpad-view="home"],[data-parkpad-view="estate"]) .parkpad-screen{
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-screen{
  top:calc(var(--parkpad-top) + 66px);bottom:var(--parkpad-bottom);
  left:var(--parkpad-edge);right:var(--parkpad-edge);
  border:12px solid #29352f;border-top:0;
@@ -76,23 +75,79 @@ body.tablet-open #management-app:is([data-parkpad-view="home"],[data-parkpad-vie
  box-shadow:0 0 0 2px #66766c,0 25px 55px #101c1480;
  padding:clamp(18px,3vw,46px);
 }
-body.tablet-open #management-app:is([data-parkpad-view="home"],[data-parkpad-view="estate"]) .parkpad-screen::before{
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-screen::before{
  content:"";position:sticky;display:block;top:0;height:3px;margin:-9px 0 12px;
  background:linear-gradient(90deg,transparent,#d7dfd1,transparent);
  pointer-events:none;
 }
 @media(max-width:650px){
- body.tablet-open #management-app:is([data-parkpad-view="home"],[data-parkpad-view="estate"]){
+ body.tablet-open #management-app[data-parkpad-visible="true"]{
   --parkpad-edge:6px;--parkpad-top:8px;--parkpad-bottom:8px;
  }
- body.tablet-open #management-app:is([data-parkpad-view="home"],[data-parkpad-view="estate"]) .parkpad-bar{
+ body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-bar{
   border-width:7px;border-bottom:0;min-height:58px;border-radius:19px 19px 0 0;
   padding:6px;gap:7px;
  }
- body.tablet-open #management-app:is([data-parkpad-view="home"],[data-parkpad-view="estate"]) .parkpad-screen{
+ body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-screen{
   top:calc(var(--parkpad-top) + 58px);border-width:7px;border-top:0;
   border-radius:0 0 19px 19px;padding:12px;
  }
  #parkpad-location{display:none}
  #parkpad-balance{font-size:15px;margin-left:auto}
+}
+
+/* All ParkPad apps share one device shell. Legacy panels are content within
+   the device, never allowed to fall back to a full-screen management UI. */
+body.tablet-open #management-app[data-parkpad-visible="true"] .masthead,
+body.tablet-open #management-app[data-parkpad-visible="true"] .management-status{
+ display:none!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-bar{z-index:125}
+body.tablet-open #management-app[data-parkpad-visible="true"] .workspace{
+ position:fixed!important;inset:calc(var(--parkpad-top) + 66px) var(--parkpad-edge) var(--parkpad-bottom);
+ z-index:100;overflow:hidden;border:12px solid #29352f;border-top:0;border-radius:0 0 27px 27px;
+ background:#f3f1e7;box-shadow:0 0 0 2px #66766c,0 25px 55px #101c1480;
+ display:block!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-screen{
+ z-index:110;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="settings"],[data-parkpad-view="guests"],[data-parkpad-view="finances"]) .sidebar,
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="settings"],[data-parkpad-view="guests"],[data-parkpad-view="finances"]) .map-shell> :not(#mg-panel){
+ display:none!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="settings"],[data-parkpad-view="guests"],[data-parkpad-view="finances"]) .map-shell{
+ position:static!important;width:100%!important;height:100%!important;min-height:0!important;
+ display:block!important;overflow:auto!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="settings"],[data-parkpad-view="guests"],[data-parkpad-view="finances"]) #mg-panel{
+ position:relative!important;inset:auto!important;display:block!important;
+ width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;
+ overflow:visible!important;box-shadow:none!important;border:0!important;border-radius:0!important;
+ padding:clamp(16px,3vw,35px)!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="build"],[data-parkpad-view="utilities"]) .map-shell{
+ display:none!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="build"],[data-parkpad-view="utilities"]) .sidebar{
+ display:block!important;position:relative!important;inset:auto!important;
+ width:100%!important;max-width:none!important;height:100%!important;overflow:auto!important;
+ padding:clamp(14px,3vw,34px);background:#f6f4eb;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="build"],[data-parkpad-view="utilities"]) .sidebar-footer{
+ display:none!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"][data-parkpad-view="map"] .sidebar,
+body.tablet-open #management-app[data-parkpad-visible="true"][data-parkpad-view="map"] #mg-detail{
+ display:none!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"][data-parkpad-view="map"] .map-shell{
+ display:block!important;position:relative!important;width:100%!important;height:100%!important;
+ min-height:0!important;
+}
+@media(max-width:650px){
+ body.tablet-open #management-app[data-parkpad-visible="true"] .workspace{
+  inset:calc(var(--parkpad-top) + 58px) var(--parkpad-edge) var(--parkpad-bottom);
+  border-width:7px;border-top:0;border-radius:0 0 19px 19px;
+ }
 }
