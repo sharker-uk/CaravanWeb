@@ -1,7 +1,7 @@
 /* CaravanWeb LP-1.2: deterministic, transparent 32x32 pixel-character frames. */
 (function(root){
 'use strict';
-function frameSvg(direction="down",frame=0,action="walk",palette={}){
+function frameSvg(direction="down",frame=0,action="walk",palette={},style={}){
  const c={skin:"#e8b78f",hair:"#67412c",top:"#b84d3f",trousers:"#34495e",boots:"#433b32",outline:"#423b36",...palette};
  const out=[],r=(x,y,w,h,fill)=>out.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`);
  const side=direction==="left"||direction==="right",back=direction==="up",step=action==="walk"?(frame%4===1?2:frame%4===3?-2:0):0;
@@ -15,7 +15,22 @@ function frameSvg(direction="down",frame=0,action="walk",palette={}){
  r(12,8,9,9,c.skin);r(11,9,2,6,c.skin);
  if(side){r(direction==="left"?12:19,12,2,2,c.outline);}
  else if(!back){r(13,12,2,2,c.outline);r(19,12,2,2,c.outline);r(16,15,2,1,"#b67c65");}
- r(11,6,11,4,c.hair);r(10,9,3,5,c.hair);if(back)r(11,10,11,6,c.hair);
+ if(style.hairStyle!=='bald'){
+  r(11,6,11,4,c.hair);r(10,9,3,5,c.hair);
+  if(back)r(11,10,11,6,c.hair);
+  if(style.hairStyle==='messy')r(15,4,4,2,c.hair);
+  if(style.hairStyle==='bob'||style.hairStyle==='long'){
+   const length=style.hairStyle==='long'?9:6;
+   r(10,9,2,length,c.hair);r(21,9,2,length,c.hair);
+  }
+ }
+ if(style.accessory==='flatcap'){
+  r(10,5,12,3,c.outline);r(direction==='left'?8:14,8,10,2,c.outline);
+ }else if(style.accessory==='bucket-hat'){
+  r(10,4,12,5,c.trousers);r(8,9,16,2,c.trousers);
+ }else if(style.accessory==='glasses'&&!back){
+  r(side?(direction==='left'?11:18):12,11,side?4:10,1,c.outline);
+ }
  if(tool){const lift=swing?2:14; r(24,lift,2,13,"#9a7249");r(21,lift-2,8,4,"#aeb8b7");r(21,lift-2,3,4,"#e1e4d9");}
  if(action==="carry"){for(let i=0;i<3;i++){r(20,17+i*3,10,3,"#92633b");r(27,18+i*3,2,1,"#e0b679");}}
  return out.join("");

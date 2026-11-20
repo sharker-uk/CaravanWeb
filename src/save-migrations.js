@@ -1,5 +1,5 @@
 (function (globalScope) {
-    const CURRENT_SAVE_SCHEMA = 13;
+    const CURRENT_SAVE_SCHEMA = 14;
     const landApi = globalScope.LandExpansion || (typeof require === 'function' ? require('./land-expansion.js') : null);
     const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
     const facilityApi = globalScope.FacilityOperations ||
@@ -22,6 +22,7 @@
                 nature: tile.nature === 'tree' || tile.nature === 'debris' ? tile.nature : null,
                 road: Boolean(tile.road),
                 path: Boolean(tile.path),
+                ...(tile.utilityInlet === true ? {utilityInlet: true} : {}),
                 utilities: Object.fromEntries(UTILITY_TYPES.map(type => [type, Boolean(tile.utilities?.[type])]))
             };
         }
@@ -331,8 +332,52 @@
             Number.isFinite(facility.w) && Number.isFinite(facility.h));
     }
 
+    const legacyBusinesses = {
+        rusty_resales: {name: 'Rusty Resales', x: 2, y: 7},
+        fiddl_shop: {name: 'Fiddl', x: 2, y: 14},
+        job_centre: {name: 'Job Centre', x: 2, y: 21}
+    };
+    const roadsideFarmhouse = {x: 10, y: 18, w: 6, h: 5};
+
+    function migrateFarmLayout(save) {
+        if (save.parkPackageId || !save.land.enabled) return;
+        const farmhouse = save.landmarks.find(item => item.type === 'farmhouse' &&
+            item.name === 'Run-down farmhouse' && item.w === 6 && item.h === 5);
+        if (!farmhouse) return;
+
+        if (farmhouse.x === 13 && farmhouse.y === 17) {
+            const {x, y, w, h} = roadsideFarmhouse;
+            const footprints = [...save.pitches, ...save.facilities,
+                ...save.landmarks.filter(item => item !== farmhouse && item.blocksBuilding),
+                ...save.constructions.map(job => job.footprint)];
+            const occupied = footprints.some(item =>
+                item.x < x + w && item.x + item.w > x && item.y < y + h && item.y + item.h > y);
+            let clear = !occupied;
+            for (let row = y; clear && row < y + h; row++) {
+                for (let col = x; clear && col < x + w; col++) {
+                    const tile = save.tiles[row]?.[col];
+                    clear = tile?.terrain === 'grass' && !tile.nature && !tile.road && !tile.path &&
+                        !Object.values(tile.utilities).some(Boolean);
+                }
+            }
+            if (clear) save.landmarks = save.landmarks.map(item =>
+                item === farmhouse ? {...item, ...roadsideFarmhouse} : item);
+        }
+
+        save.landmarks = save.landmarks.filter(item => {
+            const legacy = Object.hasOwn(legacyBusinesses, item.type) ? legacyBusinesses[item.type] : null;
+            return !legacy || item.name !== legacy.name || item.x !== legacy.x || item.y !== legacy.y ||
+                item.w !== 5 || item.h !== 3;
+        });
+
+        // Preserve all saved surface tiles. The roadside driveway can supply
+        // utilities even when it no longer connects to the edge of the tile grid.
+        const inlet = save.tiles[24]?.[8];
+        if (inlet?.terrain === 'grass' && inlet.road) inlet.utilityInlet = true;
+    }
+
     function migrateSave(saveData) {
-        if (!saveData || typeof saveData !== 'object') return null;
+        if (!saveData || typeof saveData !== 'object' || Number(saveData.schemaVersion) > CURRENT_SAVE_SCHEMA) return null;
         const currentDay = Number.isFinite(saveData.day) ? saveData.day : 1;
 
         const normalizedTiles = Array.isArray(saveData.tiles)
@@ -438,6 +483,7 @@
         };
 
         migrated.land = landApi.restoreState(migrated);
+        if (Number(saveData.schemaVersion || 0) < 14) migrateFarmLayout(migrated);
         landApi.syncLandmarks(migrated);
         return migrated;
     }

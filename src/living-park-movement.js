@@ -34,9 +34,9 @@ function step(state,dx,dy,walkable){
  state.player={...state.player,x:x+.5,y:y+.5};
  return true;
 }
-function advance(state,seconds,input,walkable,canOccupy,speed=4){
+function advance(state,seconds,input,walkable,canOccupy,speed=4,p=state.player){
  if(!Number.isFinite(seconds)||seconds<=0)return false;
- const p=state.player;let vx=Number(Boolean(input?.right))-Number(Boolean(input?.left));
+ let vx=Number(Boolean(input?.right))-Number(Boolean(input?.left));
  let vy=Number(Boolean(input?.down))-Number(Boolean(input?.up));
  const moving=Boolean(vx||vy),path=state.playerPath||[];
  if(moving){path.length=0;state.interactionTarget=null;const length=Math.hypot(vx,vy);vx/=length;vy/=length;}
@@ -48,8 +48,8 @@ function advance(state,seconds,input,walkable,canOccupy,speed=4){
  const distance=Math.min(speed*Math.min(seconds,.1),!moving&&path.length?Math.hypot(path[0].x-p.x,path[0].y-p.y):Infinity);
  const nx=p.x+vx*distance,ny=p.y+vy*distance;
  let changed=false;
- if(canOccupy(state,nx,p.y)){p.x=nx;changed=true;}
- if(canOccupy(state,p.x,ny)){p.y=ny;changed=true;}
+ if(nx!==p.x&&canOccupy(state,nx,p.y)){p.x=nx;changed=true;}
+ if(ny!==p.y&&canOccupy(state,p.x,ny)){p.y=ny;changed=true;}
  if(!moving&&path.length){
   if(Math.hypot(p.x-path[0].x,p.y-path[0].y)<.005){p.x=path[0].x;p.y=path[0].y;path.shift();}
   else if(!changed)path.length=0;

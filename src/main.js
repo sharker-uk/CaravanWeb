@@ -230,6 +230,7 @@ function init() {
         return;
     }
 
+    const previousSchema = Number(data?.schemaVersion || 0);
     data = SaveMigrations && typeof SaveMigrations.migrateSave === 'function'
         ? SaveMigrations.migrateSave(data)
         : data;
@@ -281,31 +282,11 @@ function init() {
         ? data.dailyGuestArrivals
         : 0;
     state.tiles = data.tiles.map(row => row.map(normalizeTile));
-    // Retire the original full-height road through the farm. Keep its short
-    // entrance section and any player-built infrastructure elsewhere intact.
-    // Only clear the original generated strip where it still has the legacy road.
-    for (let y = 0; y < state.tiles.length; y++) {
-        if (y >= 24 && y <= 25) continue;
-        for (const x of [8, 9]) {
-            const tile = state.tiles[y]?.[x];
-            if (tile?.road && tile.terrain === 'grass') tile.road = false;
-        }
-    }
+    state.parkPackageId = data.parkPackageId || null;
     state.overlayMode = ['none', 'services', 'utilities', 'entertainment'].includes(data.overlayMode) ? data.overlayMode : 'none';
     state.pitches = data.pitches.map(pitch => ({...pitch, occupied: false}));
     state.facilities = Array.isArray(data.facilities) ? data.facilities : [];
-    // Village businesses no longer occupy the farm. Preserve all other saved landmarks.
-    state.landmarks = (Array.isArray(data.landmarks) ? data.landmarks : [])
-        .filter(item => !['rusty_resales', 'fiddl_shop', 'job_centre'].includes(item?.type));
-    // Migrate only the untouched original farmhouse footprint. Never overwrite
-    // a customised layout or place a building on existing player constructions.
-    const oldFarmhouse=state.landmarks.find(item=>item.type==='farmhouse'&&item.x===13&&item.y===17&&item.w===6&&item.h===5);
-    if(oldFarmhouse){
-        const overlaps=(item,x,y,w,h)=>item.x<x+w&&item.x+item.w>x&&item.y<y+h&&item.y+item.h>y;
-        const blocked=[...state.facilities,...state.pitches,...state.constructions.map(j=>j.footprint).filter(Boolean)]
-            .some(item=>overlaps(item,10,18,6,5));
-        if(!blocked){oldFarmhouse.x=10;oldFarmhouse.y=18;}
-    }
+    state.landmarks = Array.isArray(data.landmarks) ? data.landmarks : [];
     state.constructions = Array.isArray(data.constructions) ? data.constructions : [];
     state.land = LandExpansion.restoreState(data);
     LandExpansion.syncLandmarks(state);
@@ -427,9 +408,20 @@ function init() {
             console.error('Saved caravan construction refers to an unavailable pitch.', job);
         }
     });
-    if (data.player && Number.isFinite(data.player.x) && Number.isFinite(data.player.y) &&
-        canOccupyPlayer(data.player.x, data.player.y)) {
+    if (canOccupyPlayer(data.player.x, data.player.y)) {
         state.player = {...data.player};
+    } else {
+        let closest = null;
+        let distance = Infinity;
+        state.tiles.forEach((row, y) => row.forEach((tile, x) => {
+            const candidate = {x: x + 0.5, y: y + 0.5};
+            const offset = Math.hypot(candidate.x - data.player.x, candidate.y - data.player.y);
+            if (offset < distance && canOccupyPlayer(candidate.x, candidate.y)) {
+                closest = candidate;
+                distance = offset;
+            }
+        }));
+        if (closest) state.player = closest;
     }
     state.playerAvatar = data.playerAvatar
         ? CharacterSystem.normalizeAvatar(data.playerAvatar)
@@ -440,7 +432,8 @@ function init() {
     state.interactionTarget = null;
     refreshPitchCapabilities();
     // Upgrade older saves to use booked guests and persist a one-time random player avatar.
-    if (!Array.isArray(data.guestProfilePool) || !data.playerAvatar ||
+    if (previousSchema < SaveMigrations.CURRENT_SAVE_SCHEMA ||
+        !Array.isArray(data.guestProfilePool) || !data.playerAvatar ||
         (Array.isArray(data.parkNpcs) && data.parkNpcs.length)) saveGame();
     return true;
 }
@@ -485,6 +478,7 @@ function generateNewMap() {
                 nature,
                 road,
                 path,
+                ...(x === 8 && y === 24 ? {utilityInlet: true} : {}),
                 utilities: createEmptyUtilities()
             };
         }
@@ -508,6 +502,7 @@ function normalizeTile(tile) {
             nature: tile.nature || null,
             road,
             path,
+            ...(tile.utilityInlet === true ? {utilityInlet: true} : {}),
             utilities: road || path ? normalizeUtilities(tile.utilities) : createEmptyUtilities()
         };
     }
@@ -998,11 +993,19 @@ function updateCamera() {
 
 function saveGame() {
     try {
-        localStorage.setItem('caravan_tycoon_save', JSON.stringify({
+        const key = 'caravan_tycoon_save';
+        const schema = SaveMigrations.CURRENT_SAVE_SCHEMA;
+        const original = localStorage.getItem(key);
+        if (original) {
+            const previousSchema = Number(JSON.parse(original)?.schemaVersion || 0);
+            if (previousSchema > schema) throw new Error('The existing save requires a newer game version.');
+            if (previousSchema < schema) {
+                localStorage.setItem('caravan_tycoon_management_backup', original);
+            }
+        }
+        localStorage.setItem(key, JSON.stringify({
             parkPackageId: state.parkPackageId || null,
-            schemaVersion: SaveMigrations && SaveMigrations.CURRENT_SAVE_SCHEMA
-                ? SaveMigrations.CURRENT_SAVE_SCHEMA
-                : 13,
+            schemaVersion: schema,
             cash: state.cash,
             initialBalance: state.initialBalance,
             wood: state.wood,
@@ -1099,7 +1102,7 @@ class Caravan {
 
 // --- Game Logic ---
 function update(dt) {
-    if (state.sleeping) return;
+    if (state.sleeping || state.walkingInVillage) return;
     if (SimulationApi && typeof SimulationApi.advanceSimulationState === 'function') {
         SimulationApi.advanceSimulationState(state, dt, {
             onHourly,

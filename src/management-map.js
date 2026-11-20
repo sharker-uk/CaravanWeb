@@ -22,7 +22,7 @@ root.ManagementArt={tree,building};
 
 (function(root){
     'use strict';
-    const M=root.ManagementModel,A=root.ManagementArt,unit=20;
+    const M=root.ManagementModel,A=root.ManagementArt,W=root.CaravanConnectedWorld,unit=20;
     const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const statusColor={available:'#5a876a',occupied:'#aaa088',reserved:'#c39757',closed:'#be7653',open:'#74948c',unavailable:'#b5a274',owned:'#63876b',for_sale:'#b59658',locked:'#a69b7c',building:'#c39757'};
     function placeArt(p) {
@@ -42,6 +42,8 @@ root.ManagementArt={tree,building};
     }
     function create(svg,callbacks) {
         const world=svg.querySelector('#mg-world'),labels=svg.querySelector('#mg-map-labels');
+        const scene=document.createElementNS('http://www.w3.org/2000/svg','g');
+        world.append(scene);
         let width=1,height=1,baseZoom=.8,game=null,places=[],selected=null,visibleIds=null,route=null,tool='select',layers={labels:true,people:true,utilities:false,grid:false},worldKey='',pointer=null,moved=false,pinchDistance=null;
         const camera={x:570,y:400,zoom:.8,rotation:0,tilt:.8},touches=new Map();
         try{const saved=JSON.parse(localStorage.getItem('caravanweb_management_camera_v1'));if(saved&&['x','y','zoom','rotation','tilt'].every(k=>Number.isFinite(saved[k]))){camera.x=Math.max(-650,Math.min(1500,saved.x));camera.y=Math.max(-300,Math.min(1100,saved.y));camera.zoom=Math.max(.3,Math.min(4,saved.zoom));camera.rotation=saved.rotation%360;camera.tilt=saved.tilt===1?1:.8;}}catch{}
@@ -64,20 +66,22 @@ root.ManagementArt={tree,building};
         function focus(p){if(!p)return;camera.zoom=Math.max(camera.zoom,width<650?.68:1);camera.x=(p.x+p.w/2)*unit+(width<650?0:140);camera.y=(p.y+p.h/2)*unit+(width<650?160:20);cameraChanged();}
         // Draw the actual village's roads and buildings in the park's coordinate system.
         // The village's park footprint is mapped onto the existing 60x40 playable grid.
-        let villageData=null;
+        let villageData=null, placement=null;
         fetch('data/village-world.json').then(r=>{if(!r.ok)throw Error('Village data unavailable');return r.json();}).then(data=>{
-            villageData=data;worldKey='';if(game)render(game,places,{selected,visibleIds,route,tool,layers});
+            villageData=data;placement=W.placeVillage(data);worldKey='';if(game)render(game,places,{selected,visibleIds,route,tool,layers});
         }).catch(err=>console.warn('Village scenery could not load:',err));
         function villageFringe(){
-            if(!villageData)return '';
-            const v=villageData,p=v.park,sx=1200/p.w,sy=800/p.h;
-            const x=n=>(n-p.x)*sx,y=n=>(n-p.y)*sy;
+            if(!villageData||!W.usesFarmBoundary(game))return '';
+            const v=villageData;
+            const x=n=>placement.toScene([n,0])[0]*unit;
+            const y=n=>placement.toScene([0,n])[1]*unit;
+            const size=n=>placement.toSceneLength(n)*unit;
             const roads=v.roads.map(r=>{
                 const a=v.nodes[r.a],b=v.nodes[r.b];if(!a||!b)return '';
-                return `<path d="M${x(a[0])} ${y(a[1])}L${x(b[0])} ${y(b[1])}" fill="none" stroke="#d0d0b9" stroke-width="${Math.max(8,r.width*sx)}"/>`;
+                return `<path d="M${x(a[0])} ${y(a[1])}L${x(b[0])} ${y(b[1])}" fill="none" stroke="${r.id==='park-lane'?'#c7c8b3':'#d0d0b9'}" stroke-width="${r.id==='park-lane'? (W.gate.maxY-W.gate.minY)*unit : size(r.width)}"/>`;
             }).join('');
             const buildings=v.buildings.map(b=>{
-                const bx=x(b.x),by=y(b.y),w=b.w*sx,h=b.h*sy;
+                const bx=x(b.x),by=y(b.y),w=size(b.w),h=size(b.h);
                 return `<g><rect x="${bx-5}" y="${by-5}" width="${w+10}" height="${h+10}" fill="#a8bf96" stroke="#8ca77e"/><rect x="${bx}" y="${by}" width="${w}" height="${h}" fill="${b.roof||'#b29a7c'}" stroke="#75846e"/>${b.kind==='shop'?`<path d="M${bx} ${by+h*.72}h${w}" stroke="#e3d8b9" stroke-width="6"/>`:''}</g>`;
             }).join('');
             const labels=v.places.filter(q=>q.id!=='park').map(q=>`<text x="${x(q.x)}" y="${y(q.y)+30}" text-anchor="middle" font-size="12" fill="#4f674d" paint-order="stroke" stroke="#dce6cf" stroke-width="3">${String(q.name).replace(/[&<>]/g,'')}</text>`).join('');
@@ -111,7 +115,21 @@ root.ManagementArt={tree,building};
             const buildings=places.filter(p=>p.kind!=='pitch'&&p.type!=='land_plot').sort((a,b)=>(a.y+a.h)-(b.y+b.h)).map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
             const jobs=game.constructions.map(j=>{const b=j.footprint;return b?`<rect x="${b.x*unit+1}" y="${b.y*unit+1}" width="${b.w*unit-2}" height="${b.h*unit-2}" fill="#d6ad5c55" stroke="#a88948" stroke-width="2" stroke-dasharray="6 4"/>`:'';}).join('');
             const people=layers.people?game.guests.flatMap(g=>(g.party?.members||[{}]).map((m,i)=>{const pos=g.position||{x:g.pitch.x+1,y:g.pitch.y+1},x=pos.x*unit+(i%3)*5,y=pos.y*unit+Math.floor(i/3)*5;return `<g><ellipse cx="${x+1}" cy="${y+8}" rx="3" ry="1.5" fill="#446a4c44"/><path d="M${x} ${y+2}v6" stroke="${/^#[0-9a-fA-F]{6}$/.test(m.appearance?.top||'')?m.appearance.top:'#7a91a0'}" stroke-width="4"/><circle cx="${x}" cy="${y}" r="2.5" fill="#dcbb96"/></g>`;})).join(''):'';
-            return `<rect x="-500" y="-500" width="2400" height="1800" fill="url(#water)"/><rect x="-800" y="-800" width="1740" height="2400" fill="url(#grass)"/><rect x="940" y="-800" width="60" height="2400" fill="url(#sand)"/>${villageFringe()}${ground}<g id="park-boundary" pointer-events="none"><path d="M160 0V470M160 510V800" stroke="#56794d" stroke-width="11" stroke-linecap="round"/><path d="M160 0V470M160 510V800" stroke="#83a16b" stroke-width="6" stroke-dasharray="4 7"/><path d="M160 470v40" stroke="#d9d1ac" stroke-width="3" stroke-dasharray="3 5"/><path d="M151 470h18m-18 40h18" stroke="#755c3e" stroke-width="4"/><text x="175" y="465" font-size="12" font-weight="600" fill="#405d3c" paint-order="stroke" stroke="#e8edda" stroke-width="3">FARM GATE</text></g><path d="M160 0H1200V800H160Z" fill="none" stroke="#829b6d" stroke-width="1.5" stroke-dasharray="4 7"/>${places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
+            return `<rect x="-500" y="-500" width="2400" height="1800" fill="url(#water)"/><rect x="-800" y="-800" width="1740" height="2400" fill="url(#grass)"/><rect x="940" y="-800" width="60" height="2400" fill="url(#sand)"/>${villageFringe()}${ground}${farmBoundary()}${places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
+        }
+        function farmBoundary(){
+            if(!W.usesFarmBoundary(game))return '';
+            const {west,north,east,south}=W.farm;
+            const x=west*unit, top=north*unit, bottom=south*unit;
+            const from=W.gate.minY*unit, to=W.gate.maxY*unit;
+            const hedge=`M${x} ${top}V${from}M${x} ${to}V${bottom}`;
+            return `<g id="park-boundary" pointer-events="none">
+                <path d="${hedge}" stroke="#56794d" stroke-width="11" stroke-linecap="round"/>
+                <path d="${hedge}" stroke="#83a16b" stroke-width="6" stroke-dasharray="4 7"/>
+                <path d="M${x-9} ${from}h18m-18 ${to-from}h18" stroke="#755c3e" stroke-width="4"/>
+                <text x="${x+15}" y="${from-8}" font-size="12" font-weight="600" fill="#405d3c" paint-order="stroke" stroke="#e8edda" stroke-width="3">FARM GATE</text>
+                <path d="M${x} ${top}H${east*unit}V${bottom}H${x}" fill="none" stroke="#829b6d" stroke-width="1.5" stroke-dasharray="4 7"/>
+            </g>`;
         }
         function drawPins(){
             const focusedId=document.activeElement?.dataset.place;
@@ -133,9 +151,12 @@ root.ManagementArt={tree,building};
             if(moving){playerFacing=Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down');playerMotionSince=Date.now();}
             const walking=Date.now()-playerMotionSince<120;
             const frame=walking?Math.floor(Date.now()/130)%4:0;
-            const frameKey=(walking?'walk':'idle')+playerFacing+frame;
+            const avatar=root.CharacterSystem.normalizeAvatar(game.playerAvatar);
+            const frameKey=JSON.stringify([walking,playerFacing,frame,avatar]);
+            const palette={skin:avatar.skin,hair:avatar.hairColour,top:avatar.top,trousers:avatar.bottom};
+            const style={hairStyle:avatar.hairStyle,accessory:avatar.accessory};
             if(sprites&&lastSpriteFrame!==frameKey){
-                marker.innerHTML=`<g transform="translate(-12 -22.5) scale(.75)" shape-rendering="crispEdges">${sprites.frameSvg(playerFacing,frame,walking?'walk':'idle')}</g>`;
+                marker.innerHTML=`<g transform="translate(-12 -22.5) scale(.75)" shape-rendering="crispEdges">${sprites.frameSvg(playerFacing,frame,walking?'walk':'idle',palette,style)}</g>`;
                 lastSpriteFrame=frameKey;
             }
             marker.setAttribute('transform',`translate(${p.x*unit} ${p.y*unit})`);
@@ -144,12 +165,12 @@ root.ManagementArt={tree,building};
         function render(nextGame,nextPlaces,options={}){
             game=nextGame;places=nextPlaces;selected=options.selected;visibleIds=options.visibleIds||null;route=options.route||null;tool=options.tool||'select';layers={...layers,...options.layers};
             const key=JSON.stringify([game.tiles,places.map(p=>[p.id,p.status,p.guest?.accommodation,p.van?.modelId,p.entity.decking,p.entity.accessories]),game.constructions,game.guests.map(g=>[g.position,g.party?.headcount]),[...visibleIds||[]],layers,tool]);
-            if(key!==worldKey){world.innerHTML=worldMarkup();worldKey=key;}
-            updatePlayer(game.player);
+            if(key!==worldKey){scene.innerHTML=worldMarkup();worldKey=key;}
+            updatePlayer(callbacks.getWalker?.() || game.player);
             // Keep focused map controls alive when only time / condition values change.
             const pinKey=JSON.stringify(places.map(p=>[p.id,p.status,p.id===selected,!visibleIds||visibleIds.has(p.id)]));
             if(labels.dataset.key!==pinKey){drawPins();labels.dataset.key=pinKey;}
-            cameraChanged();
+            cameraChanged(!callbacks.isWalking?.());
         }
         function pointerGrid(event){const r=svg.getBoundingClientRect(),xy=M.unproject(event.clientX-r.left,event.clientY-r.top,camera,width,height);return {x:Math.floor(xy[0]/unit),y:Math.floor(xy[1]/unit)};}
         function preview(start,end){const p=M.buildPreview(tool,start,end,callbacks.facilityDefinitions);world.querySelector('#mg-build-preview').innerHTML=`<rect x="${p.x*unit}" y="${p.y*unit}" width="${p.w*unit}" height="${p.h*unit}" fill="#faf8d855" stroke="#496d44" stroke-width="2" stroke-dasharray="4 3"/>`;callbacks.onPreview?.(p);}
@@ -177,7 +198,12 @@ root.ManagementArt={tree,building};
         labels.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&e.target.dataset.place){e.preventDefault();e.stopPropagation();callbacks.onSelect(e.target.dataset.place);}});
         new ResizeObserver(()=>{dimensions();cameraChanged();}).observe(svg);
         dimensions();
-        const api={render,updatePlayer,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},followPlayer:(p,dt=1/60)=>{const framing=root.CaravanWorldCamera;if(framing){const target=framing.target(p,{width,height});const next=framing.smooth(camera,target,dt);camera.x=next.x;camera.y=next.y;camera.zoom=next.zoom;}else{camera.x=p.x*unit;camera.y=p.y*unit;}cameraChanged(false);},invalidate:()=>{worldKey='';}};
+        const api={render,updatePlayer,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},canWalk:(state,x,y)=>W.canOccupy(state,x,y,villageData,placement,root.GameState.canOccupyPlayer),
+            followPlayer:(p,dt)=>{const framing=root.CaravanWorldCamera,target=framing.target(p,{width,height});
+                const distance=Math.hypot(camera.x-target.x,camera.y-target.y);
+                const next=dt===undefined||distance<.1?target:framing.smooth(camera,target,dt);
+                if(camera.x===next.x&&camera.y===next.y&&camera.zoom===target.zoom)return;
+                Object.assign(camera,{x:next.x,y:next.y,zoom:target.zoom});cameraChanged(false);},invalidate:()=>{worldKey='';}};
         return api;
     }
     root.ManagementMap={create,placeArt};
