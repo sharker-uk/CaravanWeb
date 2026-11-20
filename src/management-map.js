@@ -87,8 +87,8 @@ root.ManagementArt={tree,building};
                 return `<g><rect x="${bx-5}" y="${by-5}" width="${w+10}" height="${h+10}" fill="#a8bf96" stroke="#8ca77e"/><rect x="${bx}" y="${by}" width="${w}" height="${h}" fill="${b.roof||'#b29a7c'}" stroke="#75846e"/>${b.kind==='shop'?`<path d="M${bx} ${by+h*.72}h${w}" stroke="#e3d8b9" stroke-width="6"/>`:''}</g>`;
             }).join('');
             const labels=v.places.filter(q=>q.id!=='park').map(q=>`<text x="${x(q.x)}" y="${y(q.y)+30}" text-anchor="middle" font-size="12" fill="#4f674d" paint-order="stroke" stroke="#dce6cf" stroke-width="3">${String(q.name).replace(/[&<>]/g,'')}</text>`).join('');
-            const coast=x(1200);
-            return `<g id="mg-village-context"><rect x="-2400" y="-2400" width="4800" height="4800" fill="#b6c89e"/><rect x="${coast}" y="-2400" width="2400" height="4800" fill="#e4d5ac"/><rect x="${x(1300)}" y="-2400" width="2300" height="4800" fill="#a7cbd0"/>${roads}${buildings}${labels}<text x="${x(790)}" y="${y(700)}" font-size="20" fill="#5b7650">LITTLEHAMPTON-ON-SEA</text></g>`;
+            const coast=x(v.park.x+v.park.w);
+            return `<g id="mg-village-context"><rect x="-2400" y="-2400" width="4800" height="4800" fill="#b6c89e"/><rect x="${coast}" y="-2400" width="2400" height="4800" fill="#a7cbd0"/>${roads}${buildings}${labels}<text x="${x(790)}" y="${y(700)}" font-size="20" fill="#5b7650">LITTLEHAMPTON-ON-SEA</text></g>`;
         }
         // LAND-1 step 1: geometry preview only. Do not redirect purchases or saves.
         function externalFieldPreview(){
@@ -126,7 +126,7 @@ root.ManagementArt={tree,building};
             const buildings=places.filter(p=>p.kind!=='pitch'&&p.type!=='land_plot').sort((a,b)=>(a.y+a.h)-(b.y+b.h)).map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
             const jobs=game.constructions.map(j=>{const b=j.footprint;return b?`<rect x="${b.x*unit+1}" y="${b.y*unit+1}" width="${b.w*unit-2}" height="${b.h*unit-2}" fill="#d6ad5c55" stroke="#a88948" stroke-width="2" stroke-dasharray="6 4"/>`:'';}).join('');
             const people=layers.people?game.guests.flatMap(g=>(g.party?.members||[{}]).map((m,i)=>{const pos=g.position||{x:g.pitch.x+1,y:g.pitch.y+1},x=pos.x*unit+(i%3)*5,y=pos.y*unit+Math.floor(i/3)*5;return `<g><ellipse cx="${x+1}" cy="${y+8}" rx="3" ry="1.5" fill="#446a4c44"/><path d="M${x} ${y+2}v6" stroke="${/^#[0-9a-fA-F]{6}$/.test(m.appearance?.top||'')?m.appearance.top:'#7a91a0'}" stroke-width="4"/><circle cx="${x}" cy="${y}" r="2.5" fill="#dcbb96"/></g>`;})).join(''):'';
-            return `<rect x="-500" y="-500" width="2400" height="1800" fill="url(#water)"/><rect x="-800" y="-800" width="1740" height="2400" fill="url(#grass)"/><rect x="940" y="-800" width="60" height="2400" fill="url(#sand)"/>${villageFringe()}${ground}${farmBoundary()}${places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
+            return `<rect x="-2400" y="-2400" width="4800" height="4800" fill="url(#grass)"/>${villageFringe()}${ground}${farmBoundary()}${places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
         }
         function farmBoundary(){
             if(!W.usesFarmBoundary(game))return '';
