@@ -40,3 +40,17 @@ test('walking is the default; tablet overlay follows existing walk-mode state an
  assert.match(css,/\.parkpad-screen\[hidden\]\{display:none!important\}/);
  assert.match(css,/body:not\(\.tablet-open\)/);
 });
+
+test('every tablet app uses the same device shell instead of exposing full-screen legacy UI',()=>{
+ const css=read('styles/parkpad.css'),pad=read('src/parkpad.js');
+ for(const view of ['settings','guests','finances','build','utilities','map']){
+  assert.match(css,new RegExp('data-parkpad-view="'+view+'"'));
+  assert.match(pad,new RegExp("'"+view+"'"));
+ }
+ assert.match(css,/\.workspace\{/);
+ assert.match(css,/\.management-status\{/);
+ assert.match(css,/#mg-panel\{/);
+ assert.match(css,/\.sidebar\{/);
+ assert.match(css,/\.map-shell\{/);
+ assert.match(css,/data-parkpad-visible="true"/);
+});
