@@ -3,7 +3,7 @@
 'use strict';
 const WORLD=Object.freeze({width:60,height:40,orientation:'road-west-sea-east'});
 const STARTING_PLOT=Object.freeze({id:'original_farm',name:'Old Coastal Farm',x:8,y:12,w:39,h:16,owned:true,coastal:true});
-const ROAD=Object.freeze({x:0,y:0,w:5,h:40,name:'Main road',public:true});
+const ROAD=Object.freeze({x:5,y:0,w:3,h:40,name:'Main road',public:true});
 const FARMHOUSE=Object.freeze({x:9,y:17,w:3,h:3,side:'north-of-drive'});
 const DRIVE=Object.freeze({from:{x:5,y:21},to:{x:44,y:21},kind:'rough_farm_track'});
 const MAIN_BEACH_ROUTE=Object.freeze({from:{x:44,y:21},to:{x:49,y:21},kind:'rough_dune_path',availableAtStart:true,upgrade:'timber_gangway'});
