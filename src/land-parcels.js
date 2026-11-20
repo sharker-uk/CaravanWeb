@@ -6,12 +6,14 @@
 'use strict';
 const FARM={west:8,north:0,east:60,south:40};
 const PARCELS=Object.freeze([
- Object.freeze({id:'north_field',name:'North Field',x:12,y:-10,w:18,h:10,side:'north',price:6000}),
- Object.freeze({id:'north_coastal',name:'North Coastal Field',x:32,y:-10,w:20,h:10,side:'north',price:9000}),
- Object.freeze({id:'south_field',name:'South Field',x:12,y:40,w:18,h:10,side:'south',price:6500}),
- Object.freeze({id:'south_coastal',name:'South Coastal Field',x:32,y:40,w:20,h:10,side:'south',price:9500}),
+ Object.freeze({id:'north_field',name:'North Field',x:8,y:-10,w:24,h:10,side:'north',price:6000}),
+ Object.freeze({id:'north_coastal',name:'North Coastal Field',x:32,y:-10,w:28,h:10,side:'north',price:9000}),
+ Object.freeze({id:'south_field',name:'South Field',x:8,y:40,w:24,h:10,side:'south',price:6500}),
+ Object.freeze({id:'south_coastal',name:'South Coastal Field',x:32,y:40,w:28,h:10,side:'south',price:9500}),
  Object.freeze({id:'across_road',name:'Roadside Field',x:-20,y:11,w:10,h:17,side:'west',price:8000})
 ]);
+// Coastal parcels meet the eastern farm boundary (x=60), not the public beach.
+// Adjacency is intentional: shared edges do not count as overlaps.
 const overlaps=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 function validate(parcels=PARCELS){
  const farm={x:FARM.west,y:FARM.north,w:FARM.east-FARM.west,h:FARM.south-FARM.north};
