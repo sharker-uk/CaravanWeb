@@ -89,9 +89,11 @@ root.ManagementArt={tree,building};
             const labels=v.places.filter(q=>q.id!=='park').map(q=>`<text x="${x(q.x)}" y="${y(q.y)+30}" text-anchor="middle" font-size="12" fill="#4f674d" paint-order="stroke" stroke="#dce6cf" stroke-width="3">${String(q.name).replace(/[&<>]/g,'')}</text>`).join('');
             // Village park ends at the shore; the public beach continues east of it.
             // Keep the sand outside the saved park tiles, so the coast is not a buildable expansion.
-            const shoreline=x(v.park.x+v.park.w);
-            const seaEdge=x(v.park.x+v.park.w+70);
-            return `<g id="mg-village-context"><rect x="-2400" y="-2400" width="4800" height="4800" fill="#b6c89e"/><rect x="${shoreline}" y="-2400" width="${seaEdge-shoreline}" height="4800" fill="#e4d5ac"/><rect x="${seaEdge}" y="-2400" width="2400" height="4800" fill="#a7cbd0"/>${roads}${buildings}${labels}<text x="${x(790)}" y="${y(700)}" font-size="20" fill="#5b7650">LITTLEHAMPTON-ON-SEA</text></g>`;
+            const shore=x(v.park.x+v.park.w);
+            const coast=root.CaravanCoastalArt?.render({shore,unit,worldHeight:4800,top:-2400,beachWidth:size(70)});
+            const seaEdge=shore+size(70);
+            const fallback=`<rect x="${shore}" y="-2400" width="${seaEdge-shore}" height="4800" fill="#e4d5ac"/><rect x="${seaEdge}" y="-2400" width="2400" height="4800" fill="#a7cbd0"/>`;
+            return `<g id="mg-village-context"><rect x="-2400" y="-2400" width="4800" height="4800" fill="#b6c89e"/>${coast||fallback}${roads}${buildings}${labels}<text x="${x(790)}" y="${y(700)}" font-size="20" fill="#5b7650">LITTLEHAMPTON-ON-SEA</text></g>`;
         }
         // LAND-1 step 1: geometry preview only. Do not redirect purchases or saves.
         function externalFieldPreview(){
