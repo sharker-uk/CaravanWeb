@@ -40,4 +40,6 @@ test('tablet exposes a dedicated estate agent test purchase, and parcels load fi
  const shell=fs.readFileSync(path.join(root,'src/management-shell.js'),'utf8');
  assert.match(shell,/data-test-south-buy/);
  assert.match(shell,/api\.purchaseSouthFieldTest\(\)/);
+ assert.match(shell,/if\(app\.view==='land'&&api\.landTestEnabled\?\.\(\)\)/);
+ assert.match(shell,/Buy South Field/);
 });
