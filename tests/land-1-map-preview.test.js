@@ -12,3 +12,14 @@ test('step 1 is display-only: no purchase or construction mutation',()=>{
  assert.match(map,/PREVIEW/);
  assert.doesNotMatch(map,/externalParcels\.purchasePlot/);
 });
+
+test('all five external field previews replace old inland rectangles and pins',()=>{
+ const map=fs.readFileSync(path.join(root,'src/management-map.js'),'utf8');
+ const parcels=require('../src/land-parcels.js');
+ assert.equal(parcels.PARCELS.length,5);
+ assert.ok(parcels.validate());
+ assert.match(map,/\$\{externalFieldPreview\(\)\}/);
+ assert.match(map,/W\.usesFarmBoundary\(game\)\?''/);
+ assert.match(map,/p\.type==='land_plot'\)\)\.map\(p=>/);
+ assert.match(map,/PLANNED/);
+});
