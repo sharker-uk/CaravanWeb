@@ -31,3 +31,27 @@ test('path is deterministic and leaves the original state unchanged',()=>{
  assert.deepEqual(M.route(s,s.player,{x:4,y:2},walk),M.route(s,s.player,{x:4,y:2},walk));
  assert.equal(JSON.stringify(s),before);
 });
+
+test('continuous movement uses frame time, supports diagonals and preserves player coordinates',()=>{
+ const s=world(),occupy=(state,x,y)=>walk(state,Math.floor(x),Math.floor(y));
+ assert.equal(M.advance(s,.05,{right:true},walk,occupy),true);
+ assert.ok(Math.abs(s.player.x-1.7)<1e-9);
+ const start={...s.player};
+ M.advance(s,.05,{right:true,down:true},walk,occupy);
+ assert.ok(s.player.x>start.x&&s.player.y>start.y);
+ assert.ok(Math.hypot(s.player.x-start.x,s.player.y-start.y)<=.201);
+});
+test('continuous movement stops at blocked tiles without tunnelling',()=>{
+ const s=world(),occupy=(state,x,y)=>walk(state,Math.floor(x),Math.floor(y));
+ s.tiles[2][2].nature='tree';
+ for(let i=0;i<20;i++)M.advance(s,.05,{right:true},walk,occupy);
+ assert.ok(s.player.x<2);
+});
+test('click route advances smoothly and arrives at target tile centre',()=>{
+ const s=world(),occupy=(state,x,y)=>walk(state,Math.floor(x),Math.floor(y));
+ s.playerPath=M.route(s,s.player,{x:4,y:2},walk).map(p=>({x:p.x+.5,y:p.y+.5}));
+ for(let i=0;i<100;i++)M.advance(s,.05,{},walk,occupy);
+ assert.ok(Math.abs(s.player.x-4.5)<.001);
+ assert.ok(Math.abs(s.player.y-2.5)<.001);
+ assert.equal(s.playerPath.length,0);
+});
