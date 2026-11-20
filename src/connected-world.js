@@ -5,13 +5,27 @@
     const gate = {x: farm.west, y: 25, minY: 24, maxY: 26};
     const radius = 0.18;
 
+    // Pin both the saved 60x40 park footprint and its entrance to the village.
+    // Piecewise affine axes avoid moving saved tiles or breaking the gate connection.
     function placeVillage(village) {
-        const scale = village.park.w / village.park.gridWidth;
-        const [x, y] = village.nodes.parkGate;
+        const p = village.park;
+        const [gx, gy] = village.nodes.parkGate;
+        const west = p.x, east = p.x + p.w, north = p.y, south = p.y + p.h;
+        const xScaleLeft = (gx - west) / gate.x;
+        const xScaleRight = (east - gx) / (p.gridWidth - gate.x);
+        const yScaleTop = (gy - north) / gate.y;
+        const yScaleBottom = (south - gy) / (p.gridHeight - gate.y);
+        if (![xScaleLeft, xScaleRight, yScaleTop, yScaleBottom].every(n => Number.isFinite(n) && n > 0))
+            throw Error('Invalid village park geometry or gate anchor');
+        const vx = x => x <= gate.x ? gx + (x - gate.x) * xScaleLeft : gx + (x - gate.x) * xScaleRight;
+        const vy = y => y <= gate.y ? gy + (y - gate.y) * yScaleTop : gy + (y - gate.y) * yScaleBottom;
+        const sx = x => x <= gx ? gate.x + (x - gx) / xScaleLeft : gate.x + (x - gx) / xScaleRight;
+        const sy = y => y <= gy ? gate.y + (y - gy) / yScaleTop : gate.y + (y - gy) / yScaleBottom;
         return {
-            toVillage: (px, py) => [x + (px - gate.x) * scale, y + (py - gate.y) * scale],
-            toScene: ([vx, vy]) => [gate.x + (vx - x) / scale, gate.y + (vy - y) / scale],
-            toSceneLength: length => length / scale
+            toVillage: (px, py) => [vx(px), vy(py)],
+            toScene: ([x, y]) => [sx(x), sy(y)],
+            // Legacy width conversion is retained for road stroke widths only.
+            toSceneLength: length => length / xScaleRight
         };
     }
 
