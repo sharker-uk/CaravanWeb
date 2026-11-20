@@ -71,7 +71,7 @@ root.ManagementArt={tree,building};
                         ground+=`<rect x="${x*unit}" y="${y*unit}" width="${(end-x)*unit}" height="${unit}" fill="${surface==='sand'?'url(#sand)':surface==='water'?'url(#water)':surface==='road'?'#c7c8b3':'#d9d2b7'}"/>`;x=end;
                     }
                 }
-                row.forEach((t,x)=>{if(t.nature==='tree')nature+=A.tree(x*unit+10,y*unit+12,9+(x+y)%4,(x+y)%4);else if(t.nature==='debris')nature+=`<path d="m${x*unit+4} ${y*unit+13} 6-7 6 8m-14 2h17" stroke="#9aab77" stroke-width="2" fill="none"/>`;});
+                row.forEach((t,x)=>{const assets=root.CaravanNatureAssets;if(assets){ground+=assets.groundDetails(t,x,y,unit);nature+=assets.natureGraphic(t,x,y,unit);}else if(t.nature==='tree')nature+=A.tree(x*unit+10,y*unit+12,9+(x+y)%4,(x+y)%4);});
             }
             if(layers.utilities){
                 for(const [i,type] of root.ParkServices.UTILITY_TYPES.entries()){
