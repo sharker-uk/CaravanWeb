@@ -105,7 +105,7 @@ root.ManagementArt={tree,building};
             const key=JSON.stringify([game.tiles,places.map(p=>[p.id,p.status,p.guest?.accommodation,p.van?.modelId,p.entity.decking,p.entity.accessories]),game.constructions,game.guests.map(g=>[g.position,g.party?.headcount]),[...visibleIds||[]],layers,tool]);
             if(key!==worldKey){world.innerHTML=worldMarkup();worldKey=key;}
             const oldPlayer=world.querySelector('#living-park-player');oldPlayer?.remove();
-            if(options.walking&&game.player){const p=game.player,x=p.x*unit,y=p.y*unit;world.insertAdjacentHTML('beforeend',`<g id="living-park-player" pointer-events="none" transform="translate(${x} ${y})"><ellipse cy="6" rx="7" ry="3" fill="#294b3966"/><path d="M-4 -2h8v9h-8Z" fill="#397c9d" stroke="#263c54" stroke-width="1"/><circle cy="-6" r="5" fill="#d9a078" stroke="#68452f" stroke-width="1.5"/></g>`);}
+            if(game.player){const p=game.player,x=p.x*unit,y=p.y*unit;world.insertAdjacentHTML('beforeend',`<g id="living-park-player" pointer-events="none" transform="translate(${x} ${y})"><ellipse cy="6" rx="9" ry="4" fill="#294b3966"/><path d="M-5 -3h10v11h-10Z" fill="#397c9d" stroke="#263c54" stroke-width="1"/><circle cy="-8" r="6" fill="#d9a078" stroke="#68452f" stroke-width="1.5"/></g>`);}
             // Keep focused map controls alive when only time / condition values change.
             const pinKey=JSON.stringify(places.map(p=>[p.id,p.status,p.id===selected,!visibleIds||visibleIds.has(p.id)]));
             if(labels.dataset.key!==pinKey){drawPins();labels.dataset.key=pinKey;}
