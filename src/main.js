@@ -281,6 +281,16 @@ function init() {
         ? data.dailyGuestArrivals
         : 0;
     state.tiles = data.tiles.map(row => row.map(normalizeTile));
+    // Retire the original full-height road through the farm. Keep its short
+    // entrance section and any player-built infrastructure elsewhere intact.
+    // Only clear the original generated strip where it still has the legacy road.
+    for (let y = 0; y < state.tiles.length; y++) {
+        if (y >= 24 && y <= 25) continue;
+        for (const x of [8, 9]) {
+            const tile = state.tiles[y]?.[x];
+            if (tile?.road && tile.terrain === 'grass') tile.road = false;
+        }
+    }
     state.overlayMode = ['none', 'services', 'utilities', 'entertainment'].includes(data.overlayMode) ? data.overlayMode : 'none';
     state.pitches = data.pitches.map(pitch => ({...pitch, occupied: false}));
     state.facilities = Array.isArray(data.facilities) ? data.facilities : [];
@@ -448,7 +458,7 @@ function generateNewMap() {
         for (let x = 0; x < GRID_W; x++) {
             const terrain = x >= 50 ? 'water' : x >= 47 ? 'sand' :
                 Math.hypot(x - 23, y - 20) < 2.5 ? 'water' : 'grass';
-            const road = terrain === 'grass' && x >= 8 && x <= 9;
+            const road = terrain === 'grass' && x >= 8 && x <= 9 && y >= 24 && y <= 25;
             const path = terrain === 'grass' && y >= 24 && y <= 25 && x >= 10 && x <= 16;
             const roll = Math.abs((x * 73 + y * 37 + x * y * 11 + 19) % 100);
             const safeStart = x >= 1 && x <= 20 && y >= 5 && y <= 29;
