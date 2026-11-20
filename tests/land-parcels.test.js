@@ -18,3 +18,16 @@ test('external development is denied unless the matching field is owned',()=>{
  assert.equal(P.canDevelopAt(land,15,15),false);
  assert.equal(P.canDevelopAt({...land,enabled:false},north.x+1,north.y+1),false);
 });
+
+test('northern and southern fields share edges and coastal fields reach the eastern farm edge',()=>{
+ const byId=Object.fromEntries(P.PARCELS.map(p=>[p.id,p]));
+ for(const [inland,coastal] of [['north_field','north_coastal'],['south_field','south_coastal']]){
+  const a=byId[inland],c=byId[coastal];
+  assert.equal(a.x+a.w,c.x,'no gap between adjacent fields');
+  assert.equal(c.x+c.w,P.FARM.east,'coastal parcel reaches the farm beach-facing edge');
+  assert.equal(a.x,P.FARM.west,'inland field starts at western farm edge');
+ }
+ assert.equal(byId.north_field.y+byId.north_field.h,P.FARM.north);
+ assert.equal(byId.south_field.y,P.FARM.south);
+ assert.equal(P.validate(),true);
+});
