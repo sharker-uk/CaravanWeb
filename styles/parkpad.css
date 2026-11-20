@@ -1,5 +1,11 @@
 /* ParkPad is the primary management UI. Legacy engine stays alive underneath. */
-body[data-management="true"] #management-app {padding-top:66px}
+body[data-management="true"] #management-app {padding-top:0}
+#parkpad-bar[hidden],.parkpad-screen[hidden]{display:none!important}
+body:not(.tablet-open) #management-app .masthead{display:none}
+body:not(.tablet-open) #management-app .management-status{display:none}
+body:not(.tablet-open) #management-app .sidebar{display:none}
+body:not(.tablet-open) #management-app .map-shell{width:100%;flex:1}
+body.tablet-open #management-app{padding-top:66px}
 #management-app .masthead {display:none}
 .parkpad-bar{position:fixed;z-index:120;top:0;left:0;right:0;min-height:66px;background:#faf9f2;border-bottom:1px solid #d6d9c9;display:flex;align-items:center;gap:18px;padding:10px clamp(12px,3vw,42px);font-family:system-ui,sans-serif;color:#314b3b}
 .parkpad-bar button{border:1px solid #a7b5a2;border-radius:9px;padding:9px 15px;background:#fffdf4;color:#314b3b;cursor:pointer;font-weight:700}
