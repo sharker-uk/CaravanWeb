@@ -21,7 +21,9 @@
         const landmarks = (state.landmarks || []).map(l => ({id:`landmark:${l.type}:${l.x}:${l.y}`,name:l.name,kind:'landmark',type:l.type,status:l.type==='for_sale'?'unavailable':'open',entity:l,x:l.x,y:l.y,w:l.w,h:l.h,symbol:symbols[l.type] || 'i',label:l.subtitle || 'Around the park'}));
         for(const p of landmarks){
             if(p.type==='land_plot'){const q=land.purchaseQuote(state,p.entity.plotId);p.id='land:'+p.entity.plotId;p.kind='land';p.status=q.plot.owned?'owned':q.plot.requires.some(id=>!state.land.ownedPlotIds.includes(id))?'locked':'for_sale';p.symbol='£';p.label=q.plot.owned?'Owned · Ready to develop':`£${q.price.toLocaleString('en-GB')} · ${p.w*p.h} tiles`;p.quote=q;}
-            if(p.type==='beach_gate'){p.id='land:beach';p.kind='land';p.status=land.beachStatus(state).status;p.symbol='B';p.label=state.land.beach.purchased?`Beach access · ${p.status}`:'£2,500 · Coastal path & gate';}
+            if(p.type==='beach_gate'){/* Visual marker follows the public beach, not the legacy construction footprint. */
+                if(state.land?.enabled===true&&!state.parkPackageId){p.x=62;p.y=24;p.w=2;p.h=2;}
+                p.id='land:beach';p.kind='land';p.status=land.beachStatus(state).status;p.symbol='B';p.label=state.land.beach.purchased?`Beach access · ${p.status}`:'£2,500 · Coastal path & gate';}
         }
         return [...pitches, ...buildings, ...landmarks];
     }
