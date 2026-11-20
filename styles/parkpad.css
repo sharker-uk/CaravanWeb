@@ -151,3 +151,9 @@ body.tablet-open #management-app[data-parkpad-visible="true"][data-parkpad-view=
   border-width:7px;border-top:0;border-radius:0 0 19px 19px;
  }
 }
+
+/* Job Centre uses the same ParkPad shell as Estate Agents. */
+body.tablet-open #management-app[data-parkpad-view="jobs"] .parkpad-screen{display:block}
+body.tablet-open #management-app[data-parkpad-view="jobs"] .workspace{visibility:hidden}
+body.tablet-open #management-app[data-parkpad-view="jobs"] .parkpad-screen,
+body.tablet-open #management-app[data-parkpad-view="jobs"] .parkpad-bar{visibility:visible}
