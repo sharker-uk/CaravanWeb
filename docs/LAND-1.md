@@ -14,6 +14,12 @@ Move purchasable land from the original internal 60×40 park tiles into neighbou
 - Added a deny-by-default external parcel development predicate, with unit tests. It is **not wired into the game build commands yet**.
 - **Important architecture blocker:** `GameState.getTileProperties`, placement validation, construction, utilities and the management bridge currently index `state.tiles[y][x]` directly. External fields north and west of the farm have negative scene coordinates. A naive field move would allow purchases but crash or deny all development. We must introduce a scene-to-storage tile mapping or a parcel-backed grid before switching the live land office.
 
+## Phase 2 checkpoint: isolated external terrain
+- Added `src/external-terrain.js`: deterministic grass/brush defaults for external parcels, sparse keyed storage, strict validation, ownership-checked writes, and JSON-compatible snapshot/restore.
+- Added `tests/external-terrain.test.js` for deterministic reads, unchanged legacy grid, ownership enforcement, roundtrips, and malformed data rejection.
+- **Not integrated with the browser save pipeline or build commands yet.** Do not claim external fields are playable until the game engine, save migrations, and UI use this interface.
+- This default vegetation is temporary deterministic terrain initialization, **not** the LAND-2 landscape redesign.
+
 ## Remaining Phase 2 work
 1. Preserve the legacy IDs `meadow` and `dunes` and map their ownership to agreed external parcels; do not charge existing owners again. Do not infer new ownership from modified building locations.
 2. Decide how external plots extend the editable tile grid and utility/path graph. A visual rectangle outside the grid is not buildable land.
