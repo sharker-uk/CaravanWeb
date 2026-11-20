@@ -23,6 +23,13 @@ try{
   for(const l of (saved.landmarks||[]).filter(l=>l.type==='land_plot'))content+=`<rect x="${l.x*20}" y="${l.y*20}" width="${l.w*20}" height="${l.h*20}" fill="none" stroke="${l.blocksBuilding?'#aa9869':'#83a078'}" stroke-width="3" stroke-dasharray="8 5"/>`;
   return out+`<g transform="translate(${box.x} ${box.y}) scale(${z/20})">${content}</g>`;
  }
+ function parcelArt(){
+  if(!window.CoastalFarmLayout)return '';
+  const layout=window.CoastalFarmLayout.plan(world);
+  const fences=layout.fields.map(p=>`<g><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="#a8bb8c" fill-opacity=".3" stroke="#77895f" stroke-width="2" stroke-dasharray="7 4"/><text x="${p.x+p.w/2}" y="${p.y+p.h/2}" text-anchor="middle" font-size="9" fill="#536a48" stroke="#d6dfbf" stroke-width="2" paint-order="stroke">${p.name}</text></g>`).join('');
+  const f=layout.farmhouse;
+  return `<g id="v-farm-parcels">${fences}<rect x="${f.x}" y="${f.y}" width="26" height="19" fill="#a8795f" stroke="#5e7757"/><text x="${f.x+13}" y="${f.y-5}" font-size="10" text-anchor="middle" fill="#526749">Old farmhouse</text></g>`;
+ }
  function terrain(){
   let out='<rect x="-1000" y="-1000" width="4000" height="4000" fill="url(#v-water)"/><path d="M-1000-1000H1187V363L1270 580 1300 980 1250 2300H-1000Z" fill="url(#v-grass)"/><path d="M1187-1000H1208V363L1350 580 1380 980 1330 2300H1250L1300 980 1270 580 1187 363Z" fill="#e0d4a8"/><path d="M1198-1000V363L1290 580 1320 980 1270 2300" fill="none" stroke="#ede2bd" stroke-width="13"/>';
   out+='<path d="M350 55H715V340H335Z" fill="#b9c8a0" stroke="#8ba777" stroke-width="2"/><path d="M365 70H710M360 160H710M350 250H710" stroke="#a9bd8e" stroke-width="2"/><rect x="340" y="790" width="300" height="270" rx="12" fill="#b5c596" stroke="#8faa7d" stroke-dasharray="5 6"/><rect x="1000" y="420" width="205" height="175" rx="8" fill="#a1b68b" stroke="#8da77a"/>';
@@ -40,7 +47,7 @@ try{
 
   out+='<path d="M1294 831v23h22v-23" fill="#718d83"/><path d="M1320 842h17v42h-17" stroke="#b9ad87" fill="#ddcda7"/>';
   out+='<rect x="1210" y="705" width="83" height="61" rx="4" fill="#bdc1a9" stroke="#a3af94"/><path d="M1222 716v18m17-18v18m17-18v18m17-18v18m-51 10v13m17-13v13m17-13v13m17-13v13" stroke="#e4e5d4" stroke-width="1.5"/>';
-  out+=parkArt();
+  out+=parkArt();out+=parcelArt();
   for(let i=0;i<190;i++){const x=70+(i*197%1240),y=50+(i*137%1200);if((x>330&&x<1285&&y<1200)||roads.some(r=>toSegment([x,y],world.nodes[r.a],world.nodes[r.b])<30))continue;out+=A.tree(x,y,8+i%5,i%4);}
   for(const [x,y] of [[350,370],[395,420],[580,420],[980,400],[1210,430],[1210,580],[920,550],[680,570],[920,1070],[1120,1180],[440,1120],[1240,270],[440,1070],[625,830]])out+=A.tree(x,y,14,(x+y)%4);
   out+='<g class="district-label"><text x="1065" y="50" text-anchor="middle">HAMPTONVILLA</text><text x="1095" y="612" text-anchor="middle" font-size="11">KINGFISHER GREEN</text><text x="515" y="330" text-anchor="middle" font-size="12">OLD FORT MEADOW</text><text x="475" y="1080" text-anchor="middle" font-size="11">WEST FIELD</text><text x="1480" y="620" text-anchor="middle" transform="rotate(90 1480 620)" font-size="29" letter-spacing="9">NORTH SEA</text></g>';
