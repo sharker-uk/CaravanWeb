@@ -34,7 +34,29 @@ function step(state,dx,dy,walkable){
  state.player={...state.player,x:x+.5,y:y+.5};
  return true;
 }
-const api={tile,key,adjacent,route,step};
+function advance(state,seconds,input,walkable,canOccupy,speed=4){
+ if(!Number.isFinite(seconds)||seconds<=0)return false;
+ const p=state.player;let vx=Number(Boolean(input?.right))-Number(Boolean(input?.left));
+ let vy=Number(Boolean(input?.down))-Number(Boolean(input?.up));
+ const moving=Boolean(vx||vy),path=state.playerPath||[];
+ if(moving){path.length=0;state.interactionTarget=null;const length=Math.hypot(vx,vy);vx/=length;vy/=length;}
+ else if(path.length){const target=path[0],dx=target.x-p.x,dy=target.y-p.y,d=Math.hypot(dx,dy);
+  if(d<.001){p.x=target.x;p.y=target.y;path.shift();return true;}
+  vx=dx/d;vy=dy/d;
+ }
+ else return false;
+ const distance=Math.min(speed*Math.min(seconds,.1),!moving&&path.length?Math.hypot(path[0].x-p.x,path[0].y-p.y):Infinity);
+ const nx=p.x+vx*distance,ny=p.y+vy*distance;
+ let changed=false;
+ if(canOccupy(state,nx,p.y)){p.x=nx;changed=true;}
+ if(canOccupy(state,p.x,ny)){p.y=ny;changed=true;}
+ if(!moving&&path.length){
+  if(Math.hypot(p.x-path[0].x,p.y-path[0].y)<.005){p.x=path[0].x;p.y=path[0].y;path.shift();}
+  else if(!changed)path.length=0;
+ }
+ return changed;
+}
+const api={tile,key,adjacent,route,step,advance};
 root.LivingParkMovement=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
