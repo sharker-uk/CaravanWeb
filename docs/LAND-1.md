@@ -32,3 +32,18 @@ Move purchasable land from the original internal 60×40 park tiles into neighbou
 - No changes to continuous walking, camera, shops, or terrain generation.
 - No main-branch writes and no merge without approval.
 - A passing geometry unit test is not sufficient: verify new and legacy saves and browser building/purchase flows before merging.
+
+
+## South Field instant-purchase development checkpoint
+
+This is a **development-only purchase flow**, not the planned two-day conveyancing system.
+
+1. Open the Cloudflare development build with `?landTest=1` appended to the URL.
+2. In the tablet, choose **Park → Start another park → New farm**. This backs up the current park through the existing scenario flow. The **new** park receives a one-time **£12,000** ledger-recorded development grant on top of the standard £1,500, giving £13,500 starting cash. Do not use an existing park for the grant test.
+3. Open **Land & beach** and find the **Caister Coastal Estates · Development Test** listing for **South Field**.
+4. Confirm the instant **£6,500** purchase. Expected cash after purchase: **£7,000** before other spending.
+5. Save, reload and confirm South Field still shows as owned and cannot be purchased again.
+
+The grant and purchase UI are exposed only with the `landTest=1` URL parameter. A normal new game keeps the original starting cash and does not expose this instant external purchase route. The grant is applied only when creating a new farm, not on opening existing saves. Purchases use the existing economy ledger and the saved land ownership list.
+
+**Known limitation:** this checkpoint proves purchase, ledger and persistence. External construction, player clearing, utility connection and path/pitch placement are **not yet integrated** into the live 60×40 simulation. Do not describe the purchased South Field as fully playable yet. The field art remains a preview and its irregular boundary is not yet the authoritative ownership polygon.
