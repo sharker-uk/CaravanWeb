@@ -83,6 +83,7 @@ function setTablet(open){
  if(!ready)return;
  walking=!open;stopWalking();interaction=null;api.tool('select');
  document.body.classList.toggle('tablet-open',open);
+ window.dispatchEvent(new CustomEvent('caravan:tablet',{detail:{open}}));
  $('#park-map').setAttribute('aria-label',open
   ? 'Park management map. Drag to pan, scroll to zoom, or select a place.'
   : 'Park and village. Use WASD or the arrow keys to walk. Open the tablet to manage the park.');
