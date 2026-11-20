@@ -1,0 +1,624 @@
+{
+  "version": 1,
+  "format": "svg",
+  "image": "default-character.svg",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "background": "transparent",
+  "anchor": {
+    "x": 16,
+    "y": 30
+  },
+  "animations": {
+    "walk_down": [
+      {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 32,
+        "y": 0,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 64,
+        "y": 0,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 96,
+        "y": 0,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      }
+    ],
+    "walk_left": [
+      {
+        "x": 0,
+        "y": 32,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 32,
+        "y": 32,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 64,
+        "y": 32,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 96,
+        "y": 32,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      }
+    ],
+    "walk_right": [
+      {
+        "x": 0,
+        "y": 64,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 32,
+        "y": 64,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 64,
+        "y": 64,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 96,
+        "y": 64,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      }
+    ],
+    "walk_up": [
+      {
+        "x": 0,
+        "y": 96,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 32,
+        "y": 96,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 64,
+        "y": 96,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      },
+      {
+        "x": 96,
+        "y": 96,
+        "w": 32,
+        "h": 32,
+        "durationMs": 130
+      }
+    ],
+    "idle_down": [
+      {
+        "x": 0,
+        "y": 128,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "idle_left": [
+      {
+        "x": 0,
+        "y": 160,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "idle_right": [
+      {
+        "x": 0,
+        "y": 192,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "idle_up": [
+      {
+        "x": 0,
+        "y": 224,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "chop_down": [
+      {
+        "x": 0,
+        "y": 256,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 32,
+        "y": 256,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 64,
+        "y": 256,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 96,
+        "y": 256,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 128,
+        "y": 256,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 160,
+        "y": 256,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      }
+    ],
+    "chop_left": [
+      {
+        "x": 0,
+        "y": 288,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 32,
+        "y": 288,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 64,
+        "y": 288,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 96,
+        "y": 288,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 128,
+        "y": 288,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 160,
+        "y": 288,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      }
+    ],
+    "chop_right": [
+      {
+        "x": 0,
+        "y": 320,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 32,
+        "y": 320,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 64,
+        "y": 320,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 96,
+        "y": 320,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 128,
+        "y": 320,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 160,
+        "y": 320,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      }
+    ],
+    "chop_up": [
+      {
+        "x": 0,
+        "y": 352,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 32,
+        "y": 352,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 64,
+        "y": 352,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 96,
+        "y": 352,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 128,
+        "y": 352,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      },
+      {
+        "x": 160,
+        "y": 352,
+        "w": 32,
+        "h": 32,
+        "durationMs": 110
+      }
+    ],
+    "dig_down": [
+      {
+        "x": 0,
+        "y": 384,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 32,
+        "y": 384,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 64,
+        "y": 384,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 96,
+        "y": 384,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "dig_left": [
+      {
+        "x": 0,
+        "y": 416,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 32,
+        "y": 416,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 64,
+        "y": 416,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 96,
+        "y": 416,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "dig_right": [
+      {
+        "x": 0,
+        "y": 448,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 32,
+        "y": 448,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 64,
+        "y": 448,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 96,
+        "y": 448,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "dig_up": [
+      {
+        "x": 0,
+        "y": 480,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 32,
+        "y": 480,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 64,
+        "y": 480,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 96,
+        "y": 480,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "mine_down": [
+      {
+        "x": 0,
+        "y": 512,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 32,
+        "y": 512,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 64,
+        "y": 512,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 96,
+        "y": 512,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "mine_left": [
+      {
+        "x": 0,
+        "y": 544,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 32,
+        "y": 544,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 64,
+        "y": 544,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 96,
+        "y": 544,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "mine_right": [
+      {
+        "x": 0,
+        "y": 576,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 32,
+        "y": 576,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 64,
+        "y": 576,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 96,
+        "y": 576,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "mine_up": [
+      {
+        "x": 0,
+        "y": 608,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 32,
+        "y": 608,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 64,
+        "y": 608,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      },
+      {
+        "x": 96,
+        "y": 608,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "carry_down": [
+      {
+        "x": 0,
+        "y": 640,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "carry_left": [
+      {
+        "x": 0,
+        "y": 672,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "carry_right": [
+      {
+        "x": 0,
+        "y": 704,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ],
+    "carry_up": [
+      {
+        "x": 0,
+        "y": 736,
+        "w": 32,
+        "h": 32,
+        "durationMs": 180
+      }
+    ]
+  },
+  "license": "Original project artwork; see repository license.",
+  "notes": "Rows ordered by action walk/idle/chop/dig/mine/carry and direction down/left/right/up. 32x32 frames. Default red-jacket character."
+}

@@ -100,11 +100,24 @@ root.ManagementArt={tree,building};
             }).join('')+'<text data-sea class="area-label" text-anchor="middle" style="fill:#638f93;letter-spacing:4px;font-size:18px">NORTH SEA</text>';
             if(focusedId)labels.querySelector(`[data-place="${CSS.escape(focusedId)}"]`)?.focus({preventScroll:true});
         }
+        let playerFacing='down',lastPlayerPosition=null,lastSpriteFrame='',playerMotionSince=0;
         function updatePlayer(p){
             if(!p)return;
+            const sprites=root.CaravanPlayerSprites;
             let marker=world.querySelector('#living-park-player');
-            if(!marker){world.insertAdjacentHTML('beforeend',`<g id="living-park-player" pointer-events="none"><ellipse cy="6" rx="9" ry="4" fill="#294b3966"/><path d="M-5 -3h10v11h-10Z" fill="#397c9d" stroke="#263c54" stroke-width="1"/><circle cy="-8" r="6" fill="#d9a078" stroke="#68452f" stroke-width="1.5"/></g>`);marker=world.querySelector('#living-park-player');}
+            if(!marker){world.insertAdjacentHTML('beforeend','<g id="living-park-player" pointer-events="none"></g>');marker=world.querySelector('#living-park-player');lastSpriteFrame='';}
+            const dx=lastPlayerPosition?p.x-lastPlayerPosition.x:0,dy=lastPlayerPosition?p.y-lastPlayerPosition.y:0;
+            const moving=Math.hypot(dx,dy)>.0001;
+            if(moving){playerFacing=Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down');playerMotionSince=Date.now();}
+            const walking=Date.now()-playerMotionSince<120;
+            const frame=walking?Math.floor(Date.now()/130)%4:0;
+            const frameKey=(walking?'walk':'idle')+playerFacing+frame;
+            if(sprites&&lastSpriteFrame!==frameKey){
+                marker.innerHTML=`<g transform="translate(-12 -22.5) scale(.75)" shape-rendering="crispEdges">${sprites.frameSvg(playerFacing,frame,walking?'walk':'idle')}</g>`;
+                lastSpriteFrame=frameKey;
+            }
             marker.setAttribute('transform',`translate(${p.x*unit} ${p.y*unit})`);
+            lastPlayerPosition={x:p.x,y:p.y};
         }
         function render(nextGame,nextPlaces,options={}){
             game=nextGame;places=nextPlaces;selected=options.selected;visibleIds=options.visibleIds||null;route=options.route||null;tool=options.tool||'select';layers={...layers,...options.layers};

@@ -87,8 +87,8 @@ function walkingFrame(timestamp){
  const state=api.getState();
  const input={left:held.has('a')||held.has('arrowleft'),right:held.has('d')||held.has('arrowright'),up:held.has('w')||held.has('arrowup'),down:held.has('s')||held.has('arrowdown')};
  const moving=LivingParkMovement.advance(state,dt,input,GameStateApi.getTileProperties,GameStateApi.canOccupyPlayer);
+ map.updatePlayer(state.player);
  if(moving){
-  map.updatePlayer(state.player);
   map.followPlayer(state.player);
   if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
  }
