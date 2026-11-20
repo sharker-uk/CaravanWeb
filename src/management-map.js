@@ -177,7 +177,7 @@ root.ManagementArt={tree,building};
         labels.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&e.target.dataset.place){e.preventDefault();e.stopPropagation();callbacks.onSelect(e.target.dataset.place);}});
         new ResizeObserver(()=>{dimensions();cameraChanged();}).observe(svg);
         dimensions();
-        const api={render,updatePlayer,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},followPlayer:p=>{camera.x=p.x*unit;camera.y=p.y*unit;cameraChanged(false);},invalidate:()=>{worldKey='';}};
+        const api={render,updatePlayer,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},followPlayer:(p,dt=1/60)=>{const framing=root.CaravanWorldCamera;if(framing){const target=framing.target(p,{width,height});const next=framing.smooth(camera,target,dt);camera.x=next.x;camera.y=next.y;camera.zoom=next.zoom;}else{camera.x=p.x*unit;camera.y=p.y*unit;}cameraChanged(false);},invalidate:()=>{worldKey='';}};
         return api;
     }
     root.ManagementMap={create,placeArt};
