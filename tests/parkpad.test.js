@@ -28,3 +28,15 @@ test('ParkPad preserves normal-mode restrictions and test purchase confirmation'
  assert.match(pad,/two-day conveyancing/);
  assert.match(pad,/game\(\)\.save\(\)/);
 });
+
+test('walking is the default; tablet overlay follows existing walk-mode state and can close',()=>{
+ const shell=read('src/management-shell.js'),pad=read('src/parkpad.js'),css=read('styles/parkpad.css');
+ assert.match(shell,/let walking=true/);
+ assert.match(shell,/caravan:tablet/);
+ assert.match(pad,/showTablet\(tabletOpen\(\)\)/);
+ assert.match(pad,/window\.addEventListener\('caravan:tablet'/);
+ assert.match(pad,/parkpad-close/);
+ assert.match(pad,/mg-walk-mode/);
+ assert.match(css,/\.parkpad-screen\[hidden\]\{display:none!important\}/);
+ assert.match(css,/body:not\(\.tablet-open\)/);
+});
