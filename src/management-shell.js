@@ -85,6 +85,11 @@ function walkingFrame(timestamp){
  const dt=Math.min((timestamp-(lastFrame||timestamp))/1000,.05);lastFrame=timestamp;
  if(!walking||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  const state=api.getState();
+ // Gate crossing is the only supported park-to-village transition.
+ const gate=window.CaravanRegionGate;
+ if(gate&&gate.canExit(state.player,held.has('a')||held.has('arrowleft'))){
+  api.save();gate.write(sessionStorage,'village');location.assign('village.html#walk');return;
+ }
  const input={left:held.has('a')||held.has('arrowleft'),right:held.has('d')||held.has('arrowright'),up:held.has('w')||held.has('arrowup'),down:held.has('s')||held.has('arrowdown')};
  const moving=LivingParkMovement.advance(state,dt,input,GameStateApi.getTileProperties,GameStateApi.canOccupyPlayer);
  map.updatePlayer(state.player);
