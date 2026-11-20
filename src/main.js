@@ -146,9 +146,6 @@ const PALETTE = {
 };
 const STARTING_LANDMARKS = [
     {type: 'farmhouse', name: 'Run-down farmhouse', x: 13, y: 17, w: 6, h: 5, blocksBuilding: true, blocksMovement: true, interactable: true},
-    {type: 'rusty_resales', name: 'Rusty Resales', subtitle: 'Caravan Emporium', x: 2, y: 7, w: 5, h: 3, blocksBuilding: true, blocksMovement: true, interactable: true},
-    {type: 'fiddl_shop', name: 'Fiddl', subtitle: 'Convenience shop', x: 2, y: 14, w: 5, h: 3, blocksBuilding: true, blocksMovement: true, interactable: true},
-    {type: 'job_centre', name: 'Job Centre', subtitle: 'Park staff', x: 2, y: 21, w: 5, h: 3, blocksBuilding: true, blocksMovement: true, interactable: true},
     {type: 'for_sale', name: 'Land for sale', x: 29, y: 12, w: 17, h: 16, blocksBuilding: true, blocksMovement: false, interactable: false}
 ];
 
@@ -287,7 +284,9 @@ function init() {
     state.overlayMode = ['none', 'services', 'utilities', 'entertainment'].includes(data.overlayMode) ? data.overlayMode : 'none';
     state.pitches = data.pitches.map(pitch => ({...pitch, occupied: false}));
     state.facilities = Array.isArray(data.facilities) ? data.facilities : [];
-    state.landmarks = Array.isArray(data.landmarks) ? data.landmarks : [];
+    // Village businesses no longer occupy the farm. Preserve all other saved landmarks.
+    state.landmarks = (Array.isArray(data.landmarks) ? data.landmarks : [])
+        .filter(item => !['rusty_resales', 'fiddl_shop', 'job_centre'].includes(item?.type));
     state.constructions = Array.isArray(data.constructions) ? data.constructions : [];
     state.land = LandExpansion.restoreState(data);
     LandExpansion.syncLandmarks(state);
