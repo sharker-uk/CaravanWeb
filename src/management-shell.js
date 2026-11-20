@@ -295,6 +295,13 @@ document.addEventListener('keydown',e=>{
 window.addEventListener('caravan:change',()=>{if(ready&&!renderTimer)renderTimer=setTimeout(()=>{renderTimer=null;render();},250);});
 window.addEventListener('caravan:ready',()=>{
     api=window.CaravanGame;ready=true;
+    // Return at the actual entrance road, not the last pre-transition position.
+    if(window.CaravanRegionGate?.consume(sessionStorage,'park')){
+      const player=api.getState().player,entrance=window.CaravanRegionGate.GATE.park;
+      player.x=entrance.x;player.y=entrance.y;
+      api.getState().playerPath=[];
+      api.save();
+    }
     map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,onGround:target=>{
         const nature=api.getState().tiles[target.y]?.[target.x]?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
