@@ -62,11 +62,27 @@ root.ManagementArt={tree,building};
         function fit(){dimensions();Object.assign(camera,{x:570,y:400,rotation:0,zoom:baseZoom});cameraChanged();}
         function pan(dx,dy){const xy=M.unproject(width/2+dx,height/2+dy,camera,width,height);camera.x=Math.max(-650,Math.min(1500,xy[0]));camera.y=Math.max(-300,Math.min(1100,xy[1]));cameraChanged();}
         function focus(p){if(!p)return;camera.zoom=Math.max(camera.zoom,width<650?.68:1);camera.x=(p.x+p.w/2)*unit+(width<650?0:140);camera.y=(p.y+p.h/2)*unit+(width<650?160:20);cameraChanged();}
+        // Draw the actual village's roads and buildings in the park's coordinate system.
+        // The village's park footprint is mapped onto the existing 60x40 playable grid.
+        let villageData=null;
+        fetch('data/village-world.json').then(r=>{if(!r.ok)throw Error('Village data unavailable');return r.json();}).then(data=>{
+            villageData=data;worldKey='';if(game)render(game,places,{selected,visibleIds,route,tool,layers});
+        }).catch(err=>console.warn('Village scenery could not load:',err));
         function villageFringe(){
-          const buildings=[['QuickStop',-520,120],['Village Supplies',-380,120],['Café',-520,360],['Village Pub',-380,360]];
-          const shops=buildings.map(([name,x,y])=>`<g><rect x="${x}" y="${y}" width="115" height="65" fill="#b19b7c" stroke="#758869"/><path d="M${x} ${y+45}h115" stroke="#e6ddc5" stroke-width="10"/><text x="${x+57}" y="${y+52}" text-anchor="middle" fill="#526849" font-size="10">${name}</text></g>`).join('');
-          const homes=Array.from({length:9},(_,i)=>{const x=-545+(i%3)*135,y=540+Math.floor(i/3)*110;return `<g><rect x="${x-6}" y="${y-6}" width="105" height="90" fill="#a6bd93"/><rect x="${x}" y="${y}" width="80" height="50" fill="#ad987e" stroke="#73866c"/></g>`;}).join('');
-          return `<g id="mg-village-context"><rect x="-650" y="-200" width="650" height="1300" fill="#b6c89e"/><path d="M-220-200V1100" stroke="#a3af94" stroke-width="100"/><path d="M-220-200V1100" stroke="#d1d0b7" stroke-width="80"/><path d="M-220-200V1100" stroke="#eee8d6" stroke-width="2" stroke-dasharray="12 22"/>${homes}${shops}<text x="-330" y="-80" text-anchor="middle" font-size="23" fill="#5b7650">LITTLEHAMPTON-ON-SEA</text><text x="-220" y="-40" text-anchor="middle" font-size="14" fill="#5b7650">NATWINCH ROAD</text></g>`;
+            if(!villageData)return '';
+            const v=villageData,p=v.park,sx=1200/p.w,sy=800/p.h;
+            const x=n=>(n-p.x)*sx,y=n=>(n-p.y)*sy;
+            const roads=v.roads.map(r=>{
+                const a=v.nodes[r.a],b=v.nodes[r.b];if(!a||!b)return '';
+                return `<path d="M${x(a[0])} ${y(a[1])}L${x(b[0])} ${y(b[1])}" fill="none" stroke="#d0d0b9" stroke-width="${Math.max(8,r.width*sx)}"/>`;
+            }).join('');
+            const buildings=v.buildings.map(b=>{
+                const bx=x(b.x),by=y(b.y),w=b.w*sx,h=b.h*sy;
+                return `<g><rect x="${bx-5}" y="${by-5}" width="${w+10}" height="${h+10}" fill="#a8bf96" stroke="#8ca77e"/><rect x="${bx}" y="${by}" width="${w}" height="${h}" fill="${b.roof||'#b29a7c'}" stroke="#75846e"/>${b.kind==='shop'?`<path d="M${bx} ${by+h*.72}h${w}" stroke="#e3d8b9" stroke-width="6"/>`:''}</g>`;
+            }).join('');
+            const labels=v.places.filter(q=>q.id!=='park').map(q=>`<text x="${x(q.x)}" y="${y(q.y)+30}" text-anchor="middle" font-size="12" fill="#4f674d" paint-order="stroke" stroke="#dce6cf" stroke-width="3">${String(q.name).replace(/[&<>]/g,'')}</text>`).join('');
+            const coast=x(1200);
+            return `<g id="mg-village-context"><rect x="-2400" y="-2400" width="4800" height="4800" fill="#b6c89e"/><rect x="${coast}" y="-2400" width="2400" height="4800" fill="#e4d5ac"/><rect x="${x(1300)}" y="-2400" width="2300" height="4800" fill="#a7cbd0"/>${roads}${buildings}${labels}<text x="${x(790)}" y="${y(700)}" font-size="20" fill="#5b7650">LITTLEHAMPTON-ON-SEA</text></g>`;
         }
         function worldMarkup() {
             let ground='',nature='',grid='',utilities='';
