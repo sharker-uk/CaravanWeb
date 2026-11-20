@@ -100,12 +100,17 @@ root.ManagementArt={tree,building};
             }).join('')+'<text data-sea class="area-label" text-anchor="middle" style="fill:#638f93;letter-spacing:4px;font-size:18px">NORTH SEA</text>';
             if(focusedId)labels.querySelector(`[data-place="${CSS.escape(focusedId)}"]`)?.focus({preventScroll:true});
         }
+        function updatePlayer(p){
+            if(!p)return;
+            let marker=world.querySelector('#living-park-player');
+            if(!marker){world.insertAdjacentHTML('beforeend',`<g id="living-park-player" pointer-events="none"><ellipse cy="6" rx="9" ry="4" fill="#294b3966"/><path d="M-5 -3h10v11h-10Z" fill="#397c9d" stroke="#263c54" stroke-width="1"/><circle cy="-8" r="6" fill="#d9a078" stroke="#68452f" stroke-width="1.5"/></g>`);marker=world.querySelector('#living-park-player');}
+            marker.setAttribute('transform',`translate(${p.x*unit} ${p.y*unit})`);
+        }
         function render(nextGame,nextPlaces,options={}){
             game=nextGame;places=nextPlaces;selected=options.selected;visibleIds=options.visibleIds||null;route=options.route||null;tool=options.tool||'select';layers={...layers,...options.layers};
             const key=JSON.stringify([game.tiles,places.map(p=>[p.id,p.status,p.guest?.accommodation,p.van?.modelId,p.entity.decking,p.entity.accessories]),game.constructions,game.guests.map(g=>[g.position,g.party?.headcount]),[...visibleIds||[]],layers,tool]);
             if(key!==worldKey){world.innerHTML=worldMarkup();worldKey=key;}
-            const oldPlayer=world.querySelector('#living-park-player');oldPlayer?.remove();
-            if(game.player){const p=game.player,x=p.x*unit,y=p.y*unit;world.insertAdjacentHTML('beforeend',`<g id="living-park-player" pointer-events="none" transform="translate(${x} ${y})"><ellipse cy="6" rx="9" ry="4" fill="#294b3966"/><path d="M-5 -3h10v11h-10Z" fill="#397c9d" stroke="#263c54" stroke-width="1"/><circle cy="-8" r="6" fill="#d9a078" stroke="#68452f" stroke-width="1.5"/></g>`);}
+            updatePlayer(game.player);
             // Keep focused map controls alive when only time / condition values change.
             const pinKey=JSON.stringify(places.map(p=>[p.id,p.status,p.id===selected,!visibleIds||visibleIds.has(p.id)]));
             if(labels.dataset.key!==pinKey){drawPins();labels.dataset.key=pinKey;}
@@ -130,14 +135,14 @@ root.ManagementArt={tree,building};
             if(moved){const a=M.unproject(0,0,pointer.camera,width,height),b=M.unproject(dx,dy,pointer.camera,width,height);camera.x=Math.max(-300,Math.min(1500,pointer.camera.x+a[0]-b[0]));camera.y=Math.max(-300,Math.min(1100,pointer.camera.y+a[1]-b[1]));cameraChanged();}
         });
         function end(e){
-            if(pointer&&e.type==='pointerup'&&touches.size===1){if(pointer.build)callbacks.onBuild?.(tool,pointer.start,pointerGrid(e));else if(!moved){if(callbacks.onGround&&callbacks.isWalking?.()&&!pointer.place)callbacks.onGround(pointerGrid(e));else callbacks.onSelect?.(pointer.place||null);}}
+            if(pointer&&e.type==='pointerup'&&touches.size===1){if(pointer.build)callbacks.onBuild?.(tool,pointer.start,pointerGrid(e));else if(!moved){if(callbacks.onGround&&callbacks.isWalking?.())callbacks.onGround(pointerGrid(e));else callbacks.onSelect?.(pointer.place||null);}}
             touches.delete(e.pointerId);pointer=null;pinchDistance=null;world.querySelector('#mg-build-preview')?.replaceChildren();svg.classList.remove('dragging');
         }
         svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);svg.addEventListener('lostpointercapture',end);
         labels.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&e.target.dataset.place){e.preventDefault();e.stopPropagation();callbacks.onSelect(e.target.dataset.place);}});
         new ResizeObserver(()=>{dimensions();cameraChanged();}).observe(svg);
         dimensions();
-        const api={render,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},followPlayer:p=>{camera.x=p.x*unit;camera.y=p.y*unit;cameraChanged();},invalidate:()=>{worldKey='';}};
+        const api={render,updatePlayer,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},followPlayer:p=>{camera.x=p.x*unit;camera.y=p.y*unit;cameraChanged();},invalidate:()=>{worldKey='';}};
         return api;
     }
     root.ManagementMap={create,placeArt};
