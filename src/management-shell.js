@@ -322,12 +322,18 @@ document.addEventListener('keydown',e=>{
  if(editing||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  if(walking){
   if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();held.add(key);return;}
-  if(key==='e'&&interaction){
-   e.preventDefault();const p=LivingParkMovement.tile(walkingPosition());
-   if(LivingParkMovement.adjacent(p,interaction)&&['tree','debris'].includes(api.getState().tiles[interaction.y]?.[interaction.x]?.nature)){
-    const result=api.build('clear',interaction,interaction);
+  if(key==='e'){
+   e.preventDefault();
+   const state=api.getState(),p=LivingParkMovement.tile(walkingPosition());
+   const candidates=[interaction,{x:p.x,y:p.y-1},{x:p.x+1,y:p.y},{x:p.x,y:p.y+1},{x:p.x-1,y:p.y}]
+    .filter(Boolean)
+    .filter(t=>LivingParkMovement.adjacent(p,t)&&['tree','debris'].includes(state.tiles[t.y]?.[t.x]?.nature));
+   const target=candidates[0];
+   if(target){
+    const result=api.build('clear',target,target);
     if(result.ok){interaction=null;map.invalidate();render(true);}
-   }else announce('Walk next to the tree or debris before interacting.');
+    else announce('Unable to clear this tree or debris.');
+   }else announce('Stand next to a tree or debris in your park and press E to clear it.');
   }
   return;
  }
