@@ -21,3 +21,6 @@ The original farm sits in the existing village park inset beside Natwinch Road, 
 
 ## Safety
 **Draft PR.** The village remains intact. New shops are informational destinations only; no economic changes or world switching have been completed. Do not claim a seamless world or working shop purchases yet.
+
+## Implementation update — village data renderer
+The management SVG now loads `data/village-world.json` and draws its actual road segments, building footprints and destination names in the park coordinate system. This replaces the invented roadside strip. This is **visual-only**: player movement still uses the park's 60×40 tiles, and the shop destinations are not yet transactional. Do not claim continuous walkability or a completed land expansion migration. The village render needs browser verification against the Cloudflare preview before approval.
