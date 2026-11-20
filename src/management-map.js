@@ -44,7 +44,7 @@ root.ManagementArt={tree,building};
         const world=svg.querySelector('#mg-world'),labels=svg.querySelector('#mg-map-labels');
         let width=1,height=1,baseZoom=.8,game=null,places=[],selected=null,visibleIds=null,route=null,tool='select',layers={labels:true,people:true,utilities:false,grid:false},worldKey='',pointer=null,moved=false,pinchDistance=null;
         const camera={x:570,y:400,zoom:.8,rotation:0,tilt:.8},touches=new Map();
-        try{const saved=JSON.parse(localStorage.getItem('caravanweb_management_camera_v1'));if(saved&&['x','y','zoom','rotation','tilt'].every(k=>Number.isFinite(saved[k]))){camera.x=Math.max(-300,Math.min(1500,saved.x));camera.y=Math.max(-300,Math.min(1100,saved.y));camera.zoom=Math.max(.3,Math.min(4,saved.zoom));camera.rotation=saved.rotation%360;camera.tilt=saved.tilt===1?1:.8;}}catch{}
+        try{const saved=JSON.parse(localStorage.getItem('caravanweb_management_camera_v1'));if(saved&&['x','y','zoom','rotation','tilt'].every(k=>Number.isFinite(saved[k]))){camera.x=Math.max(-650,Math.min(1500,saved.x));camera.y=Math.max(-300,Math.min(1100,saved.y));camera.zoom=Math.max(.3,Math.min(4,saved.zoom));camera.rotation=saved.rotation%360;camera.tilt=saved.tilt===1?1:.8;}}catch{}
         function persist(){try{localStorage.setItem('caravanweb_management_camera_v1',JSON.stringify(camera));}catch{}}
         function dimensions(){const rect=svg.getBoundingClientRect();width=rect.width;height=rect.height;svg.setAttribute('viewBox',`0 0 ${width} ${height}`);baseZoom=Math.max(.3,Math.min((width-50)/1200,(height-140)/(800*camera.tilt)));}
         function cameraChanged(shouldPersist=true){
@@ -60,8 +60,14 @@ root.ManagementArt={tree,building};
         }
         function zoom(factor,x=width/2,y=height/2){const before=M.unproject(x,y,camera,width,height);camera.zoom=Math.max(.3,Math.min(4,camera.zoom*factor));const after=M.unproject(x,y,camera,width,height);camera.x+=before[0]-after[0];camera.y+=before[1]-after[1];cameraChanged();}
         function fit(){dimensions();Object.assign(camera,{x:570,y:400,rotation:0,zoom:baseZoom});cameraChanged();}
-        function pan(dx,dy){const xy=M.unproject(width/2+dx,height/2+dy,camera,width,height);camera.x=Math.max(-300,Math.min(1500,xy[0]));camera.y=Math.max(-300,Math.min(1100,xy[1]));cameraChanged();}
+        function pan(dx,dy){const xy=M.unproject(width/2+dx,height/2+dy,camera,width,height);camera.x=Math.max(-650,Math.min(1500,xy[0]));camera.y=Math.max(-300,Math.min(1100,xy[1]));cameraChanged();}
         function focus(p){if(!p)return;camera.zoom=Math.max(camera.zoom,width<650?.68:1);camera.x=(p.x+p.w/2)*unit+(width<650?0:140);camera.y=(p.y+p.h/2)*unit+(width<650?160:20);cameraChanged();}
+        function villageFringe(){
+          const buildings=[['QuickStop',-520,120],['Village Supplies',-380,120],['Café',-520,360],['Village Pub',-380,360]];
+          const shops=buildings.map(([name,x,y])=>`<g><rect x="${x}" y="${y}" width="115" height="65" fill="#b19b7c" stroke="#758869"/><path d="M${x} ${y+45}h115" stroke="#e6ddc5" stroke-width="10"/><text x="${x+57}" y="${y+52}" text-anchor="middle" fill="#526849" font-size="10">${name}</text></g>`).join('');
+          const homes=Array.from({length:9},(_,i)=>{const x=-545+(i%3)*135,y=540+Math.floor(i/3)*110;return `<g><rect x="${x-6}" y="${y-6}" width="105" height="90" fill="#a6bd93"/><rect x="${x}" y="${y}" width="80" height="50" fill="#ad987e" stroke="#73866c"/></g>`;}).join('');
+          return `<g id="mg-village-context"><rect x="-650" y="-200" width="650" height="1300" fill="#b6c89e"/><path d="M-220-200V1100" stroke="#a3af94" stroke-width="100"/><path d="M-220-200V1100" stroke="#d1d0b7" stroke-width="80"/><path d="M-220-200V1100" stroke="#eee8d6" stroke-width="2" stroke-dasharray="12 22"/>${homes}${shops}<text x="-330" y="-80" text-anchor="middle" font-size="23" fill="#5b7650">LITTLEHAMPTON-ON-SEA</text><text x="-220" y="-40" text-anchor="middle" font-size="14" fill="#5b7650">NATWINCH ROAD</text></g>`;
+        }
         function worldMarkup() {
             let ground='',nature='',grid='',utilities='';
             for(let y=0;y<game.tiles.length;y++){
@@ -89,7 +95,7 @@ root.ManagementArt={tree,building};
             const buildings=places.filter(p=>p.kind!=='pitch'&&p.type!=='land_plot').sort((a,b)=>(a.y+a.h)-(b.y+b.h)).map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
             const jobs=game.constructions.map(j=>{const b=j.footprint;return b?`<rect x="${b.x*unit+1}" y="${b.y*unit+1}" width="${b.w*unit-2}" height="${b.h*unit-2}" fill="#d6ad5c55" stroke="#a88948" stroke-width="2" stroke-dasharray="6 4"/>`:'';}).join('');
             const people=layers.people?game.guests.flatMap(g=>(g.party?.members||[{}]).map((m,i)=>{const pos=g.position||{x:g.pitch.x+1,y:g.pitch.y+1},x=pos.x*unit+(i%3)*5,y=pos.y*unit+Math.floor(i/3)*5;return `<g><ellipse cx="${x+1}" cy="${y+8}" rx="3" ry="1.5" fill="#446a4c44"/><path d="M${x} ${y+2}v6" stroke="${/^#[0-9a-fA-F]{6}$/.test(m.appearance?.top||'')?m.appearance.top:'#7a91a0'}" stroke-width="4"/><circle cx="${x}" cy="${y}" r="2.5" fill="#dcbb96"/></g>`;})).join(''):'';
-            return `<rect x="-500" y="-500" width="2400" height="1800" fill="url(#water)"/><rect x="-800" y="-800" width="1740" height="2400" fill="url(#grass)"/><rect x="940" y="-800" width="60" height="2400" fill="url(#sand)"/>${ground}<path d="M0 0H1200V800H0Z" fill="none" stroke="#829b6d" stroke-width="1.5" stroke-dasharray="4 7"/>${places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
+            return `<rect x="-500" y="-500" width="2400" height="1800" fill="url(#water)"/><rect x="-800" y="-800" width="1740" height="2400" fill="url(#grass)"/><rect x="940" y="-800" width="60" height="2400" fill="url(#sand)"/>${villageFringe()}${ground}<path d="M0 0H1200V800H0Z" fill="none" stroke="#829b6d" stroke-width="1.5" stroke-dasharray="4 7"/>${places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
         }
         function drawPins(){
             const focusedId=document.activeElement?.dataset.place;
@@ -145,7 +151,7 @@ root.ManagementArt={tree,building};
             if(!pointer)return;
             const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(dx,dy)>4)moved=true;
             if(pointer.build){preview(pointer.start,pointerGrid(e));return;}
-            if(moved){const a=M.unproject(0,0,pointer.camera,width,height),b=M.unproject(dx,dy,pointer.camera,width,height);camera.x=Math.max(-300,Math.min(1500,pointer.camera.x+a[0]-b[0]));camera.y=Math.max(-300,Math.min(1100,pointer.camera.y+a[1]-b[1]));cameraChanged();}
+            if(moved){const a=M.unproject(0,0,pointer.camera,width,height),b=M.unproject(dx,dy,pointer.camera,width,height);camera.x=Math.max(-650,Math.min(1500,pointer.camera.x+a[0]-b[0]));camera.y=Math.max(-300,Math.min(1100,pointer.camera.y+a[1]-b[1]));cameraChanged();}
         });
         function end(e){
             if(pointer&&e.type==='pointerup'&&touches.size===1){if(pointer.build)callbacks.onBuild?.(tool,pointer.start,pointerGrid(e));else if(!moved){if(callbacks.onGround&&callbacks.isWalking?.())callbacks.onGround(pointerGrid(e));else callbacks.onSelect?.(pointer.place||null);}}
