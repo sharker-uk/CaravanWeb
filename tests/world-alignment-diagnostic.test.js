@@ -18,3 +18,11 @@ test('scene coordinates and original farm bounds are unchanged',()=>{
  assert.deepEqual(W.farm,{west:8,north:0,east:60,south:40});
  assert.deepEqual(W.gate,{x:8,y:25,minY:24,maxY:26});
 });
+
+test('management renderer keeps a public beach outside the farm before the sea',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const source=fs.readFileSync(path.join(__dirname,'../src/management-map.js'),'utf8');
+ assert.match(source,/const shoreline=x\(v\.park\.x\+v\.park\.w\)/);
+ assert.match(source,/const seaEdge=x\(v\.park\.x\+v\.park\.w\+70\)/);
+ assert.ok(source.indexOf('fill="#e4d5ac"')<source.indexOf('fill="#a7cbd0"'));
+});
