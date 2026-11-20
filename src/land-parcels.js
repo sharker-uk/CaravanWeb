@@ -22,6 +22,18 @@ function validate(parcels=PARCELS){
  }
  return parcels.every((p,i)=>parcels.slice(i+1).every(q=>!overlaps(p,q)));
 }
+/* Legacy rights are mapped by ID, never inferred from occupied tiles. */
+const LEGACY_RIGHTS=Object.freeze({meadow:'north_field',dunes:'north_coastal'});
+function migrateOwnedIds(ids){
+ const known=new Set(PARCELS.map(p=>p.id));
+ const source=Array.isArray(ids)?ids:[];
+ return [...new Set(source.map(id=>LEGACY_RIGHTS[id]||id).filter(id=>known.has(id)))];
+}
+function ownsParcel(land,id){return migrateOwnedIds(land?.ownedPlotIds).includes(id);}
+function canDevelopAt(land,x,y){
+ const parcel=inParcel(x,y);
+ return Boolean(parcel&&land?.enabled===true&&ownsParcel(land,parcel.id));
+}
 function inParcel(x,y){return PARCELS.find(p=>x>=p.x&&x<p.x+p.w&&y>=p.y&&y<p.y+p.h)||null;}
 function toVillage(parcel,placement){
  if(!placement||typeof placement.toVillage!=='function')throw Error('Connected-world placement required');
@@ -29,7 +41,7 @@ function toVillage(parcel,placement){
  const [east,south]=placement.toVillage(parcel.x+parcel.w,parcel.y+parcel.h);
  return {...parcel,x,y,w:east-x,h:south-y};
 }
-const api={FARM,PARCELS,validate,inParcel,toVillage};
+const api={FARM,PARCELS,LEGACY_RIGHTS,validate,inParcel,toVillage,migrateOwnedIds,ownsParcel,canDevelopAt};
 if(!validate())throw Error('External land parcels overlap starting farm or one another');
 root.CaravanLandParcels=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
