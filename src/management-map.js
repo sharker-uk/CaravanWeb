@@ -47,7 +47,7 @@ root.ManagementArt={tree,building};
         try{const saved=JSON.parse(localStorage.getItem('caravanweb_management_camera_v1'));if(saved&&['x','y','zoom','rotation','tilt'].every(k=>Number.isFinite(saved[k]))){camera.x=Math.max(-300,Math.min(1500,saved.x));camera.y=Math.max(-300,Math.min(1100,saved.y));camera.zoom=Math.max(.3,Math.min(4,saved.zoom));camera.rotation=saved.rotation%360;camera.tilt=saved.tilt===1?1:.8;}}catch{}
         function persist(){try{localStorage.setItem('caravanweb_management_camera_v1',JSON.stringify(camera));}catch{}}
         function dimensions(){const rect=svg.getBoundingClientRect();width=rect.width;height=rect.height;svg.setAttribute('viewBox',`0 0 ${width} ${height}`);baseZoom=Math.max(.3,Math.min((width-50)/1200,(height-140)/(800*camera.tilt)));}
-        function cameraChanged(){
+        function cameraChanged(shouldPersist=true){
             const a=camera.rotation*Math.PI/180,c=Math.cos(a),s=Math.sin(a),z=camera.zoom,t=camera.tilt;
             world.setAttribute('transform',`matrix(${z*c} ${z*t*s} ${-z*s} ${z*t*c} ${width/2-z*c*camera.x+z*s*camera.y} ${height/2-z*t*s*camera.x-z*t*c*camera.y})`);
             labels.querySelectorAll('[data-place]').forEach(el=>{const p=places.find(p=>p.id===el.dataset.place);if(!p)return;const xy=M.project((p.x+p.w/2)*unit,(p.y+p.h/2)*unit-8,camera,width,height);el.setAttribute('transform',`translate(${xy})`);el.querySelector('.pin-name').style.display=layers.labels&&(camera.zoom>.7||p.id===selected)?'':'none';});
@@ -56,7 +56,7 @@ root.ManagementArt={tree,building};
             const sea=labels.querySelector('[data-sea]');if(sea){const xy=M.project(1100,360,camera,width,height);sea.setAttribute('x',xy[0]);sea.setAttribute('y',xy[1]);}
             const percent=document.getElementById('zoom-value');if(percent)percent.textContent=Math.round(camera.zoom/baseZoom*100)+'%';
             const north=document.getElementById('mg-north');if(north)north.style.transform=`rotate(${camera.rotation}deg)`;
-            callbacks.onCamera?.(camera);persist();
+            callbacks.onCamera?.(camera);if(shouldPersist)persist();
         }
         function zoom(factor,x=width/2,y=height/2){const before=M.unproject(x,y,camera,width,height);camera.zoom=Math.max(.3,Math.min(4,camera.zoom*factor));const after=M.unproject(x,y,camera,width,height);camera.x+=before[0]-after[0];camera.y+=before[1]-after[1];cameraChanged();}
         function fit(){dimensions();Object.assign(camera,{x:570,y:400,rotation:0,zoom:baseZoom});cameraChanged();}
@@ -142,7 +142,7 @@ root.ManagementArt={tree,building};
         labels.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&e.target.dataset.place){e.preventDefault();e.stopPropagation();callbacks.onSelect(e.target.dataset.place);}});
         new ResizeObserver(()=>{dimensions();cameraChanged();}).observe(svg);
         dimensions();
-        const api={render,updatePlayer,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},followPlayer:p=>{camera.x=p.x*unit;camera.y=p.y*unit;cameraChanged();},invalidate:()=>{worldKey='';}};
+        const api={render,updatePlayer,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},followPlayer:p=>{camera.x=p.x*unit;camera.y=p.y*unit;cameraChanged(false);},invalidate:()=>{worldKey='';}};
         return api;
     }
     root.ManagementMap={create,placeArt};
