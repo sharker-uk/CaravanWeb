@@ -3,12 +3,20 @@
     'use strict';
     if (!MANAGEMENT_MODE) return;
     const SAVE_KEY='caravan_tycoon_save', BACKUP_KEY='caravan_tycoon_management_backup';
+    const landTestEnabled=new URLSearchParams(location.search).get('landTest')==='1';
+    const TEST_GRANT=12000;
+    const applyLandTestCapital=()=>{if(!landTestEnabled||state.landTestGrantApplied)return false;
+        if(!Economy.recordTransaction(state,TEST_GRANT,'development test','Temporary South Field testing capital'))return false;
+        state.landTestGrantApplied=true;return true;};
     const changed=()=>{refreshPitchCapabilities();updateUI();};
     const getSave=()=>saveGame() ? localStorage.getItem(SAVE_KEY) : null;
     const backup=()=>{const current=localStorage.getItem(SAVE_KEY);if(current)localStorage.setItem(BACKUP_KEY,current);};
     const fail=message=>{showToast(message);return {ok:false,reason:message};};
     window.CaravanGame = {
         getState:()=>state,
+        landTestEnabled:()=>landTestEnabled,
+        southFieldQuote:()=>landTestEnabled?LandExpansion.southFieldQuote(state):{ok:false,reasons:['Development test is disabled.']},
+        purchaseSouthFieldTest(){if(!landTestEnabled)return fail('Development test is disabled.');const result=LandExpansion.purchaseSouthFieldTest(state,recordTransaction);if(result.ok){saveGame();changed();showToast('South Field purchased for the development test.');}else showToast(result.reasons.join(' '));return result;},
         purchaseLand(id){const result=id==='beach'?LandExpansion.purchaseBeach(state,recordTransaction):LandExpansion.purchasePlot(state,id,recordTransaction);if(result.ok){saveGame();changed();showToast(id==='beach'?'Beach access construction started.':'Field purchased. Clear and connect it to develop more pitches.');}else showToast(result.reasons.join(' '));return result;},
         toggleBeach(){const result=LandExpansion.toggleBeach(state);if(result.ok){saveGame();changed();}else showToast(result.reasons.join(' '));return result;},
         getCapabilities:()=>PitchCapabilities.rebuild(state),
@@ -64,6 +72,7 @@
                 if(previousText){if(!saveGame())return {ok:false};previousText=localStorage.getItem(SAVE_KEY);backup();}
                 state=GameStateApi.createGameState({transactions:[]});
                 generateNewMap();
+                if(mode==='new')applyLandTestCapital();
                 if(mode==='developed')ManagementModel.applyDevelopedScenario(state,(pitch,model,options)=>new Caravan(pitch,model,options));
                 state.selectedEntity=null;state.activeTool='select';state.isPaused=true;
                 if(!saveGame())throw new Error('The new park could not be saved.');
