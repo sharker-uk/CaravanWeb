@@ -27,8 +27,9 @@ try{
   if(!window.CoastalFarmLayout)return '';
   const layout=window.CoastalFarmLayout.plan(world);
   const fences=layout.fields.map(p=>`<g><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="#a8bb8c" fill-opacity=".3" stroke="#77895f" stroke-width="2" stroke-dasharray="7 4"/><text x="${p.x+p.w/2}" y="${p.y+p.h/2}" text-anchor="middle" font-size="9" fill="#536a48" stroke="#d6dfbf" stroke-width="2" paint-order="stroke">${p.name}</text></g>`).join('');
-  const f=layout.farmhouse;
-  return `<g id="v-farm-parcels">${fences}<rect x="${f.x}" y="${f.y}" width="26" height="19" fill="#a8795f" stroke="#5e7757"/><text x="${f.x+13}" y="${f.y-5}" font-size="10" text-anchor="middle" fill="#526749">Old farmhouse</text></g>`;
+  // Farmhouse is authoritative in the park save, rendered by parkArt().
+  // Do not draw the outdated duplicate from the planning overlay.
+  return `<g id="v-farm-parcels">${fences}</g>`;
  }
  function terrain(){
   let out='<rect x="-1000" y="-1000" width="4000" height="4000" fill="url(#v-water)"/><path d="M-1000-1000H1187V363L1270 580 1300 980 1250 2300H-1000Z" fill="url(#v-grass)"/><path d="M1187-1000H1208V363L1350 580 1380 980 1330 2300H1250L1300 980 1270 580 1187 363Z" fill="#e0d4a8"/><path d="M1198-1000V363L1290 580 1320 980 1270 2300" fill="none" stroke="#ede2bd" stroke-width="13"/>';
@@ -95,7 +96,7 @@ try{
   villageHint.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#f8f2df;color:#315039;padding:10px 16px;border-radius:10px;z-index:20;box-shadow:0 2px 12px #0003;font-weight:600';
   villageHint.textContent='WASD / arrows: walk village roads · E: interact / return at park gate';
   document.body.append(villageHint);
-  camera.x=villagePlayer.x;camera.y=villagePlayer.y;camera.zoom=Math.max(camera.zoom,1.15);
+  camera.x=villagePlayer.x;camera.y=villagePlayer.y;camera.zoom=Math.max(camera.zoom,.85);
   document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;const k=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','e'].includes(k)){e.preventDefault();e.stopPropagation();villageKeys.add(k);}},true);
   document.addEventListener('keyup',e=>villageKeys.delete(e.key.toLowerCase()),true);
   window.addEventListener('blur',()=>villageKeys.clear());
