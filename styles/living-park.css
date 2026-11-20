@@ -1,0 +1,23 @@
+/* Living Park: walk is the default surface; tablet reveals existing management controls. */
+body[data-management="true"]:not(.tablet-open) .masthead,
+body[data-management="true"]:not(.tablet-open) .management-status,
+body[data-management="true"]:not(.tablet-open) .sidebar,
+body[data-management="true"]:not(.tablet-open) .map-actions,
+body[data-management="true"]:not(.tablet-open) .layers-panel,
+body[data-management="true"]:not(.tablet-open) .navigation,
+body[data-management="true"]:not(.tablet-open) .legend,
+body[data-management="true"]:not(.tablet-open) .map-caption,
+body[data-management="true"]:not(.tablet-open) .map-bottom,
+body[data-management="true"]:not(.tablet-open) .map-heading,
+body[data-management="true"]:not(.tablet-open) .priorities,
+body[data-management="true"]:not(.tablet-open) .construction-queue,
+body[data-management="true"]:not(.tablet-open) .detail,
+body[data-management="true"]:not(.tablet-open) .management-panel,
+body[data-management="true"]:not(.tablet-open) .build-hint,
+body[data-management="true"]:not(.tablet-open) .route-summary{display:none!important}
+body[data-management="true"]:not(.tablet-open) .workspace{height:100dvh;display:block}
+body[data-management="true"]:not(.tablet-open) .map-shell{width:100%;height:100%;display:block}
+body[data-management="true"]:not(.tablet-open) #park-map{cursor:crosshair}
+#mg-walk-mode{min-width:112px}
+body[data-management="true"]:not(.tablet-open) #mg-walk-mode{bottom:20px!important;right:20px!important}
+@media(max-width:700px){#mg-walk-mode{bottom:105px!important;right:12px!important;min-height:44px}}

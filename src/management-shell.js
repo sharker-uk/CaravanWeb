@@ -2,6 +2,7 @@
 (() => {
 'use strict';
 if(document.body.dataset.management!=='true')return;
+document.body.classList.remove('tablet-open');
 document.body.insertAdjacentHTML('afterbegin', `<div id="management-app">
 <header class="masthead">
  <a class="brand" href="./" aria-label="Caravan Web home"><svg viewBox="0 0 46 40" aria-hidden="true"><path d="M4 28V13q0-5 5-5h22q5 0 5 5v15Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 15h12v8H8Zm17 0h7v13h-7M36 27h6v4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="30" r="4" fill="currentColor"/><circle cx="29" cy="30" r="4" fill="currentColor"/></svg><span>CARAVAN<span class="brand-web">WEB</span><small>A LITTLE SPACE. A GROWING BUSINESS.</small></span></a>
@@ -57,6 +58,42 @@ const money=n=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',ma
 const title=s=>String(s||'').replaceAll('_',' ').replace(/^\w/,c=>c.toUpperCase());
 const app={view:'map',selected:null,query:'',category:'all',status:'all',savedOnly:false,saved:[],route:false,layers:{labels:true,people:true,utilities:false,grid:false}};
 let api,map,places=[],renderTimer,ready=false,lastDetail='',lastResults='',lastPanel='',lastBuild='';
+let walking=true,interaction=null,lastFrame=0,lastAutosave=0;
+const held=new Set();
+const canWalk=(state,x,y)=>GameStateApi.getTileProperties(state,x,y).walkable;
+function stopWalking(){held.clear();if(api){api.getState().playerPath=[];}}
+function setTablet(open){
+ if(!ready)return;
+ walking=!open;stopWalking();interaction=null;api.tool('select');
+ document.body.classList.toggle('tablet-open',open);
+ const button=document.getElementById('mg-walk-mode');
+ if(button){button.textContent=open?'🚶 Return to park':'📱 Tablet';button.setAttribute('aria-label',open?'Close tablet and return to walking':'Open management tablet');button.setAttribute('aria-pressed',String(open));}
+ if(!open){map.followPlayer(api.getState().player);document.getElementById('park-map').focus({preventScroll:true});}
+ map.invalidate();render(true);
+}
+function walkTo(target,approach=false){
+ if(!walking)return false;
+ const state=api.getState(),path=LivingParkMovement.route(state,state.player,target,canWalk,approach);
+ if(!path){announce('No walkable route to that spot.');return false;}
+ state.playerPath=path.map(p=>({x:p.x+.5,y:p.y+.5}));
+ if(!path.length)render(true);
+ return true;
+}
+function walkingFrame(timestamp){
+ requestAnimationFrame(walkingFrame);
+ if(!ready){lastFrame=timestamp;return;}
+ const dt=Math.min((timestamp-(lastFrame||timestamp))/1000,.05);lastFrame=timestamp;
+ if(!walking||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
+ const state=api.getState();
+ const input={left:held.has('a')||held.has('arrowleft'),right:held.has('d')||held.has('arrowright'),up:held.has('w')||held.has('arrowup'),down:held.has('s')||held.has('arrowdown')};
+ const moving=LivingParkMovement.advance(state,dt,input,GameStateApi.getTileProperties,GameStateApi.canOccupyPlayer);
+ if(moving){
+  map.updatePlayer(state.player);
+  map.followPlayer(state.player);
+  if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
+ }
+}
+requestAnimationFrame(walkingFrame);
 try{const ids=JSON.parse(localStorage.getItem('caravanweb_management_saved_v1')||'[]');if(Array.isArray(ids))app.saved=ids.filter(id=>typeof id==='string');}catch{}
 // The classic DOM remains available to unchanged game code. Only its shop and toast are presented here.
 for(const id of ['vendor-dialog','toast'])document.body.append(document.getElementById(id));
@@ -183,7 +220,7 @@ function render(force=false){
     const tool=state.activeTool||'select';$('#mg-build-hint').hidden=tool==='select';if(tool!=='select'&&!$('#mg-build-hint').dataset.preview)$('#mg-build-hint').innerHTML=`<strong>${esc(title(tool.replace('build_','')))}</strong><span>${tool.startsWith('place_accessory_')?'Click an eligible pitch tile to place your purchase.':'Draw on the map to place. Right-drag pans. Escape cancels.'}</span><button id="mg-cancel-tool">Cancel</button>`;
     const route=app.route?M.getRoute(state,current()):null;$('#mg-route-info').hidden=!app.route;
     if(app.route)$('#mg-route-info').innerHTML=route?`<strong>Park office → ${esc(current().name)}</strong><small>${route.tiles} path tiles · Game grid, not real-world distance</small>`:'<strong>No connected path to this entrance</strong><small>Routes follow roads and paths. Add a link to reach this location.</small>';
-    map.render(state,places,{selected:app.selected,visibleIds:new Set(filtered().map(p=>p.id)),route,tool,layers:app.layers});
+    map.render(state,places,{selected:app.selected,visibleIds:new Set(filtered().map(p=>p.id)),route,tool:walking?'select':tool,layers:app.layers,walking});
     $('.map-shell').classList.toggle('has-panel',['guests','finances','settings'].includes(app.view));
 }
 function resetFilters(){Object.assign(app,{query:'',category:'all',status:'all',savedOnly:false});$('#mg-search').value='';$('#mg-status').value='all';render(true);}
@@ -221,24 +258,49 @@ $('#management-app').addEventListener('click',e=>{
     if(e.target.closest('#mg-new-park'))showWelcome();
 });
 $('#mg-panel').addEventListener('change',e=>{if(e.target.id==='mg-day-length'){api.dayLength(e.target.value);render(true);}});
-$('#mg-import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>5*1024*1024)throw new Error('Choose a game save under 5 MB.');const result=api.importSave(await file.text());if(result.ok){app.selected=null;app.route=false;map.invalidate();resetFilters();}}catch(error){announce(error.message);}finally{e.target.value='';render(true);}});
+$('#mg-import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>5*1024*1024)throw new Error('Choose a game save under 5 MB.');const result=api.importSave(await file.text());if(result.ok){stopWalking();interaction=null;app.selected=null;app.route=false;map.invalidate();resetFilters();if(walking)map.followPlayer(api.getState().player);}}catch(error){announce(error.message);}finally{e.target.value='';render(true);}});
 window.addEventListener('hashchange',()=>{const id=new URLSearchParams(location.hash.slice(1)).get('place');select(id);});
+document.addEventListener('keyup',e=>held.delete(e.key.toLowerCase()));
+window.addEventListener('blur',()=>held.clear());
 document.addEventListener('keydown',e=>{
-    if(!ready||e.target.matches('input,select,textarea')||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
-    const key=e.key.toLowerCase();
-    if(key==='/'){e.preventDefault();if(innerWidth<=700){$('#sidebar').classList.add('mobile-open');$('#mobile-list').setAttribute('aria-expanded','true');}$('#mg-search').focus();return;}
-    if(key==='escape'){api.tool('select');app.route=false;app.selected=null;app.view='map';$('#sidebar').classList.remove('mobile-open');$('#layers-panel').hidden=true;$('#mg-layers').setAttribute('aria-expanded','false');$('#mobile-list').setAttribute('aria-expanded','false');render(true);return;}
-    if(!e.target.closest('#park-map')&&e.target!==document.body)return;
-    const commands={arrowleft:()=>map.pan(-60,0),arrowright:()=>map.pan(60,0),arrowup:()=>map.pan(0,-60),arrowdown:()=>map.pan(0,60),q:()=>map.turn(-45),e:()=>map.turn(45),'+':()=>map.zoom(1.25),'=':()=>map.zoom(1.25),'-':()=>map.zoom(.8),'0':()=>map.fit(),' ':()=>api.pause()};
-    if(commands[key]){e.preventDefault();commands[key]();render(true);}
+ if(!ready)return;
+ const key=e.key.toLowerCase();
+ const editing=e.target.closest('input,select,textarea,[contenteditable="true"]');
+ if(key==='tab'&&!editing&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&!document.querySelector('dialog[open]')&&$('#vendor-dialog').hidden){
+  e.preventDefault();setTablet(walking);return;
+ }
+ if(editing||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
+ if(walking){
+  if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();held.add(key);return;}
+  if(key==='e'&&interaction){
+   e.preventDefault();const p=LivingParkMovement.tile(api.getState().player);
+   if(LivingParkMovement.adjacent(p,interaction)&&['tree','debris'].includes(api.getState().tiles[interaction.y]?.[interaction.x]?.nature)){
+    const result=api.build('clear',interaction,interaction);
+    if(result.ok){interaction=null;map.invalidate();render(true);}
+   }else announce('Walk next to the tree or debris before interacting.');
+  }
+  return;
+ }
+ if(key==='/'){e.preventDefault();if(innerWidth<=700){$('#sidebar').classList.add('mobile-open');$('#mobile-list').setAttribute('aria-expanded','true');}$('#mg-search').focus();return;}
+ if(key==='escape'){setTablet(false);return;}
+ if(!e.target.closest('#park-map')&&e.target!==document.body)return;
+ const commands={arrowleft:()=>map.pan(-60,0),arrowright:()=>map.pan(60,0),arrowup:()=>map.pan(0,-60),arrowdown:()=>map.pan(0,60),q:()=>map.turn(-45),e:()=>map.turn(45),'+':()=>map.zoom(1.25),'=':()=>map.zoom(1.25),'-':()=>map.zoom(.8),'0':()=>map.fit(),' ':()=>api.pause()};
+ if(commands[key]){e.preventDefault();commands[key]();render(true);}
 });
 window.addEventListener('caravan:change',()=>{if(ready&&!renderTimer)renderTimer=setTimeout(()=>{renderTimer=null;render();},250);});
 window.addEventListener('caravan:ready',()=>{
     api=window.CaravanGame;ready=true;
-    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,onSelect:id=>select(id),onBuild:(tool,start,end)=>{api.build(tool,start,end);$('#mg-build-hint').dataset.preview='';map.invalidate();render(true);},onPreview:p=>{$('#mg-build-hint').dataset.preview='true';$('#mg-build-hint').innerHTML=`<strong>${esc(p.label)}${p.cost===null?'':' · '+money(p.cost)}</strong><span>Release to build · Subject to game placement checks</span><button id="mg-cancel-tool">Cancel</button>`;}});
+    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,onGround:target=>{
+        const nature=api.getState().tiles[target.y]?.[target.x]?.nature;
+        interaction=['tree','debris'].includes(nature)?target:null;
+        if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press E to clear it.');
+    },onSelect:id=>{if(!walking)select(id);},onBuild:(tool,start,end)=>{if(walking)return;api.build(tool,start,end);$('#mg-build-hint').dataset.preview='';map.invalidate();render(true);},onPreview:p=>{$('#mg-build-hint').dataset.preview='true';$('#mg-build-hint').innerHTML=`<strong>${esc(p.label)}${p.cost===null?'':' · '+money(p.cost)}</strong><span>Release to build · Subject to game placement checks</span><button id="mg-cancel-tool">Cancel</button>`;}});
     places=M.getPlaces(api.getState());const id=new URLSearchParams(location.hash.slice(1)).get('place');if(places.some(p=>p.id===id))app.selected=id;
     let cameraSaved=false;try{cameraSaved=Boolean(localStorage.getItem('caravanweb_management_camera_v1'));}catch{}
     if(!cameraSaved)map.fit();render(true);
+    const walkButton=document.createElement('button');walkButton.id='mg-walk-mode';walkButton.type='button';walkButton.textContent='📱 Tablet';walkButton.setAttribute('aria-pressed','false');walkButton.setAttribute('aria-label','Open management tablet');walkButton.style.cssText='position:absolute;bottom:52px;right:18px;z-index:5;padding:10px 14px;border-radius:12px;background:#fff8e8;color:#294a36;border:2px solid #718c70;cursor:pointer;font-weight:700;box-shadow:0 3px 12px #223c3522';
+    $('.map-shell').append(walkButton);walkButton.addEventListener('click',()=>setTablet(walking));
+    map.followPlayer(api.getState().player);
     const plan=map.getCamera().tilt===1;$('#mg-plan').setAttribute('aria-pressed',String(plan));$('#mg-plan').textContent=plan?'◇ Landscape view':'◇ Plan view';
     let exists=false;try{exists=Boolean(localStorage.getItem('caravan_tycoon_save'));}catch{}
     if(!exists)showWelcome();
