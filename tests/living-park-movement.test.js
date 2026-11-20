@@ -18,13 +18,16 @@ test('route avoids trees and approaches adjacent tile without entering target',(
  assert.ok(!p.some(t=>t.x===2&&t.y===2));
  const approach=M.route(s,s.player,{x:2,y:2},walk,true);
  assert.ok(approach);
- const end=approach.at(-1);
+ // Starting immediately beside the blocked tree is a valid zero-step approach.
+ const end=approach.length?approach.at(-1):M.tile(s.player);
  assert.ok(M.adjacent(end,{x:2,y:2}));
 });
 test('unreachable and blocked destinations fail safely',()=>{
  const s=world();s.tiles[1][1].nature='tree';s.tiles[3][1].nature='tree';s.tiles[2][0].nature='tree';s.tiles[2][2].nature='tree';
  assert.equal(M.route(s,s.player,{x:4,y:2},walk),null);
- assert.equal(M.route(s,s.player,{x:2,y:2},walk,true),null);
+ // Even when the player is enclosed, they are already adjacent to this tree.
+ assert.deepEqual(M.route(s,s.player,{x:2,y:2},walk,true),[]);
+ assert.equal(M.route(s,s.player,{x:4,y:2},walk,true),null);
 });
 test('path is deterministic and leaves the original state unchanged',()=>{
  const s=world(),before=JSON.stringify(s);
