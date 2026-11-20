@@ -1,23 +1,23 @@
-# LP-MAP-1 — Coastal Farm World Layout (phase 1)
+# LP-MAP-1 — Village-first coastal farm integration
 
-## Agreed geography
-- **Main road on the western side**, coast and dunes to the east. This follows the intended real-world orientation rather than the rotated discussion sketch.
-- **One long starting property** extends from its roadside entrance to the dunes; the old farmhouse sits beside the original farm drive.
-- **North and south neighbouring fields**, each split into parcels of different sizes. Coastal parcels can eventually offer secondary beach access.
-- **Roadside field across the public road**, intended for parking or pitches with future safe-crossing/traffic considerations.
-- **Main beach access through the original farm** exists on day one as a rough dune path; a gangway is a later improvement, not an unlock for the beach itself.
+## Non-negotiable world model
+The existing **LittleHampton-on-Sea** village (`data/village-world.json`) is the master world. Keep its High Street, Natwinch Road, Church Lane lights, shops, housing, coastal quarter, bypass and traffic simulation. **Do not create a standalone coastal farm world or replace the village with an isolated park.**
 
-## Phase 1 deliverable
-`src/coastal-farm-layout.js` defines the proposed geometry, route and parcel identifiers independently of saves, building permissions and purchase logic. Contract tests verify boundaries and non-overlap. **This phase intentionally does not activate the new layout in gameplay.**
+The original farm sits in the existing village park inset beside Natwinch Road, with the old farmhouse next to the drive. It extends towards the dunes and beach. North and south parcels have varying sizes, and a separate field across the road could become pitches or parking. The main rough beach path is usable from day one; a gangway is a quality upgrade. Some coastal expansion parcels may offer secondary routes.
 
-## Required before enabling the layout
-1. Rework the existing 60×40 world generator and farmhouse/drive/entrance placements together. Verify village road alignment and playable camera bounds.
-2. Migrate the legacy `meadow` and `dunes` expansion states, preserving purchased land and constructions; do not silently remove existing pitches.
-3. Replace the old sequential purchase dependencies with adjacency and road-crossing rules. A field across the road needs an explicit crossing/connection policy.
-4. Model ownership as an independent mask from terrain and public footpaths; prevent movement and construction on unowned farmland, without blocking the main dune route.
-5. Convert beach mechanics to an available-but-rough route and a separate optional gangway construction. Migrate already-purchased beach upgrades.
-6. Draw actual hedges, fences, farm gates, roadside access and rough dune trail from the same geometry; keep player sprites and LP-G1 nature graphics.
-7. Update tutorial, guest complaints, accessibility and tests for new and legacy saves.
+## What this draft actually changes
+- `src/coastal-farm-layout.js`: village-anchored proposal using the existing village park and road-node coordinates, **not** a replacement world generator.
+- `data/village-world.json`: QuickStop, a supplies shop, café and pub become selectable village destinations using the **existing** building positions. Their descriptions identify future gameplay; no transactions, inventories or guest AI have been added.
+- Contract tests cover the village anchor and field configuration.
 
-## Scope and safety
-This is a **foundation PR**, not a claim that the game map has already changed. The existing map and purchases remain functional until the migration and rendering are implemented and tested. Do not merge without checking parcel geometry and the full follow-up plan.
+## Next implementation phases
+1. Validate field footprints against roads, homes, village landmarks and the beach, then render hedges, gates and sale parcels in the village. The present geometry is **provisional**, not collision-cleared.
+2. Make the village the primary navigable world and embed the park's existing tiles, sprite player and nature rendering at its established coordinate transform. Preserve the current park gameplay and saves.
+3. Implement walkable links between park gate, High Street shops and beach. Guests and player can visit village destinations; test pathfinding and camera bounds.
+4. Introduce a modest village-shopping loop: supplies/tools bought in shops, collection or delivery, opening hours and inventory. Use existing economy ledger; don't duplicate park shops or silently remove existing facilities.
+5. Replace the old sequential meadow/dunes expansion logic with purchasable adjacent fields and a separately governed road-crossing parcel, with save migrations.
+6. Model rough public beach path and gangway as distinct states; preserve paid upgrades in old saves.
+7. Test traffic, guest demand, UI, saves, accessibility and existing map graphics end to end.
+
+## Safety
+**Draft PR.** The village remains intact. New shops are informational destinations only; no economic changes or world switching have been completed. Do not claim a seamless world or working shop purchases yet.
