@@ -1,8 +1,8 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const P=require('../src/land-parcels.js'),T=require('../src/external-field-terrain.js'),W=require('../src/connected-world.js');
-const previous={CaravanLandParcels:global.CaravanLandParcels,CaravanExternalTerrain:global.CaravanExternalTerrain,GameStateApi:global.GameStateApi,CaravanVillageMovement:global.CaravanVillageMovement};
+const previous={CaravanLandParcels:global.CaravanLandParcels,CaravanExternalTerrain:global.CaravanExternalTerrain,GameState:global.GameState,CaravanVillageMovement:global.CaravanVillageMovement};
 global.CaravanLandParcels=P;global.CaravanExternalTerrain=T;
-global.GameStateApi={getTileProperties:()=>({walkable:true})};
+global.GameState={getTileProperties:()=>({walkable:true})};
 global.CaravanVillageMovement={canWalk:()=>true};
 const village={},placement={toVillage:(x,y)=>[x,y]};
 test('all five parcels resolve from the same world coordinates',()=>{
