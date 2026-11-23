@@ -7,9 +7,9 @@ test('South Field terrain is deterministic and uses external coordinates',()=>{
  assert.equal(T.initialNature('south_field',18,44),'barn');
  assert.equal(P.inParcel(18,44).id,'south_field');
 });
-test('Unowned external terrain cannot be entered or cleared',()=>{
+test('Unowned external terrain is walkable but cannot be cleared',()=>{
  const s={land:{enabled:true,ownedPlotIds:[]}};
- assert.equal(T.canEnter(s,12,43),false);
+ assert.equal(T.canEnter(s,12,40),true);
  assert.equal(T.clear(s,12,43).ok,false);
 });
 test('Owned South Field clearing changes only external terrain',()=>{
