@@ -34,7 +34,7 @@ function normalise(raw,id){
   const x=Number(match[1]),y=Number(match[2]);
   if(x<p.x||x>=p.x+p.w||y<p.y||y>=p.y+p.h)continue;
   if(![null,'tree','debris','barn'].includes(tile.nature))continue;
-  if(tile.nature||tile.path||tile.road)tiles[coord]={nature:tile.nature||null,path:tile.path===true,road:tile.road===true};
+  tiles[coord]={nature:tile.nature||null,path:tile.path===true,road:tile.road===true};
  }
  return {version:VERSION,tiles};
 }
