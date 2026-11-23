@@ -7,7 +7,9 @@
 const Parcels=root.CaravanLandParcels;
 const VERSION=1;
 const key=(x,y)=>x+','+y;
+function isEntrance(id,x,y){return id==='south_field'&&x>=23&&x<=27&&y>=40&&y<=42;}
 function initialNature(id,x,y){
+ if(isEntrance(id,x,y))return null;
  // Stable per-tile distribution; no Math.random or hidden save mutations.
  let n=2166136261;
  for(const c of id+':'+key(x,y))n=Math.imul(n^c.charCodeAt(0),16777619)>>>0;
@@ -48,6 +50,7 @@ function getTile(state,x,y){
  const p=Parcels.inParcel(x,y);if(!p)return null;
  const terrain=state.externalTerrain?.[p.id];
  const saved=terrain?.tiles?.[key(x,y)];
+ if(isEntrance(p.id,x,y))return {...(saved||{}),nature:null};
  return saved||{nature:initialNature(p.id,x,y),path:false,road:false};
 }
 function canEnter(state,x,y){
@@ -65,7 +68,7 @@ function clear(state,x,y){
  terrain.tiles[key(x,y)]={...tile,nature:null};
  return {ok:true,nature:tile.nature};
 }
-const api={VERSION,createParcel,normalise,ensure,getTile,canEnter,clear,initialNature};
+const api={VERSION,isEntrance,createParcel,normalise,ensure,getTile,canEnter,clear,initialNature};
 root.CaravanExternalTerrain=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
