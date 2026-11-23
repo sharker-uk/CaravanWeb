@@ -121,7 +121,7 @@ function walkingFrame(timestamp){
   interaction=null;
  }
  map.updatePlayer(player);
- if(moving&&!inVillage&&world.inFarm(player.x,player.y)){
+ if(moving&&!inVillage&&(world.inFarm(player.x,player.y)||window.CaravanLandParcels.inParcel(player.x,player.y)?.id==='south_field')){
   Object.assign(state.player,player);
   if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
  }
