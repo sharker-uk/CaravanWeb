@@ -289,6 +289,7 @@ function init() {
     state.landmarks = Array.isArray(data.landmarks) ? data.landmarks : [];
     state.constructions = Array.isArray(data.constructions) ? data.constructions : [];
     state.land = LandExpansion.restoreState(data);
+    state.externalTerrain = data.externalTerrain && typeof data.externalTerrain==='object' ? {south_field: CaravanExternalTerrain.normalise(data.externalTerrain.south_field,'south_field')} : {};
     LandExpansion.syncLandmarks(state);
     state.staticDeliveries = Array.isArray(data.staticDeliveries) ? data.staticDeliveries : [];
     state.accessoryInventory = data.accessoryInventory || {bbq: 0, patio: 0, firepit: 0, hot_tub: 0};
@@ -451,6 +452,7 @@ function generateNewMap() {
     state.facilities = [];
     state.landmarks = STARTING_LANDMARKS.map(landmark => ({...landmark}));
     state.land = LandExpansion.createState(true);
+    state.externalTerrain = {};
     LandExpansion.syncLandmarks(state);
     state.constructions = [];
     state.player = {x: 15.5, y: 25.5};
@@ -1013,6 +1015,7 @@ function saveGame() {
             tools: {axe: true, shovel: Boolean(state.tools?.shovel)},
             transactions: state.transactions,
             tiles: state.tiles,
+            externalTerrain: state.externalTerrain || {},
             pitches: state.pitches,
             staticDeliveries: state.staticDeliveries,
             accessoryInventory: state.accessoryInventory,
