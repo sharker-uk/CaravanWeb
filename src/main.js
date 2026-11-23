@@ -289,7 +289,10 @@ function init() {
     state.landmarks = Array.isArray(data.landmarks) ? data.landmarks : [];
     state.constructions = Array.isArray(data.constructions) ? data.constructions : [];
     state.land = LandExpansion.restoreState(data);
-    state.externalTerrain = data.externalTerrain && typeof data.externalTerrain==='object' ? {south_field: CaravanExternalTerrain.normalise(data.externalTerrain.south_field,'south_field')} : {};
+    state.externalTerrain = {};
+    for(const parcel of CaravanLandParcels.PARCELS){
+        if(data.externalTerrain?.[parcel.id])state.externalTerrain[parcel.id]=CaravanExternalTerrain.normalise(data.externalTerrain[parcel.id],parcel.id);
+    }
     LandExpansion.syncLandmarks(state);
     state.staticDeliveries = Array.isArray(data.staticDeliveries) ? data.staticDeliveries : [];
     state.accessoryInventory = data.accessoryInventory || {bbq: 0, patio: 0, firepit: 0, hot_tub: 0};
@@ -409,7 +412,7 @@ function init() {
             console.error('Saved caravan construction refers to an unavailable pitch.', job);
         }
     });
-    const inOwnedSouthField = data.player && CaravanLandParcels.inParcel(data.player.x,data.player.y)?.id==='south_field' &&
+    const inOwnedSouthField = data.player && CaravanLandParcels.inParcel(data.player.x,data.player.y) &&
         CaravanExternalTerrain.canEnter(state,Math.floor(data.player.x),Math.floor(data.player.y));
     if (inOwnedSouthField || canOccupyPlayer(data.player.x, data.player.y)) {
         state.player = {...data.player};
