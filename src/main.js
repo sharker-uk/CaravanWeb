@@ -409,7 +409,9 @@ function init() {
             console.error('Saved caravan construction refers to an unavailable pitch.', job);
         }
     });
-    if (canOccupyPlayer(data.player.x, data.player.y)) {
+    const inOwnedSouthField = data.player && CaravanLandParcels.inParcel(data.player.x,data.player.y)?.id==='south_field' &&
+        CaravanExternalTerrain.canEnter(state,Math.floor(data.player.x),Math.floor(data.player.y));
+    if (inOwnedSouthField || canOccupyPlayer(data.player.x, data.player.y)) {
         state.player = {...data.player};
     } else {
         let closest = null;
