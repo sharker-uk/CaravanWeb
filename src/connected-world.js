@@ -45,9 +45,13 @@
             if (!canOccupyPark(state, Math.max(gate.x + radius, x), y)) return false;
         }
         const inSouth=(px,py)=>root.CaravanLandParcels?.inParcel(px,py)?.id==='south_field';
-        // At the shared farm/field edge, each collision sample must use its
-        // own terrain. Otherwise the legacy grid rejects the first step south.
-        if(inFarm(x,y)||inSouth(x,y)){
+        // Preserve the original farm and village movement logic. Only use
+        // mixed collision samples where the player actually crosses the
+        // purchased South Field's northern boundary.
+        const crossingSouth=(inFarm(x,y)||inSouth(x,y)) &&
+            [[-radius,-radius],[radius,-radius],[-radius,radius],[radius,radius]]
+                .some(([dx,dy])=>inSouth(x+dx,y+dy));
+        if(crossingSouth){
             return [[-radius,-radius],[radius,-radius],[-radius,radius],[radius,radius],[0,0]].every(([dx,dy])=>{
                 const px=x+dx,py=y+dy;
                 if(inSouth(px,py))return root.CaravanExternalTerrain?.canEnter(state,Math.floor(px),Math.floor(py))===true;
@@ -55,6 +59,7 @@
                 return false;
             });
         }
+        if(inFarm(x,y))return canOccupyPark(state,x,y);
         if (!village) return false;
         return [-radius, radius].every(dx => [-radius, radius].every(dy => {
             const [vx, vy] = placement.toVillage(x + dx, y + dy);
