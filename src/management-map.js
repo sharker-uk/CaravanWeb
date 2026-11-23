@@ -107,17 +107,19 @@ root.ManagementArt={tree,building};
         }
         function externalTerrainArtwork(){
             if(!game||!W.usesFarmBoundary(game))return '';
-            const p=externalParcels?.PARCELS.find(p=>p.id==='south_field');
-            if(!p||!externalParcels.ownsParcel(game.land,p.id))return '';
             const T=root.CaravanExternalTerrain,A=root.ManagementArt;
+            if(!T||!externalParcels)return '';
             let art='';
-            for(let y=p.y;y<p.y+p.h;y++)for(let x=p.x;x<p.x+p.w;x++){
-                const t=T.getTile(game,x,y);
-                if(t?.nature==='tree')art+=A.tree((x+.5)*unit,(y+.75)*unit,8+(x+y)%3,(x+y)%4);
-                else if(t?.nature==='debris')art+=`<g stroke="#947f59" stroke-width="2.5" fill="none"><path d="M${x*unit+4} ${y*unit+13}l10 -6m-6 0l8 10"/></g>`;
-                if(t?.path)art+=`<rect x="${x*unit}" y="${y*unit}" width="${unit}" height="${unit}" fill="#d9d2b7"/>`;
+            for(const p of externalParcels.PARCELS){
+                if(!externalParcels.ownsParcel(game.land,p.id))continue;
+                for(let y=p.y;y<p.y+p.h;y++)for(let x=p.x;x<p.x+p.w;x++){
+                    const t=T.getTile(game,x,y);
+                    if(t?.nature==='tree')art+=A.tree((x+.5)*unit,(y+.75)*unit,8+(x+y)%3,(x+y)%4);
+                    else if(t?.nature==='debris')art+=`<g stroke="#947f59" stroke-width="2.5" fill="none"><path d="M${x*unit+4} ${y*unit+13}l10 -6m-6 0l8 10"/></g>`;
+                    if(t?.path)art+=`<rect x="${x*unit}" y="${y*unit}" width="${unit}" height="${unit}" fill="#d9d2b7"/>`;
+                }
             }
-            return `<g id="south-field-terrain" pointer-events="none">${art}</g>`;
+            return `<g id="external-parcel-terrain" pointer-events="none">${art}</g>`;
         }
         function worldMarkup() {
             let ground='',nature='',grid='',utilities='';
