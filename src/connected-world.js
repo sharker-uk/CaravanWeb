@@ -43,7 +43,6 @@
         const parcels=root.CaravanLandParcels;
         const parcel=parcels?.inParcel(tx,ty);
         if(parcel){
-            if(!parcels.ownsParcel(state.land,parcel.id))return false;
             return root.CaravanExternalTerrain?.canEnter(state,tx,ty)===true;
         }
         if(inFarm(tx+.5,ty+.5))
