@@ -77,7 +77,7 @@ function walkingPosition(){
  return walker;
 }
 const held=new Set();
-const canWalk=(state,x,y)=>GameStateApi.getTileProperties(state,x,y).walkable;
+const canWalk=(state,x,y)=>world.usesFarmBoundary(state)&&window.CaravanLandParcels.inParcel(x,y)?.id==='south_field'?window.CaravanExternalTerrain.canEnter(state,x,y):GameStateApi.getTileProperties(state,x,y).walkable;
 function stopWalking(){held.clear();if(api){api.getState().playerPath=[];}}
 function setTablet(open){
  if(!ready)return;
@@ -96,10 +96,10 @@ function setTablet(open){
 function walkTo(target,approach=false){
  if(!walking)return false;
  const state=api.getState(),player=walkingPosition();
- if(world.usesFarmBoundary(state)&&(!world.inFarm(player.x,player.y)||!world.inFarm(target.x,target.y))){
+ if(world.usesFarmBoundary(state)&&(!canWalk(state,Math.floor(player.x),Math.floor(player.y))||!canWalk(state,target.x,target.y))){
   announce('Use WASD or the arrow keys to walk in the village.');return false;
  }
- const walkable=(s,x,y)=>canWalk(s,x,y)&&(!world.usesFarmBoundary(s)||world.inFarm(x,y));
+ const walkable=(s,x,y)=>canWalk(s,x,y)&&(!world.usesFarmBoundary(s)||world.inFarm(x,y)||window.CaravanLandParcels.inParcel(x,y)?.id==='south_field');
  const path=LivingParkMovement.route(state,player,target,walkable,approach);
  if(!path){announce('No walkable route to that spot.');return false;}
  state.playerPath=path.map(p=>({x:p.x+.5,y:p.y+.5}));
@@ -115,13 +115,13 @@ function walkingFrame(timestamp){
  const player=walkingPosition();
  const input={left:held.has('a')||held.has('arrowleft'),right:held.has('d')||held.has('arrowright'),up:held.has('w')||held.has('arrowup'),down:held.has('s')||held.has('arrowdown')};
  const moving=LivingParkMovement.advance(state,dt,input,GameStateApi.getTileProperties,map.canWalk,4,player);
- const inVillage=world.usesFarmBoundary(state)&&!world.inFarm(player.x,player.y);
+ const inVillage=world.usesFarmBoundary(state)&&!world.inFarm(player.x,player.y)&&window.CaravanLandParcels.inParcel(player.x,player.y)?.id!=='south_field';
  if(inVillage!==Boolean(state.walkingInVillage)){
   state.walkingInVillage=inVillage;
   interaction=null;
  }
  map.updatePlayer(player);
- if(moving&&!inVillage){
+ if(moving&&!inVillage&&world.inFarm(player.x,player.y)){
   Object.assign(state.player,player);
   if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
  }
@@ -331,10 +331,12 @@ document.addEventListener('keydown',e=>{
    const state=api.getState(),p=LivingParkMovement.tile(walkingPosition());
    const candidates=[interaction,{x:p.x,y:p.y-1},{x:p.x+1,y:p.y},{x:p.x,y:p.y+1},{x:p.x-1,y:p.y}]
     .filter(Boolean)
-    .filter(t=>LivingParkMovement.adjacent(p,t)&&['tree','debris'].includes(state.tiles[t.y]?.[t.x]?.nature));
+    .filter(t=>LivingParkMovement.adjacent(p,t)&&['tree','debris'].includes((window.CaravanLandParcels.inParcel(t.x,t.y)?.id==='south_field'?window.CaravanExternalTerrain.getTile(state,t.x,t.y):state.tiles[t.y]?.[t.x])?.nature));
    const target=candidates[0];
    if(target){
-    const result=api.build('clear',target,target);
+    const field=window.CaravanLandParcels.inParcel(target.x,target.y);
+    const result=field?.id==='south_field'?window.CaravanExternalTerrain.clear(state,target.x,target.y):api.build('clear',target,target);
+    if(result.ok&&field?.id==='south_field'){api.save();window.dispatchEvent(new CustomEvent('caravan:change'));}
     if(result.ok){interaction=null;map.invalidate();render(true);}
     else announce('Unable to clear this tree or debris.');
    }else announce('Stand next to a tree or debris in your park and press E to clear it.');
@@ -358,7 +360,8 @@ window.addEventListener('caravan:ready',()=>{
       api.save();
     }
     map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,onGround:target=>{
-        const nature=api.getState().tiles[target.y]?.[target.x]?.nature;
+        const st=api.getState();
+        const nature=(window.CaravanLandParcels.inParcel(target.x,target.y)?.id==='south_field'?window.CaravanExternalTerrain.getTile(st,target.x,target.y):st.tiles[target.y]?.[target.x])?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
         if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press E to clear it.');
     },onSelect:id=>{if(!walking)select(id);},onBuild:(tool,start,end)=>{if(walking)return;api.build(tool,start,end);$('#mg-build-hint').dataset.preview='';map.invalidate();render(true);},onPreview:p=>{$('#mg-build-hint').dataset.preview='true';$('#mg-build-hint').innerHTML=`<strong>${esc(p.label)}${p.cost===null?'':' · '+money(p.cost)}</strong><span>Release to build · Subject to game placement checks</span><button id="mg-cancel-tool">Cancel</button>`;}});
