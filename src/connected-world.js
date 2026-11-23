@@ -44,9 +44,17 @@
             // Check the farm-side part of the opening against live park obstacles.
             if (!canOccupyPark(state, Math.max(gate.x + radius, x), y)) return false;
         }
-        if (inFarm(x, y)) return canOccupyPark(state, x, y);
-        const field=root.CaravanLandParcels?.inParcel(x,y);
-        if(field?.id==='south_field')return [-radius,radius].every(dx=>[-radius,radius].every(dy=>root.CaravanExternalTerrain?.canEnter(state,Math.floor(x+dx),Math.floor(y+dy))===true));
+        const inSouth=(px,py)=>root.CaravanLandParcels?.inParcel(px,py)?.id==='south_field';
+        // At the shared farm/field edge, each collision sample must use its
+        // own terrain. Otherwise the legacy grid rejects the first step south.
+        if(inFarm(x,y)||inSouth(x,y)){
+            return [[-radius,-radius],[radius,-radius],[-radius,radius],[radius,radius],[0,0]].every(([dx,dy])=>{
+                const px=x+dx,py=y+dy;
+                if(inSouth(px,py))return root.CaravanExternalTerrain?.canEnter(state,Math.floor(px),Math.floor(py))===true;
+                if(inFarm(px,py))return root.GameStateApi?.getTileProperties(state,Math.floor(px),Math.floor(py))?.walkable===true;
+                return false;
+            });
+        }
         if (!village) return false;
         return [-radius, radius].every(dx => [-radius, radius].every(dy => {
             const [vx, vy] = placement.toVillage(x + dx, y + dy);
