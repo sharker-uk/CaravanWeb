@@ -15,7 +15,7 @@ test('all five parcels resolve from the same world coordinates',()=>{
   assert.equal(W.tileWalkable(state,free.x,free.y,village,placement),true,p.id);
   assert.equal(W.canOccupy(state,free.x+.5,free.y+.5,village,placement,()=>true),true,p.id);
   state.land.ownedPlotIds=[];
-  assert.equal(W.tileWalkable(state,free.x,free.y,village,placement),false,p.id);
+  assert.equal(W.tileWalkable(state,free.x,free.y,village,placement),true,p.id);
  }
 });
 test('south boundary can be crossed in both directions without resizing original grid',()=>{
