@@ -47,7 +47,7 @@
             return root.CaravanExternalTerrain?.canEnter(state,tx,ty)===true;
         }
         if(inFarm(tx+.5,ty+.5))
-            return root.GameStateApi?.getTileProperties(state,tx,ty)?.walkable===true;
+            return root.GameState?.getTileProperties(state,tx,ty)?.walkable===true;
         if(!village||!placement)return false;
         const [vx,vy]=placement.toVillage(tx+.5,ty+.5);
         return root.CaravanVillageMovement?.canWalk(village,vx,vy)===true;
