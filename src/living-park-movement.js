@@ -5,7 +5,7 @@ const tile=p=>({x:Math.floor(p.x),y:Math.floor(p.y)});
 const key=p=>p.x+','+p.y;
 const adjacent=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1;
 function route(state,start,goal,walkable,adjacentTarget=false){
- const from=tile(start),to=tile(goal),valid=p=>Boolean(state.tiles[p.y]?.[p.x])&&walkable(state,p.x,p.y);
+ const from=tile(start),to=tile(goal),valid=p=>walkable(state,p.x,p.y);
  if(!valid(from))return null;
  if(!adjacentTarget&&!valid(to))return null;
  const done=p=>adjacentTarget?adjacent(p,to):key(p)===key(to);
