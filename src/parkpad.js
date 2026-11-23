@@ -19,7 +19,7 @@
  ];
  root.insertAdjacentHTML('afterbegin',`<div id="parkpad-bar" class="parkpad-bar"><button type="button" id="parkpad-home-button">▦ ParkPad</button><span id="parkpad-location">Home</span><span id="parkpad-balance">£1,500</span><button type="button" id="parkpad-save">Save</button><button type="button" id="parkpad-close">✕ Close tablet</button></div><section id="parkpad-screen" class="parkpad-screen" aria-label="ParkPad tablet"><div id="parkpad-content"></div></section>`);
  const screen=document.querySelector('#parkpad-screen'),content=document.querySelector('#parkpad-content'),locationLabel=document.querySelector('#parkpad-location'),balance=document.querySelector('#parkpad-balance');
- let current='home',ready=false,pendingSouthPurchase=false,purchaseFeedback='';
+ let current='home',ready=false,pendingSouthPurchase=false,purchaseFeedback='',lastEstateKey=null;
  const tabletOpen=()=>document.body.classList.contains('tablet-open');
  function showTablet(open){document.querySelector('#parkpad-bar').hidden=!open;screen.hidden=!open||!['home','estate','jobs'].includes(current);root.dataset.parkpadVisible=String(open);}
  window.addEventListener('caravan:tablet',event=>{if(event.detail.open){navigate('home');showTablet(true);}else showTablet(false);});
@@ -47,6 +47,11 @@
   const s=state();if(!s){content.innerHTML='<p>Loading Job Centre…</p>';return;}
   content.innerHTML='<div class="parkpad-intro"><p class="parkpad-kicker">CAISTER JOB CENTRE</p><h1>Find the right people.</h1><p>Recruitment will use advertised vacancies and applicants rather than instant hiring.</p></div><div class="parkpad-properties"><article class="parkpad-property"><div class="parkpad-property-info"><h2>Groundskeeper</h2><p>Help maintain the grounds and keep facilities tidy.</p><p>'+ (s.groundsStaff?'Your park currently employs grounds staff.':'Vacancy advertising is being developed.')+'</p><button disabled>Place vacancy advert · Coming soon</button></div></article><article class="parkpad-property"><div class="parkpad-property-info"><h2>Maintenance contractor</h2><p>Hire local tradespeople for repairs through a future contractor listing.</p><button disabled>Find contractor · Coming soon</button></div></article></div>';
  }
+ function estateKey(){
+  const s=state(),P=land();
+  if(!s||!P)return null;
+  return JSON.stringify([s.cash,s.land?.enabled,s.land?.ownedPlotIds,game()?.landTestEnabled?.()]);
+ }
  function renderEstate(){
   const s=state(),P=land(),test=game()?.landTestEnabled?.();
   if(!s||!P){content.innerHTML='<p>Loading property listings…</p>';return;}
@@ -56,6 +61,7 @@
    const reason=p.id==='south_field'&&test&&!owned?game().southFieldQuote().reasons.join(' '):'';
    return `<article class="parkpad-property"><div class="parkpad-property-art" aria-hidden="true"><span>🌳</span>${p.id==='south_field'?'<span>🏚️</span>':''}</div><div class="parkpad-property-info"><p class="parkpad-kicker">${esc(p.side)} · CAISTER COASTAL ESTATES</p><h2>${esc(p.name)}</h2><p>${p.id==='south_field'?'Partially overgrown agricultural land with an old barn.':'Neighbouring agricultural land available for future expansion.'}</p><div class="parkpad-property-meta"><strong>${money(p.price)}</strong><span>${p.w} × ${p.h} tiles</span><span>${owned?'Owned':'For sale'}</span></div>${owned?'<p class="parkpad-owned">✓ This land belongs to your park.</p>':canBuy?'<button type="button" class="parkpad-buy" data-parkpad-buy="south_field">Buy instantly · development test</button>':`<p class="parkpad-pending">${esc(reason||(test?'Purchase integration coming in a later milestone.':'Offers and two-day conveyancing are planned for normal gameplay.'))}</p>`}</div></article>`;
   }).join('');
+  lastEstateKey=estateKey();
   content.innerHTML=`<div class="parkpad-intro"><p class="parkpad-kicker">CAISTER COASTAL ESTATES</p><h1>Find room to grow.</h1><p>Neighbouring land and future opportunities around your park.</p>${test?'<p class="parkpad-test">Development test enabled · South Field completes instantly. A new test farm receives £12,000 extra starting capital.</p>':''}</div>${purchaseFeedback?`<p class="parkpad-test" role="status">${esc(purchaseFeedback)}</p>`:''}${pendingSouthPurchase?`<div class="parkpad-purchase-confirm" role="group" aria-label="Confirm South Field purchase"><strong>Confirm purchase of South Field for £6,500?</strong><p>This immediately purchases the field in the development test.</p><button type="button" class="parkpad-buy" data-parkpad-confirm="south_field">Confirm purchase · £6,500</button> <button type="button" data-parkpad-cancel>Cancel</button></div>`:''}<div class="parkpad-properties">${listing}</div>`;
  }
  // Handle tablet interactions on the visible screen, independently of the
@@ -84,7 +90,7 @@
  document.querySelector('#parkpad-close').addEventListener('click',()=>document.querySelector('#mg-walk-mode')?.click());
  document.querySelector('#parkpad-save').addEventListener('click',()=>{if(game()?.save())window.showToast?.('Park saved.');});
  window.addEventListener('caravan:ready',()=>{ready=true;navigate('home');});
- window.addEventListener('caravan:change',()=>{if(ready){syncBalance();if(current==='estate')renderEstate();}});
+ window.addEventListener('caravan:change',()=>{if(!ready)return;syncBalance();if(current==='estate'&&estateKey()!==lastEstateKey)renderEstate();});
  // Existing management shell has already registered its own ready listener.
  // On a late injection the game may already exist.
  if(game()?.getState?.()){ready=true;navigate('home');}
