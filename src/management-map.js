@@ -105,6 +105,20 @@ root.ManagementArt={tree,building};
                 return `<g pointer-events="none"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#b5ad7930" stroke="#6d7650" stroke-dasharray="8 5"/><text x="${x+10}" y="${y+20}" fill="#44553b" font-size="12">${esc(p.name)} · PREVIEW</text></g>`;
             }).join('');
         }
+        function externalTerrainArtwork(){
+            if(!game||!W.usesFarmBoundary(game))return '';
+            const p=externalParcels?.PARCELS.find(p=>p.id==='south_field');
+            if(!p||!externalParcels.ownsParcel(game.land,p.id))return '';
+            const T=root.CaravanExternalTerrain,A=root.ManagementArt;
+            let art='';
+            for(let y=p.y;y<p.y+p.h;y++)for(let x=p.x;x<p.x+p.w;x++){
+                const t=T.getTile(game,x,y);
+                if(t?.nature==='tree')art+=A.tree((x+.5)*unit,(y+.75)*unit,8+(x+y)%3,(x+y)%4);
+                else if(t?.nature==='debris')art+=`<g stroke="#947f59" stroke-width="2.5" fill="none"><path d="M${x*unit+4} ${y*unit+13}l10 -6m-6 0l8 10"/></g>`;
+                if(t?.path)art+=`<rect x="${x*unit}" y="${y*unit}" width="${unit}" height="${unit}" fill="#d9d2b7"/>`;
+            }
+            return `<g id="south-field-terrain" pointer-events="none">${art}</g>`;
+        }
         function worldMarkup() {
             let ground='',nature='',grid='',utilities='';
             for(let y=0;y<game.tiles.length;y++){
@@ -132,7 +146,7 @@ root.ManagementArt={tree,building};
             const buildings=places.filter(p=>p.kind!=='pitch'&&p.type!=='land_plot').sort((a,b)=>(a.y+a.h)-(b.y+b.h)).map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
             const jobs=game.constructions.map(j=>{const b=j.footprint;return b?`<rect x="${b.x*unit+1}" y="${b.y*unit+1}" width="${b.w*unit-2}" height="${b.h*unit-2}" fill="#d6ad5c55" stroke="#a88948" stroke-width="2" stroke-dasharray="6 4"/>`:'';}).join('');
             const people=layers.people?game.guests.flatMap(g=>(g.party?.members||[{}]).map((m,i)=>{const pos=g.position||{x:g.pitch.x+1,y:g.pitch.y+1},x=pos.x*unit+(i%3)*5,y=pos.y*unit+Math.floor(i/3)*5;return `<g><ellipse cx="${x+1}" cy="${y+8}" rx="3" ry="1.5" fill="#446a4c44"/><path d="M${x} ${y+2}v6" stroke="${/^#[0-9a-fA-F]{6}$/.test(m.appearance?.top||'')?m.appearance.top:'#7a91a0'}" stroke-width="4"/><circle cx="${x}" cy="${y}" r="2.5" fill="#dcbb96"/></g>`;})).join(''):'';
-            return `<rect x="-2400" y="-2400" width="4800" height="4800" fill="url(#grass)"/>${villageFringe()}${ground}${farmBoundary()}${externalFieldPreview()}${W.usesFarmBoundary(game)?'':places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
+            return `<rect x="-2400" y="-2400" width="4800" height="4800" fill="url(#grass)"/>${villageFringe()}${ground}${farmBoundary()}${externalFieldPreview()}${externalTerrainArtwork()}${W.usesFarmBoundary(game)?'':places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
         }
         function farmBoundary(){
             if(!W.usesFarmBoundary(game))return '';
@@ -186,7 +200,7 @@ root.ManagementArt={tree,building};
         }
         function render(nextGame,nextPlaces,options={}){
             game=nextGame;places=nextPlaces;selected=options.selected;visibleIds=options.visibleIds||null;route=options.route||null;tool=options.tool||'select';layers={...layers,...options.layers};
-            const key=JSON.stringify([game.tiles,places.map(p=>[p.id,p.status,p.guest?.accommodation,p.van?.modelId,p.entity.decking,p.entity.accessories]),game.constructions,game.guests.map(g=>[g.position,g.party?.headcount]),[...visibleIds||[]],layers,tool]);
+            const key=JSON.stringify([game.tiles,places.map(p=>[p.id,p.status,p.guest?.accommodation,p.van?.modelId,p.entity.decking,p.entity.accessories]),game.constructions,game.externalTerrain,game.land?.ownedPlotIds,game.guests.map(g=>[g.position,g.party?.headcount]),[...visibleIds||[]],layers,tool]);
             if(key!==worldKey){scene.innerHTML=worldMarkup();worldKey=key;}
             updatePlayer(callbacks.getWalker?.() || game.player);
             // Keep focused map controls alive when only time / condition values change.
