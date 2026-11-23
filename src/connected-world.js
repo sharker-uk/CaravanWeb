@@ -45,6 +45,8 @@
             if (!canOccupyPark(state, Math.max(gate.x + radius, x), y)) return false;
         }
         if (inFarm(x, y)) return canOccupyPark(state, x, y);
+        const field=root.CaravanLandParcels?.inParcel(x,y);
+        if(field?.id==='south_field')return [-radius,radius].every(dx=>[-radius,radius].every(dy=>root.CaravanExternalTerrain?.canEnter(state,Math.floor(x+dx),Math.floor(y+dy))===true));
         if (!village) return false;
         return [-radius, radius].every(dx => [-radius, radius].every(dy => {
             const [vx, vy] = placement.toVillage(x + dx, y + dy);
