@@ -11,12 +11,12 @@ test('crossing farm to South Field does not block a clear entrance',()=>{
  const s={land:{enabled:true,ownedPlotIds:['south_field']}};
  const original=global.CaravanLandParcels;
  global.CaravanLandParcels=P;global.CaravanExternalTerrain=T;
- global.GameStateApi={getTileProperties:()=>({walkable:true})};
+ global.GameState={getTileProperties:()=>({walkable:true})};
  try{
   const park=()=>true;
   for(const y of [39.5,39.8,39.9,40,40.1,40.5,41.5])
    assert.equal(W.canOccupy(s,25.5,y,null,null,park),true,'blocked at y='+y);
- }finally{global.CaravanLandParcels=original;delete global.CaravanExternalTerrain;delete global.GameStateApi;}
+ }finally{global.CaravanLandParcels=original;delete global.CaravanExternalTerrain;delete global.GameState;}
 });
 test('unowned South Field still blocks access',()=>{
  const s={land:{enabled:true,ownedPlotIds:[]}};
