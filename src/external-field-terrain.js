@@ -1,13 +1,13 @@
 /* LAND-2 foundation: deterministic, separately addressable external terrain.
  * Never expand or re-index the legacy 60x40 park tile array.
- * Owned land may be walked/developed only when explicitly authorised.
+ * Walking is independent of ownership; development requires title.
  */
 (function(root){
 'use strict';
 const Parcels=root.CaravanLandParcels;
 const VERSION=1;
 const key=(x,y)=>x+','+y;
-function isEntrance(id,x,y){return id==='south_field'&&x>=23&&x<=27&&y>=40&&y<=42;}
+function isEntrance(id,x,y){return id==='south_field'&&y===40;}
 function initialNature(id,x,y){
  if(isEntrance(id,x,y))return null;
  // Stable per-tile distribution; no Math.random or hidden save mutations.
@@ -55,7 +55,7 @@ function getTile(state,x,y){
 }
 function canEnter(state,x,y){
  const p=Parcels.inParcel(x,y);
- if(!p||!Parcels.canDevelopAt(state.land,x,y))return false;
+ if(!p)return false;
  const tile=getTile(state,x,y);
  return !['tree','debris','barn'].includes(tile.nature);
 }
