@@ -125,25 +125,29 @@
       "name": "HamptonVilla entrance",
       "a": "parkTurn",
       "b": "parkGate",
-      "width": 17,
-      "speed": 22
+      "width": 14.333333333333334,
+      "speed": 22,
+      "pavement": 10.75,
+      "widthMetres": 2
     },
     {
       "id": "church-narrows",
       "name": "Ormesby Road",
       "a": "church",
       "b": "centre",
-      "width": 13,
+      "width": 34.4,
       "speed": 30,
       "singleLane": false,
-      "maxVehicleWidth": 2.3
+      "maxVehicleWidth": 2.3,
+      "pavement": 10.75,
+      "widthMetres": 4.8
     },
     {
       "id": "high-street",
       "name": "High Street",
       "a": "centre",
       "b": "southVillage",
-      "width": 23,
+      "width": 46.583333333333336,
       "speed": 30,
       "control": [
         [
@@ -154,22 +158,26 @@
           1030,
           940
         ]
-      ]
+      ],
+      "pavement": 10.75,
+      "widthMetres": 6.5
     },
     {
       "id": "north-link",
       "name": "North bypass link",
       "a": "north",
       "b": "bypassNorth",
-      "width": 30,
-      "speed": 65
+      "width": 52.31666666666667,
+      "speed": 65,
+      "pavement": 0,
+      "widthMetres": 7.3
     },
     {
       "id": "bypass",
       "name": "Coast bypass",
       "a": "bypassNorth",
       "b": "bypassSouth",
-      "width": 30,
+      "width": 52.31666666666667,
       "speed": 75,
       "control": [
         [
@@ -180,111 +188,139 @@
           220,
           1000
         ]
-      ]
+      ],
+      "pavement": 0,
+      "widthMetres": 7.3
     },
     {
       "id": "south-link",
       "name": "South bypass link",
       "a": "bypassSouth",
       "b": "south",
-      "width": 30,
-      "speed": 65
+      "width": 52.31666666666667,
+      "speed": 65,
+      "pavement": 0,
+      "widthMetres": 7.3
     },
     {
       "id": "west-road",
       "name": "Fen Road",
       "a": "west",
       "b": "cross",
-      "width": 23,
-      "speed": 40
+      "width": 46.583333333333336,
+      "speed": 40,
+      "pavement": 10.75,
+      "widthMetres": 6.5
     },
     {
       "id": "west-lane",
       "name": "West Lane",
       "a": "cross",
       "b": "bypassSouth",
-      "width": 15,
-      "speed": 28
+      "width": 39.41666666666667,
+      "speed": 28,
+      "pavement": 10.75,
+      "widthMetres": 5.5
     },
     {
       "id": "beach-road",
       "name": "Beach Road",
       "a": "southVillage",
       "b": "beachTurn",
-      "width": 20,
-      "speed": 28
+      "width": 39.41666666666667,
+      "speed": 28,
+      "pavement": 10.75,
+      "widthMetres": 5.5
     },
     {
       "id": "beach-lane",
       "name": "Beach Road",
       "a": "beachTurn",
       "b": "beach",
-      "width": 18,
-      "speed": 24
+      "width": 39.41666666666667,
+      "speed": 24,
+      "pavement": 10.75,
+      "widthMetres": 5.5
     },
     {
       "id": "coast-lane",
       "name": "Fisher Lane",
       "a": "beachTurn",
       "b": "shore",
-      "width": 12,
-      "speed": 20
+      "width": 39.41666666666667,
+      "speed": 20,
+      "pavement": 10.75,
+      "widthMetres": 5.5
     },
     {
       "id": "north-road",
       "name": "Ormesby Road",
       "a": "north",
       "b": "tradeEntry",
-      "width": 24,
-      "speed": 40
+      "width": 46.583333333333336,
+      "speed": 40,
+      "pavement": 10.75,
+      "widthMetres": 6.5
     },
     {
       "id": "north-road-2",
       "name": "Ormesby Road",
       "a": "tradeEntry",
       "b": "parkTurn",
-      "width": 24,
-      "speed": 40
+      "width": 46.583333333333336,
+      "speed": 40,
+      "pavement": 10.75,
+      "widthMetres": 6.5
     },
     {
       "id": "church-approach",
       "name": "Ormesby Road",
       "a": "parkTurn",
       "b": "resWest",
-      "width": 24,
-      "speed": 36
+      "width": 46.583333333333336,
+      "speed": 36,
+      "pavement": 10.75,
+      "widthMetres": 6.5
     },
     {
       "id": "church-approach-2",
       "name": "Ormesby Road",
       "a": "resWest",
       "b": "resExit",
-      "width": 24,
-      "speed": 36
+      "width": 46.583333333333336,
+      "speed": 36,
+      "pavement": 10.75,
+      "widthMetres": 6.5
     },
     {
       "id": "church-approach-3",
       "name": "Ormesby Road",
       "a": "resExit",
       "b": "church",
-      "width": 24,
-      "speed": 36
+      "width": 46.583333333333336,
+      "speed": 36,
+      "pavement": 10.75,
+      "widthMetres": 6.5
     },
     {
       "id": "trade-entry",
       "name": "Trade Estate Road",
       "a": "tradeEntry",
       "b": "tradeNorth",
-      "width": 20,
-      "speed": 25
+      "width": 39.41666666666667,
+      "speed": 25,
+      "pavement": 10.75,
+      "widthMetres": 5.5
     },
     {
       "id": "trade-road",
       "name": "Trade Estate Road",
       "a": "tradeNorth",
       "b": "tradeSouth",
-      "width": 18,
-      "speed": 20
+      "width": 39.41666666666667,
+      "speed": 20,
+      "pavement": 10.75,
+      "widthMetres": 5.5
     },
     {
       "id": "res-road",
@@ -293,22 +329,25 @@
       "b": "resEast",
       "width": 39.41666666666667,
       "speed": 20,
-      "pavement": 10.75
+      "pavement": 10.75,
+      "widthMetres": 5.5
     },
     {
       "id": "shop-road",
       "name": "Market Lane",
       "a": "shopsWest",
       "b": "shopsEast",
-      "width": 16,
-      "speed": 20
+      "width": 39.41666666666667,
+      "speed": 20,
+      "pavement": 10.75,
+      "widthMetres": 5.5
     },
     {
       "id": "shop-access",
       "name": "Market Lane",
       "a": "shopsEast",
       "b": "southVillage",
-      "width": 16,
+      "width": 39.41666666666667,
       "speed": 20,
       "control": [
         [
@@ -319,39 +358,49 @@
           1070,
           1010
         ]
-      ]
+      ],
+      "pavement": 10.75,
+      "widthMetres": 5.5
     },
     {
       "id": "south-road",
       "name": "South Road",
       "a": "southVillage",
       "b": "tescoTurn",
-      "width": 24,
-      "speed": 40
+      "width": 46.583333333333336,
+      "speed": 40,
+      "pavement": 10.75,
+      "widthMetres": 6.5
     },
     {
       "id": "south-road-2",
       "name": "South Road",
       "a": "tescoTurn",
       "b": "south",
-      "width": 24,
-      "speed": 40
+      "width": 46.583333333333336,
+      "speed": 40,
+      "pavement": 10.75,
+      "widthMetres": 6.5
     },
     {
       "id": "tesco-access",
       "name": "Supermarket access",
       "a": "tescoTurn",
       "b": "tescoEntry",
-      "width": 18,
-      "speed": 20
+      "width": 39.41666666666667,
+      "speed": 20,
+      "pavement": 10.75,
+      "widthMetres": 5.5
     },
     {
       "id": "fen-road",
       "name": "Fen Road",
       "a": "cross",
       "b": "church",
-      "width": 23,
-      "speed": 35
+      "width": 46.583333333333336,
+      "speed": 35,
+      "pavement": 10.75,
+      "widthMetres": 6.5
     }
   ],
   "places": [
@@ -419,7 +468,7 @@
       "id": "trade-0",
       "name": "C&R",
       "kind": "shop",
-      "x": 492.5,
+      "x": 478.5,
       "y": 204,
       "buildingId": "trade-0",
       "symbol": "S",
@@ -430,7 +479,7 @@
       "id": "trade-1",
       "name": "Timber merchant",
       "kind": "shop",
-      "x": 637.5,
+      "x": 651.5,
       "y": 204,
       "buildingId": "trade-1",
       "symbol": "S",
@@ -441,7 +490,7 @@
       "id": "trade-2",
       "name": "Builders merchant",
       "kind": "shop",
-      "x": 492.5,
+      "x": 478.5,
       "y": 294,
       "buildingId": "trade-2",
       "symbol": "S",
@@ -452,7 +501,7 @@
       "id": "trade-3",
       "name": "Tool hire",
       "kind": "shop",
-      "x": 637.5,
+      "x": 651.5,
       "y": 294,
       "buildingId": "trade-3",
       "symbol": "S",
@@ -463,7 +512,7 @@
       "id": "trade-4",
       "name": "Caravan sales",
       "kind": "shop",
-      "x": 492.5,
+      "x": 478.5,
       "y": 384,
       "buildingId": "trade-4",
       "symbol": "S",
@@ -474,7 +523,7 @@
       "id": "trade-5",
       "name": "Garage",
       "kind": "shop",
-      "x": 637.5,
+      "x": 651.5,
       "y": 384,
       "buildingId": "trade-5",
       "symbol": "S",
@@ -485,7 +534,7 @@
       "id": "trade-6",
       "name": "Garden centre",
       "kind": "shop",
-      "x": 492.5,
+      "x": 478.5,
       "y": 474,
       "buildingId": "trade-6",
       "symbol": "S",
@@ -496,7 +545,7 @@
       "id": "church-nave",
       "name": "Holy Trinity Church",
       "kind": "church",
-      "x": 842.5,
+      "x": 860.5,
       "y": 712.5,
       "buildingId": "church-nave",
       "symbol": "S",
@@ -519,7 +568,7 @@
       "name": "Old Hall",
       "kind": "shop",
       "x": 930,
-      "y": 814,
+      "y": 802,
       "buildingId": "old-hall",
       "symbol": "S",
       "description": "Old Hall",
@@ -530,7 +579,7 @@
       "name": "Job Centre",
       "kind": "shop",
       "x": 584,
-      "y": 975,
+      "y": 963,
       "buildingId": "high-0",
       "symbol": "S",
       "description": "Job Centre",
@@ -541,7 +590,7 @@
       "name": "Estate Agents",
       "kind": "shop",
       "x": 649,
-      "y": 975,
+      "y": 963,
       "buildingId": "high-1",
       "symbol": "S",
       "description": "Estate Agents",
@@ -552,7 +601,7 @@
       "name": "Bank",
       "kind": "shop",
       "x": 714,
-      "y": 975,
+      "y": 963,
       "buildingId": "high-2",
       "symbol": "S",
       "description": "Bank",
@@ -563,7 +612,7 @@
       "name": "Council office",
       "kind": "shop",
       "x": 779,
-      "y": 975,
+      "y": 963,
       "buildingId": "high-3",
       "symbol": "S",
       "description": "Council office",
@@ -574,7 +623,7 @@
       "name": "Post Office",
       "kind": "shop",
       "x": 844,
-      "y": 975,
+      "y": 963,
       "buildingId": "high-4",
       "symbol": "S",
       "description": "Post Office",
@@ -585,7 +634,7 @@
       "name": "Brewery Tap",
       "kind": "shop",
       "x": 584,
-      "y": 1050,
+      "y": 1062,
       "buildingId": "high-5",
       "symbol": "S",
       "description": "Brewery Tap",
@@ -596,7 +645,7 @@
       "name": "Fish & Chips",
       "kind": "shop",
       "x": 649,
-      "y": 1050,
+      "y": 1062,
       "buildingId": "high-6",
       "symbol": "S",
       "description": "Fish & Chips",
@@ -607,7 +656,7 @@
       "name": "Bakery",
       "kind": "shop",
       "x": 714,
-      "y": 1050,
+      "y": 1062,
       "buildingId": "high-7",
       "symbol": "S",
       "description": "Bakery",
@@ -618,7 +667,7 @@
       "name": "Village Café",
       "kind": "shop",
       "x": 779,
-      "y": 1050,
+      "y": 1062,
       "buildingId": "high-8",
       "symbol": "S",
       "description": "Village Café",
@@ -629,7 +678,7 @@
       "name": "Pharmacy",
       "kind": "shop",
       "x": 844,
-      "y": 1050,
+      "y": 1062,
       "buildingId": "high-9",
       "symbol": "S",
       "description": "Pharmacy",
@@ -640,7 +689,7 @@
       "name": "Brewery",
       "kind": "shop",
       "x": 912.5,
-      "y": 1052.5,
+      "y": 1068.5,
       "buildingId": "brewery",
       "symbol": "S",
       "description": "Brewery",
@@ -650,7 +699,7 @@
       "id": "tesco",
       "name": "Tesco",
       "kind": "shop",
-      "x": 1015,
+      "x": 1001,
       "y": 1222.5,
       "buildingId": "tesco",
       "symbol": "S",
@@ -677,82 +726,98 @@
     {
       "id": "trade-0",
       "kind": "shop",
-      "x": 440,
+      "x": 426,
       "y": 180,
       "w": 105,
       "h": 48,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 14.651162790697674,
+      "depthMetres": 6.697674418604651
     },
     {
       "id": "trade-1",
       "kind": "shop",
-      "x": 585,
+      "x": 599,
       "y": 180,
       "w": 105,
       "h": 48,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 14.651162790697674,
+      "depthMetres": 6.697674418604651
     },
     {
       "id": "trade-2",
       "kind": "shop",
-      "x": 440,
+      "x": 426,
       "y": 270,
       "w": 105,
       "h": 48,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 14.651162790697674,
+      "depthMetres": 6.697674418604651
     },
     {
       "id": "trade-3",
       "kind": "shop",
-      "x": 585,
+      "x": 599,
       "y": 270,
       "w": 105,
       "h": 48,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 14.651162790697674,
+      "depthMetres": 6.697674418604651
     },
     {
       "id": "trade-4",
       "kind": "shop",
-      "x": 440,
+      "x": 426,
       "y": 360,
       "w": 105,
       "h": 48,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 14.651162790697674,
+      "depthMetres": 6.697674418604651
     },
     {
       "id": "trade-5",
       "kind": "shop",
-      "x": 585,
+      "x": 599,
       "y": 360,
       "w": 105,
       "h": 48,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 14.651162790697674,
+      "depthMetres": 6.697674418604651
     },
     {
       "id": "trade-6",
       "kind": "shop",
-      "x": 440,
+      "x": 426,
       "y": 450,
       "w": 105,
       "h": 48,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 14.651162790697674,
+      "depthMetres": 6.697674418604651
     },
     {
       "id": "church-nave",
       "kind": "church",
-      "x": 820,
+      "x": 838,
       "y": 680,
       "w": 45,
       "h": 65,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 6.27906976744186,
+      "depthMetres": 9.069767441860465
     },
     {
       "id": "fidl",
@@ -762,137 +827,165 @@
       "w": 90,
       "h": 55,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 12.55813953488372,
+      "depthMetres": 7.674418604651162
     },
     {
       "id": "old-hall",
       "kind": "shop",
       "x": 890,
-      "y": 790,
+      "y": 778,
       "w": 80,
       "h": 48,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 11.162790697674419,
+      "depthMetres": 6.697674418604651
     },
     {
       "id": "high-0",
       "kind": "shop",
       "x": 560,
-      "y": 960,
+      "y": 948,
       "w": 48,
       "h": 30,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 6.697674418604651,
+      "depthMetres": 4.186046511627906
     },
     {
       "id": "high-1",
       "kind": "shop",
       "x": 625,
-      "y": 960,
+      "y": 948,
       "w": 48,
       "h": 30,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 6.697674418604651,
+      "depthMetres": 4.186046511627906
     },
     {
       "id": "high-2",
       "kind": "shop",
       "x": 690,
-      "y": 960,
+      "y": 948,
       "w": 48,
       "h": 30,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 6.697674418604651,
+      "depthMetres": 4.186046511627906
     },
     {
       "id": "high-3",
       "kind": "shop",
       "x": 755,
-      "y": 960,
+      "y": 948,
       "w": 48,
       "h": 30,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 6.697674418604651,
+      "depthMetres": 4.186046511627906
     },
     {
       "id": "high-4",
       "kind": "shop",
       "x": 820,
-      "y": 960,
+      "y": 948,
       "w": 48,
       "h": 30,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 6.697674418604651,
+      "depthMetres": 4.186046511627906
     },
     {
       "id": "high-5",
       "kind": "shop",
       "x": 560,
-      "y": 1035,
+      "y": 1047,
       "w": 48,
       "h": 30,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 6.697674418604651,
+      "depthMetres": 4.186046511627906
     },
     {
       "id": "high-6",
       "kind": "shop",
       "x": 625,
-      "y": 1035,
+      "y": 1047,
       "w": 48,
       "h": 30,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 6.697674418604651,
+      "depthMetres": 4.186046511627906
     },
     {
       "id": "high-7",
       "kind": "shop",
       "x": 690,
-      "y": 1035,
+      "y": 1047,
       "w": 48,
       "h": 30,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 6.697674418604651,
+      "depthMetres": 4.186046511627906
     },
     {
       "id": "high-8",
       "kind": "shop",
       "x": 755,
-      "y": 1035,
+      "y": 1047,
       "w": 48,
       "h": 30,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 6.697674418604651,
+      "depthMetres": 4.186046511627906
     },
     {
       "id": "high-9",
       "kind": "shop",
       "x": 820,
-      "y": 1035,
+      "y": 1047,
       "w": 48,
       "h": 30,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 6.697674418604651,
+      "depthMetres": 4.186046511627906
     },
     {
       "id": "brewery",
       "kind": "shop",
       "x": 885,
-      "y": 1035,
+      "y": 1051,
       "w": 55,
       "h": 35,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 7.674418604651162,
+      "depthMetres": 4.883720930232558
     },
     {
       "id": "tesco",
       "kind": "shop",
-      "x": 960,
+      "x": 946,
       "y": 1190,
       "w": 110,
       "h": 65,
       "garden": false,
-      "roof": "#a99b86"
+      "roof": "#a99b86",
+      "widthMetres": 15.348837209302324,
+      "depthMetres": 9.069767441860465
     },
     {
       "id": "home-0",
@@ -905,7 +998,9 @@
       "garden": true,
       "front": "north",
       "scalePilot": true,
-      "driveway": true
+      "driveway": true,
+      "widthMetres": 7,
+      "depthMetres": 9
     },
     {
       "id": "home-1",
@@ -918,7 +1013,9 @@
       "garden": true,
       "front": "north",
       "scalePilot": true,
-      "driveway": false
+      "driveway": false,
+      "widthMetres": 7,
+      "depthMetres": 9
     },
     {
       "id": "home-2",
@@ -931,7 +1028,9 @@
       "garden": true,
       "front": "north",
       "scalePilot": true,
-      "driveway": true
+      "driveway": true,
+      "widthMetres": 10,
+      "depthMetres": 10
     },
     {
       "id": "home-3",
@@ -944,7 +1043,9 @@
       "garden": true,
       "front": "north",
       "scalePilot": true,
-      "driveway": false
+      "driveway": false,
+      "widthMetres": 7,
+      "depthMetres": 9
     },
     {
       "id": "home-4",
@@ -957,7 +1058,9 @@
       "garden": true,
       "front": "north",
       "scalePilot": true,
-      "driveway": true
+      "driveway": true,
+      "widthMetres": 7,
+      "depthMetres": 9
     },
     {
       "id": "home-5",
@@ -970,7 +1073,9 @@
       "garden": true,
       "front": "north",
       "scalePilot": true,
-      "driveway": false
+      "driveway": false,
+      "widthMetres": 10,
+      "depthMetres": 10
     }
   ],
   "reservedAreas": [
