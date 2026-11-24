@@ -91,7 +91,7 @@ root.ManagementArt={tree,building};
                 const a=v.nodes[r.a],b=v.nodes[r.b];if(!a||!b)return null;
                 const d=r.control?.length===2?`M${x(a[0])} ${y(a[1])}C${r.control.map(c=>x(c[0])+' '+y(c[1])).join(' ')} ${x(b[0])} ${y(b[1])}`:`M${x(a[0])} ${y(a[1])}L${x(b[0])} ${y(b[1])}`;
                 const w=r.id==='park-lane'?(W.gate.maxY-W.gate.minY)*unit:size(r.width);
-                return {d,w,pavement:r.pavement?size(r.pavement):3.5};
+                return {d,w,pavement:r.pavement===undefined?3.5:size(r.pavement)};
             }).filter(Boolean);
             const roads='<g fill="none" stroke-linejoin="round" stroke-linecap="round">'+roadGeometry.map(({d,w,pavement})=>`<path d="${d}" stroke="#d4d0bd" stroke-width="${w+2*pavement}"/>`).join('')+roadGeometry.map(({d,w})=>`<path d="${d}" stroke="#858983" stroke-width="${w}"/>`).join('')+roadGeometry.map(({d,w})=>w>12?`<path d="${d}" stroke="#e6e3cb" stroke-width="1" stroke-dasharray="8 10"/>`:'').join('')+'</g>';
             const reserved=(v.reservedAreas||[]).map(a=>`<rect x="${x(a.x)}" y="${y(a.y)}" width="${x(a.x+a.w)-x(a.x)}" height="${y(a.y+a.h)-y(a.y)}" fill="${a.id==='old-railway'?'#b9ab83':'#c4c68c'}" stroke="#9a936c" stroke-dasharray="5 4"/>`).join('');
@@ -118,23 +118,6 @@ root.ManagementArt={tree,building};
                 const windows=[.22,.72].map(t=>`<rect x="${bx+w*t-3}" y="${by+h*.83}" width="6" height="5" fill="#b7d4d6" stroke="#65766c" stroke-width=".7"/>`).join('');
                 return `<g>${garden}<rect x="${bx}" y="${by}" width="${w}" height="${h}" fill="#e3d4b8" stroke="#756f5e"/><path d="M${bx} ${by}H${bx+w}L${bx+w} ${by+h*.78}H${bx}Z" fill="${roof}" stroke="#756f5e"/><path d="M${bx} ${by+h*.39}H${bx+w}" stroke="#ffffff" opacity=".3" stroke-width="2"/><path d="M${bx+w*.5} ${by+h*.82}v${h*.18}" stroke="#66594b" stroke-width="5"/>${windows}${b.kind==='shop'?`<path d="M${bx} ${by+h*.72}h${w}" stroke="#e3d8b9" stroke-width="6"/>`:''}</g>`;
             }).join('');
-            // Temporary metre-scale reference beside Ormesby Road, in park tile units.
-            const [testX,testY]=placement.toScene([710,420]).map(n=>n*unit);
-            const scaleExample=`<g id="world-scale-example" transform="translate(${testX} ${testY})" pointer-events="none">
-              <rect x="-10" y="-30" width="330" height="300" rx="4" fill="#a7bd90" stroke="#718961"/>
-              <rect x="0" y="0" width="140" height="160" fill="#e1c9a6" stroke="#766956"/>
-              <rect x="0" y="0" width="140" height="136" fill="#a47f68" stroke="#766956"/>
-              <path d="M0 68H140" stroke="#d1ad91" stroke-width="3"/>
-              <rect x="60" y="136" width="18" height="24" fill="#66594b"/>
-              <path d="M69 160V190" stroke="#ded3ba" stroke-width="22"/>
-              <rect x="0" y="190" width="310" height="20" fill="#ded3ba"/>
-              <rect x="0" y="210" width="310" height="60" fill="#858983"/>
-              <g transform="translate(20 222)"><rect width="90" height="36" rx="8" fill="#416e95" stroke="#304e69"/><rect x="18" y="4" width="18" height="28" rx="3" fill="#b8d0d7"/><rect x="60" y="4" width="14" height="28" rx="3" fill="#b8d0d7"/></g>
-              <rect x="170" y="0" width="120" height="46" rx="6" fill="#eee9d7" stroke="#8b8e80"/>
-              <rect x="170" y="65" width="120" height="80" rx="3" fill="#d7d3c1" stroke="#8b8e80"/>
-              <path d="M170 105H290" stroke="#f4f0df" stroke-width="2"/>
-              <g font-size="11" fill="#34472b" text-anchor="middle"><text x="155" y="-13">SCALE TEST · 1 tile = 1 m</text><text x="70" y="90" fill="#fff">House 7 × 8 m</text><text x="230" y="27">Tourer 6 × 2.3 m</text><text x="230" y="100">Static section</text><text x="230" y="116">6 × 4 m</text><text x="65" y="207">Car 4.5 × 1.8 m</text></g>
-            </g>`;
             const labels=v.places.filter(q=>q.id!=='park').map(q=>`<text x="${x(q.x)}" y="${y(q.y)+30}" text-anchor="middle" font-size="12" fill="#4f674d" paint-order="stroke" stroke="#dce6cf" stroke-width="3">${String(q.name).replace(/[&<>]/g,'')}</text>`).join('');
             // Village park ends at the shore; the public beach continues east of it.
             // Keep the sand outside the saved park tiles, so the coast is not a buildable expansion.
@@ -143,7 +126,7 @@ root.ManagementArt={tree,building};
             const coast=root.CaravanCoastalArt?.render({shore,unit,worldHeight:bottom-top,top,beachWidth:size(70)});
             const seaEdge=shore+size(70);
             const fallback=`<rect x="${shore}" y="${top}" width="${seaEdge-shore}" height="${bottom-top}" fill="#e4d5ac"/><rect x="${seaEdge}" y="${top}" width="${Math.max(0,right-seaEdge)}" height="${bottom-top}" fill="#a7cbd0"/>`;
-            return `<g id="mg-village-context"><rect x="${left}" y="${top}" width="${right-left}" height="${bottom-top}" fill="#b6c89e"/>${coast||fallback}${reserved}${roads}${buildings}${scaleExample}${labels}</g>`;
+            return `<g id="mg-village-context"><rect x="${left}" y="${top}" width="${right-left}" height="${bottom-top}" fill="#b6c89e"/>${coast||fallback}${reserved}${roads}${buildings}${labels}</g>`;
         }
         // LAND-1 step 1: geometry preview only. Do not redirect purchases or saves.
         function externalFieldPreview(){
