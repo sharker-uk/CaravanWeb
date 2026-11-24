@@ -91,13 +91,29 @@ root.ManagementArt={tree,building};
                 const a=v.nodes[r.a],b=v.nodes[r.b];if(!a||!b)return null;
                 const d=r.control?.length===2?`M${x(a[0])} ${y(a[1])}C${r.control.map(c=>x(c[0])+' '+y(c[1])).join(' ')} ${x(b[0])} ${y(b[1])}`:`M${x(a[0])} ${y(a[1])}L${x(b[0])} ${y(b[1])}`;
                 const w=r.id==='park-lane'?(W.gate.maxY-W.gate.minY)*unit:size(r.width);
-                return {d,w};
+                return {d,w,pavement:r.pavement?size(r.pavement):3.5};
             }).filter(Boolean);
-            const roads='<g fill="none" stroke-linejoin="round" stroke-linecap="round">'+roadGeometry.map(({d,w})=>`<path d="${d}" stroke="#d4d0bd" stroke-width="${w+7}"/>`).join('')+roadGeometry.map(({d,w})=>`<path d="${d}" stroke="#858983" stroke-width="${w}"/>`).join('')+roadGeometry.map(({d,w})=>w>12?`<path d="${d}" stroke="#e6e3cb" stroke-width="1" stroke-dasharray="8 10"/>`:'').join('')+'</g>';
+            const roads='<g fill="none" stroke-linejoin="round" stroke-linecap="round">'+roadGeometry.map(({d,w,pavement})=>`<path d="${d}" stroke="#d4d0bd" stroke-width="${w+2*pavement}"/>`).join('')+roadGeometry.map(({d,w})=>`<path d="${d}" stroke="#858983" stroke-width="${w}"/>`).join('')+roadGeometry.map(({d,w})=>w>12?`<path d="${d}" stroke="#e6e3cb" stroke-width="1" stroke-dasharray="8 10"/>`:'').join('')+'</g>';
             const reserved=(v.reservedAreas||[]).map(a=>`<rect x="${x(a.x)}" y="${y(a.y)}" width="${x(a.x+a.w)-x(a.x)}" height="${y(a.y+a.h)-y(a.y)}" fill="${a.id==='old-railway'?'#b9ab83':'#c4c68c'}" stroke="#9a936c" stroke-dasharray="5 4"/>`).join('');
             const buildings=v.buildings.map(b=>{
                 const bx=x(b.x),by=y(b.y),w=x(b.x+b.w)-bx,h=y(b.y+b.h)-by;
                 const roof=b.roof||'#b29a7c';
+                if(b.scalePilot){
+                    const front=y(575)+size(v.roads.find(r=>r.id==='res-road').width)/2+size(v.roads.find(r=>r.id==='res-road').pavement);
+                    const pathX=bx+w*.5, carW=1.8*unit,carL=4.5*unit;
+                    return `<g><rect x="${bx-10}" y="${front}" width="${w+20}" height="${by+h+65-front}" fill="#a0b780" stroke="#668354" stroke-width="3"/>
+                    <path d="M${pathX} ${front}V${by}" stroke="#d8cbb1" stroke-width="22"/>
+                    <rect x="${bx}" y="${by}" width="${w}" height="${h}" fill="#dfc7a4" stroke="#756653"/>
+                    <rect x="${bx}" y="${by+12}" width="${w}" height="${h-12}" fill="${roof}" stroke="#756653"/>
+                    <path d="M${bx} ${by+h*.55}h${w}" stroke="#e0bda2" stroke-width="3"/>
+                    <rect x="${pathX-9}" y="${by}" width="18" height="12" fill="#64574a"/>
+                    <rect x="${bx+12}" y="${by+2}" width="20" height="8" fill="#b5d1d8"/>
+                    <rect x="${bx+w-32}" y="${by+2}" width="20" height="8" fill="#b5d1d8"/>
+                    <circle cx="${bx+20}" cy="${by+h+30}" r="14" fill="#63884f"/>
+                    <path d="M${bx-8} ${by+h+62}h${w+16}" stroke="#557648" stroke-width="5"/>
+                    ${b.driveway?`<g transform="translate(${bx+8} ${front-5}) rotate(-90)"><rect x="-4" y="-4" width="${carW+8}" height="${carL+8}" fill="#858983"/><rect width="${carW}" height="${carL}" rx="7" fill="#466d91" stroke="#304b63"/><rect x="4" y="17" width="${carW-8}" height="17" rx="3" fill="#b8d0d7"/><rect x="4" y="${carL-25}" width="${carW-8}" height="13" rx="3" fill="#b8d0d7"/></g>`:''}</g>`;
+                }
+
                 const garden=b.garden?`<rect x="${bx-6}" y="${by-6}" width="${w+12}" height="${h+12}" rx="2" fill="#a8bf96" stroke="#8ca77e"/><path d="M${bx+w*.5} ${by+h}v6" stroke="#ddd0b2" stroke-width="5"/><circle cx="${bx-3}" cy="${by+h*.8}" r="3" fill="#678b59"/>`:'';
                 const windows=[.22,.72].map(t=>`<rect x="${bx+w*t-3}" y="${by+h*.83}" width="6" height="5" fill="#b7d4d6" stroke="#65766c" stroke-width=".7"/>`).join('');
                 return `<g>${garden}<rect x="${bx}" y="${by}" width="${w}" height="${h}" fill="#e3d4b8" stroke="#756f5e"/><path d="M${bx} ${by}H${bx+w}L${bx+w} ${by+h*.78}H${bx}Z" fill="${roof}" stroke="#756f5e"/><path d="M${bx} ${by+h*.39}H${bx+w}" stroke="#ffffff" opacity=".3" stroke-width="2"/><path d="M${bx+w*.5} ${by+h*.82}v${h*.18}" stroke="#66594b" stroke-width="5"/>${windows}${b.kind==='shop'?`<path d="M${bx} ${by+h*.72}h${w}" stroke="#e3d8b9" stroke-width="6"/>`:''}</g>`;
