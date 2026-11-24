@@ -80,8 +80,11 @@ root.ManagementArt={tree,building};
             const size=n=>placement.toSceneLength(n)*unit;
             const roads=v.roads.map(r=>{
                 const a=v.nodes[r.a],b=v.nodes[r.b];if(!a||!b)return '';
-                return `<path d="M${x(a[0])} ${y(a[1])}L${x(b[0])} ${y(b[1])}" fill="none" stroke="${r.id==='park-lane'?'#c7c8b3':'#d0d0b9'}" stroke-width="${r.id==='park-lane'? (W.gate.maxY-W.gate.minY)*unit : size(r.width)}"/>`;
+                const d=r.control?.length===2?`M${x(a[0])} ${y(a[1])}C${r.control.map(c=>x(c[0])+' '+y(c[1])).join(' ')} ${x(b[0])} ${y(b[1])}`:`M${x(a[0])} ${y(a[1])}L${x(b[0])} ${y(b[1])}`;
+                const w=r.id==='park-lane'?(W.gate.maxY-W.gate.minY)*unit:size(r.width);
+                return `<g fill="none" stroke-linejoin="round" stroke-linecap="round"><path d="${d}" stroke="#d4d0bd" stroke-width="${w+7}"/><path d="${d}" stroke="#858983" stroke-width="${w}"/><path d="${d}" stroke="#e6e3cb" stroke-width="1" stroke-dasharray="8 10"/></g>`;
             }).join('');
+            const reserved=(v.reservedAreas||[]).map(a=>`<rect x="${x(a.x)}" y="${y(a.y)}" width="${x(a.x+a.w)-x(a.x)}" height="${y(a.y+a.h)-y(a.y)}" fill="${a.id==='old-railway'?'#b9ab83':'#c4c68c'}" stroke="#9a936c" stroke-dasharray="5 4"/>`).join('');
             const buildings=v.buildings.map(b=>{
                 const bx=x(b.x),by=y(b.y),w=x(b.x+b.w)-bx,h=y(b.y+b.h)-by;
                 const roof=b.roof||'#b29a7c';
@@ -96,7 +99,7 @@ root.ManagementArt={tree,building};
             const coast=root.CaravanCoastalArt?.render({shore,unit,worldHeight:4800,top:-2400,beachWidth:size(70)});
             const seaEdge=shore+size(70);
             const fallback=`<rect x="${shore}" y="-2400" width="${seaEdge-shore}" height="4800" fill="#e4d5ac"/><rect x="${seaEdge}" y="-2400" width="2400" height="4800" fill="#a7cbd0"/>`;
-            return `<g id="mg-village-context"><rect x="-2400" y="-2400" width="4800" height="4800" fill="#b6c89e"/>${coast||fallback}${roads}${buildings}${labels}<text x="${x(790)}" y="${y(700)}" font-size="20" fill="#5b7650">LITTLEHAMPTON-ON-SEA</text></g>`;
+            return `<g id="mg-village-context"><rect x="-2400" y="-2400" width="4800" height="4800" fill="#b6c89e"/>${coast||fallback}${reserved}${roads}${buildings}${labels}</g>`;
         }
         // LAND-1 step 1: geometry preview only. Do not redirect purchases or saves.
         function externalFieldPreview(){
