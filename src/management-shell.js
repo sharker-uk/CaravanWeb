@@ -125,7 +125,7 @@ function walkingFrame(timestamp){
   Object.assign(state.player,player);
   if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
  }
- map.followPlayer(player,dt);
+ if(held.size>0)map.followPlayer(player,dt);
 }
 requestAnimationFrame(walkingFrame);
 try{const ids=JSON.parse(localStorage.getItem('caravanweb_management_saved_v1')||'[]');if(Array.isArray(ids))app.saved=ids.filter(id=>typeof id==='string');}catch{}
@@ -325,7 +325,7 @@ document.addEventListener('keydown',e=>{
  }
  if(editing||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  if(walking){
-  if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();held.add(key);return;}
+  if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();if(!held.has(key))map.followPlayer(walkingPosition());held.add(key);return;}
   if(key==='e'){
    e.preventDefault();
    const state=api.getState(),p=LivingParkMovement.tile(walkingPosition());
