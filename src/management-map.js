@@ -64,11 +64,20 @@ root.ManagementArt={tree,building};
         }
         function zoom(factor,x=width/2,y=height/2){const before=M.unproject(x,y,camera,width,height);camera.zoom=Math.max(MIN_OVERVIEW_ZOOM,Math.min(4,camera.zoom*factor));const after=M.unproject(x,y,camera,width,height);camera.x+=before[0]-after[0];camera.y+=before[1]-after[1];cameraChanged();}
         function fit(){dimensions();Object.assign(camera,{x:570,y:400,rotation:0,zoom:baseZoom});cameraChanged();}
-        function pan(dx,dy){const xy=M.unproject(width/2+dx,height/2+dy,camera,width,height);camera.x=Math.max(-650,Math.min(1500,xy[0]));camera.y=Math.max(-300,Math.min(1100,xy[1]));cameraChanged();}
+        function pan(dx,dy){const xy=M.unproject(width/2+dx,height/2+dy,camera,width,height);clampCamera(xy[0],xy[1]);cameraChanged();}
         function focus(p){if(!p)return;camera.zoom=Math.max(camera.zoom,width<650?.68:1);camera.x=(p.x+p.w/2)*unit+(width<650?0:140);camera.y=(p.y+p.h/2)*unit+(width<650?160:20);cameraChanged();}
         // Draw the actual village's roads and buildings in the park's coordinate system.
         // The village's park footprint is mapped onto the existing 60x40 playable grid.
         let villageData=null, placement=null;
+        function sceneBounds(){
+            if(!villageData||!placement||!game||!W.usesFarmBoundary(game))return {left:-650,top:-300,right:1500,bottom:1100};
+            const b=villageData.bounds;
+            const [left,top]=placement.toScene([b.x,b.y]).map(n=>n*unit);
+            const [right,bottom]=placement.toScene([b.x+b.w,b.y+b.h]).map(n=>n*unit);
+            return {left,top,right,bottom};
+        }
+        function clampCamera(x,y){const b=sceneBounds();camera.x=Math.max(b.left,Math.min(b.right,x));camera.y=Math.max(b.top,Math.min(b.bottom,y));}
+
         fetch('data/village-world.json').then(r=>{if(!r.ok)throw Error('Village data unavailable');return r.json();}).then(data=>{
             villageData=data;placement=W.placeVillage(data);worldKey='';if(game)render(game,places,{selected,visibleIds,route,tool,layers});
         }).catch(err=>console.warn('Village scenery could not load:',err));
@@ -97,10 +106,11 @@ root.ManagementArt={tree,building};
             // Village park ends at the shore; the public beach continues east of it.
             // Keep the sand outside the saved park tiles, so the coast is not a buildable expansion.
             const shore=x(v.park.x+v.park.w);
-            const coast=root.CaravanCoastalArt?.render({shore,unit,worldHeight:4800,top:-2400,beachWidth:size(70)});
+            const bounds=sceneBounds(), top=bounds.top-100, bottom=bounds.bottom+100, left=bounds.left-100, right=bounds.right+100;
+            const coast=root.CaravanCoastalArt?.render({shore,unit,worldHeight:bottom-top,top,beachWidth:size(70)});
             const seaEdge=shore+size(70);
-            const fallback=`<rect x="${shore}" y="-2400" width="${seaEdge-shore}" height="4800" fill="#e4d5ac"/><rect x="${seaEdge}" y="-2400" width="2400" height="4800" fill="#a7cbd0"/>`;
-            return `<g id="mg-village-context"><rect x="-2400" y="-2400" width="4800" height="4800" fill="#b6c89e"/>${coast||fallback}${reserved}${roads}${buildings}${labels}</g>`;
+            const fallback=`<rect x="${shore}" y="${top}" width="${seaEdge-shore}" height="${bottom-top}" fill="#e4d5ac"/><rect x="${seaEdge}" y="${top}" width="${Math.max(0,right-seaEdge)}" height="${bottom-top}" fill="#a7cbd0"/>`;
+            return `<g id="mg-village-context"><rect x="${left}" y="${top}" width="${right-left}" height="${bottom-top}" fill="#b6c89e"/>${coast||fallback}${reserved}${roads}${buildings}${labels}</g>`;
         }
         // LAND-1 step 1: geometry preview only. Do not redirect purchases or saves.
         function externalFieldPreview(){
@@ -232,7 +242,7 @@ root.ManagementArt={tree,building};
             if(!pointer)return;
             const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(dx,dy)>4)moved=true;
             if(pointer.build){preview(pointer.start,pointerGrid(e));return;}
-            if(moved){const a=M.unproject(0,0,pointer.camera,width,height),b=M.unproject(dx,dy,pointer.camera,width,height);camera.x=Math.max(-650,Math.min(1500,pointer.camera.x+a[0]-b[0]));camera.y=Math.max(-300,Math.min(1100,pointer.camera.y+a[1]-b[1]));cameraChanged();}
+            if(moved){const a=M.unproject(0,0,pointer.camera,width,height),b=M.unproject(dx,dy,pointer.camera,width,height);clampCamera(pointer.camera.x+a[0]-b[0],pointer.camera.y+a[1]-b[1]);cameraChanged();}
         });
         function end(e){
             if(pointer&&e.type==='pointerup'&&touches.size===1){if(pointer.build)callbacks.onBuild?.(tool,pointer.start,pointerGrid(e));else if(!moved){if(callbacks.onGround&&callbacks.isWalking?.())callbacks.onGround(pointerGrid(e));else callbacks.onSelect?.(pointer.place||null);}}
