@@ -83,8 +83,11 @@ root.ManagementArt={tree,building};
                 return `<path d="M${x(a[0])} ${y(a[1])}L${x(b[0])} ${y(b[1])}" fill="none" stroke="${r.id==='park-lane'?'#c7c8b3':'#d0d0b9'}" stroke-width="${r.id==='park-lane'? (W.gate.maxY-W.gate.minY)*unit : size(r.width)}"/>`;
             }).join('');
             const buildings=v.buildings.map(b=>{
-                const bx=x(b.x),by=y(b.y),w=size(b.w),h=size(b.h);
-                return `<g><rect x="${bx-5}" y="${by-5}" width="${w+10}" height="${h+10}" fill="#a8bf96" stroke="#8ca77e"/><rect x="${bx}" y="${by}" width="${w}" height="${h}" fill="${b.roof||'#b29a7c'}" stroke="#75846e"/>${b.kind==='shop'?`<path d="M${bx} ${by+h*.72}h${w}" stroke="#e3d8b9" stroke-width="6"/>`:''}</g>`;
+                const bx=x(b.x),by=y(b.y),w=x(b.x+b.w)-bx,h=y(b.y+b.h)-by;
+                const roof=b.roof||'#b29a7c';
+                const garden=b.garden?`<rect x="${bx-6}" y="${by-6}" width="${w+12}" height="${h+12}" rx="2" fill="#a8bf96" stroke="#8ca77e"/><path d="M${bx+w*.5} ${by+h}v6" stroke="#ddd0b2" stroke-width="5"/><circle cx="${bx-3}" cy="${by+h*.8}" r="3" fill="#678b59"/>`:'';
+                const windows=[.22,.72].map(t=>`<rect x="${bx+w*t-3}" y="${by+h*.83}" width="6" height="5" fill="#b7d4d6" stroke="#65766c" stroke-width=".7"/>`).join('');
+                return `<g>${garden}<rect x="${bx}" y="${by}" width="${w}" height="${h}" fill="#e3d4b8" stroke="#756f5e"/><path d="M${bx} ${by}H${bx+w}L${bx+w} ${by+h*.78}H${bx}Z" fill="${roof}" stroke="#756f5e"/><path d="M${bx} ${by+h*.39}H${bx+w}" stroke="#ffffff" opacity=".3" stroke-width="2"/><path d="M${bx+w*.5} ${by+h*.82}v${h*.18}" stroke="#66594b" stroke-width="5"/>${windows}${b.kind==='shop'?`<path d="M${bx} ${by+h*.72}h${w}" stroke="#e3d8b9" stroke-width="6"/>`:''}</g>`;
             }).join('');
             const labels=v.places.filter(q=>q.id!=='park').map(q=>`<text x="${x(q.x)}" y="${y(q.y)+30}" text-anchor="middle" font-size="12" fill="#4f674d" paint-order="stroke" stroke="#dce6cf" stroke-width="3">${String(q.name).replace(/[&<>]/g,'')}</text>`).join('');
             // Village park ends at the shore; the public beach continues east of it.
