@@ -78,12 +78,13 @@ root.ManagementArt={tree,building};
             const x=n=>placement.toScene([n,0])[0]*unit;
             const y=n=>placement.toScene([0,n])[1]*unit;
             const size=n=>placement.toSceneLength(n)*unit;
-            const roads=v.roads.map(r=>{
-                const a=v.nodes[r.a],b=v.nodes[r.b];if(!a||!b)return '';
+            const roadGeometry=v.roads.map(r=>{
+                const a=v.nodes[r.a],b=v.nodes[r.b];if(!a||!b)return null;
                 const d=r.control?.length===2?`M${x(a[0])} ${y(a[1])}C${r.control.map(c=>x(c[0])+' '+y(c[1])).join(' ')} ${x(b[0])} ${y(b[1])}`:`M${x(a[0])} ${y(a[1])}L${x(b[0])} ${y(b[1])}`;
                 const w=r.id==='park-lane'?(W.gate.maxY-W.gate.minY)*unit:size(r.width);
-                return `<g fill="none" stroke-linejoin="round" stroke-linecap="round"><path d="${d}" stroke="#d4d0bd" stroke-width="${w+7}"/><path d="${d}" stroke="#858983" stroke-width="${w}"/><path d="${d}" stroke="#e6e3cb" stroke-width="1" stroke-dasharray="8 10"/></g>`;
-            }).join('');
+                return {d,w};
+            }).filter(Boolean);
+            const roads='<g fill="none" stroke-linejoin="round" stroke-linecap="round">'+roadGeometry.map(({d,w})=>`<path d="${d}" stroke="#d4d0bd" stroke-width="${w+7}"/>`).join('')+roadGeometry.map(({d,w})=>`<path d="${d}" stroke="#858983" stroke-width="${w}"/>`).join('')+roadGeometry.map(({d,w})=>w>12?`<path d="${d}" stroke="#e6e3cb" stroke-width="1" stroke-dasharray="8 10"/>`:'').join('')+'</g>';
             const reserved=(v.reservedAreas||[]).map(a=>`<rect x="${x(a.x)}" y="${y(a.y)}" width="${x(a.x+a.w)-x(a.x)}" height="${y(a.y+a.h)-y(a.y)}" fill="${a.id==='old-railway'?'#b9ab83':'#c4c68c'}" stroke="#9a936c" stroke-dasharray="5 4"/>`).join('');
             const buildings=v.buildings.map(b=>{
                 const bx=x(b.x),by=y(b.y),w=x(b.x+b.w)-bx,h=y(b.y+b.h)-by;
