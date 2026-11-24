@@ -62,6 +62,16 @@ let walking=true,interaction=null,lastFrame=0,lastAutosave=0;
 let walker=null, walkerState=null;
 const world=window.CaravanConnectedWorld;
 
+// Start at a human-scale view, independent of the previous overview zoom.
+function frameStartingPlayer(){
+ const p=walkingPosition(),camera=map.getCamera();
+ const rect=document.getElementById('park-map').getBoundingClientRect();
+ const target=window.CaravanWorldCamera.target(p,{width:rect.width,height:rect.height});
+ map.north();
+ if(map.getCamera().tilt!==1)map.togglePlan();
+ map.zoom(target.zoom/camera.zoom);
+ map.followPlayer(p);
+}
 function walkingPosition(){
  const state=api.getState();
  if(state!==walkerState){
@@ -298,7 +308,7 @@ $('#management-app').addEventListener('click',e=>{
     const tool=e.target.closest('[data-tool]');if(tool){setTool(tool.dataset.tool);return;}
     const speed=e.target.closest('[data-game-speed]');if(speed){api.speed(speed.dataset.gameSpeed);render(true);return;}
     const category=e.target.closest('[data-category]');if(category){app.category=category.dataset.category;render(true);return;}
-    const start=e.target.closest('[data-start]');if(start){const result=api.begin(start.dataset.start);if(result.ok){app.selected=null;app.route=false;app.view='map';resetFilters();$('#mg-welcome').close();map.invalidate();map.fit();if(walking)map.followPlayer(walkingPosition());render(true);}return;}
+    const start=e.target.closest('[data-start]');if(start){const result=api.begin(start.dataset.start);if(result.ok){app.selected=null;app.route=false;app.view='map';resetFilters();$('#mg-welcome').close();stopWalking();walkerState=null;setTablet(false);map.invalidate();render(true);frameStartingPlayer();}return;}
     if(e.target.closest('[data-reset]')){resetFilters();return;}
     if(e.target.closest('.detail-close')){select(null,false);return;}
     if(e.target.closest('[data-open-settings]')){setView('settings');return;}
@@ -366,11 +376,10 @@ window.addEventListener('caravan:ready',()=>{
         if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press E to clear it.');
     },onSelect:id=>{if(!walking)select(id);},onBuild:(tool,start,end)=>{if(walking)return;api.build(tool,start,end);$('#mg-build-hint').dataset.preview='';map.invalidate();render(true);},onPreview:p=>{$('#mg-build-hint').dataset.preview='true';$('#mg-build-hint').innerHTML=`<strong>${esc(p.label)}${p.cost===null?'':' · '+money(p.cost)}</strong><span>Release to build · Subject to game placement checks</span><button id="mg-cancel-tool">Cancel</button>`;}});
     places=M.getPlaces(api.getState());const id=new URLSearchParams(location.hash.slice(1)).get('place');if(places.some(p=>p.id===id))app.selected=id;
-    let cameraSaved=false;try{cameraSaved=Boolean(localStorage.getItem('caravanweb_management_camera_v1'));}catch{}
-    if(!cameraSaved)map.fit();render(true);
+    render(true);
     const walkButton=document.createElement('button');walkButton.id='mg-walk-mode';walkButton.type='button';walkButton.textContent='📱 Tablet';walkButton.setAttribute('aria-pressed','false');walkButton.setAttribute('aria-label','Open management tablet');walkButton.style.cssText='position:absolute;bottom:52px;right:18px;z-index:5;padding:10px 14px;border-radius:12px;background:#fff8e8;color:#294a36;border:2px solid #718c70;cursor:pointer;font-weight:700;box-shadow:0 3px 12px #223c3522';
     $('.map-shell').append(walkButton);walkButton.addEventListener('click',()=>setTablet(walking));
-    map.followPlayer(walkingPosition());
+    frameStartingPlayer();
     const plan=map.getCamera().tilt===1;$('#mg-plan').setAttribute('aria-pressed',String(plan));$('#mg-plan').textContent=plan?'◇ Landscape view':'◇ Plan view';
     let exists=false;try{exists=Boolean(localStorage.getItem('caravan_tycoon_save'));}catch{}
     if(!exists)showWelcome();
