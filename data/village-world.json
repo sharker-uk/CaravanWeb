@@ -55,7 +55,7 @@
       1350
     ],
     "west": [
-      -30,
+      0,
       600
     ],
     "cross": [
@@ -63,27 +63,63 @@
       650
     ],
     "beachTurn": [
-      1190,
-      990
+      1200,
+      1030
     ],
     "beach": [
       1280,
-      990
+      1030
     ],
     "shore": [
-      1250,
+      1200,
       1150
+    ],
+    "tradeNorth": [
+      565,
+      125
+    ],
+    "tradeSouth": [
+      565,
+      510
+    ],
+    "tradeEntry": [
+      790,
+      125
+    ],
+    "resWest": [
+      790,
+      575
+    ],
+    "resEast": [
+      1230,
+      575
+    ],
+    "resSouth": [
+      1230,
+      660
+    ],
+    "resExit": [
+      790,
+      660
+    ],
+    "shopsWest": [
+      530,
+      1012
+    ],
+    "shopsEast": [
+      950,
+      1012
+    ],
+    "tescoTurn": [
+      1138,
+      1220
+    ],
+    "tescoEntry": [
+      1090,
+      1220
     ]
   },
   "roads": [
-    {
-      "id": "north-road",
-      "name": "Ormesby Road",
-      "a": "north",
-      "b": "parkTurn",
-      "width": 24,
-      "speed": 40
-    },
     {
       "id": "park-lane",
       "name": "HamptonVilla entrance",
@@ -91,14 +127,6 @@
       "b": "parkGate",
       "width": 17,
       "speed": 22
-    },
-    {
-      "id": "church-approach",
-      "name": "Ormesby Road",
-      "a": "parkTurn",
-      "b": "church",
-      "width": 24,
-      "speed": 36
     },
     {
       "id": "church-narrows",
@@ -127,14 +155,6 @@
           940
         ]
       ]
-    },
-    {
-      "id": "south-road",
-      "name": "South Road",
-      "a": "southVillage",
-      "b": "south",
-      "width": 24,
-      "speed": 40
     },
     {
       "id": "north-link",
@@ -179,14 +199,6 @@
       "speed": 40
     },
     {
-      "id": "fen-road",
-      "name": "Fen Road",
-      "a": "cross",
-      "b": "church",
-      "width": 23,
-      "speed": 35
-    },
-    {
       "id": "west-lane",
       "name": "West Lane",
       "a": "cross",
@@ -219,12 +231,142 @@
       "speed": 20
     },
     {
-      "id": "old-lane",
-      "name": "Old Chapel Lane",
-      "a": "southVillage",
-      "b": "shore",
+      "id": "north-road",
+      "name": "Ormesby Road",
+      "a": "north",
+      "b": "tradeEntry",
+      "width": 24,
+      "speed": 40
+    },
+    {
+      "id": "north-road-2",
+      "name": "Ormesby Road",
+      "a": "tradeEntry",
+      "b": "parkTurn",
+      "width": 24,
+      "speed": 40
+    },
+    {
+      "id": "church-approach",
+      "name": "Ormesby Road",
+      "a": "parkTurn",
+      "b": "resWest",
+      "width": 24,
+      "speed": 36
+    },
+    {
+      "id": "church-approach-2",
+      "name": "Ormesby Road",
+      "a": "resWest",
+      "b": "resExit",
+      "width": 24,
+      "speed": 36
+    },
+    {
+      "id": "church-approach-3",
+      "name": "Ormesby Road",
+      "a": "resExit",
+      "b": "church",
+      "width": 24,
+      "speed": 36
+    },
+    {
+      "id": "trade-entry",
+      "name": "Trade Estate Road",
+      "a": "tradeEntry",
+      "b": "tradeNorth",
+      "width": 20,
+      "speed": 25
+    },
+    {
+      "id": "trade-road",
+      "name": "Trade Estate Road",
+      "a": "tradeNorth",
+      "b": "tradeSouth",
+      "width": 18,
+      "speed": 20
+    },
+    {
+      "id": "res-road",
+      "name": "Braddock Road",
+      "a": "resWest",
+      "b": "resEast",
       "width": 12,
       "speed": 20
+    },
+    {
+      "id": "res-coast",
+      "name": "Eastern Avenue",
+      "a": "resEast",
+      "b": "resSouth",
+      "width": 14,
+      "speed": 20
+    },
+    {
+      "id": "res-return",
+      "name": "School Lane",
+      "a": "resSouth",
+      "b": "resExit",
+      "width": 14,
+      "speed": 20
+    },
+    {
+      "id": "shop-road",
+      "name": "Market Lane",
+      "a": "shopsWest",
+      "b": "shopsEast",
+      "width": 16,
+      "speed": 20
+    },
+    {
+      "id": "shop-access",
+      "name": "Market Lane",
+      "a": "shopsEast",
+      "b": "southVillage",
+      "width": 16,
+      "speed": 20,
+      "control": [
+        [
+          1000,
+          1012
+        ],
+        [
+          1070,
+          1010
+        ]
+      ]
+    },
+    {
+      "id": "south-road",
+      "name": "South Road",
+      "a": "southVillage",
+      "b": "tescoTurn",
+      "width": 24,
+      "speed": 40
+    },
+    {
+      "id": "south-road-2",
+      "name": "South Road",
+      "a": "tescoTurn",
+      "b": "south",
+      "width": 24,
+      "speed": 40
+    },
+    {
+      "id": "tesco-access",
+      "name": "Supermarket access",
+      "a": "tescoTurn",
+      "b": "tescoEntry",
+      "width": 18,
+      "speed": 20
+    },
+    {
+      "id": "fen-road",
+      "name": "Fen Road",
+      "a": "cross",
+      "b": "church",
+      "width": 23,
+      "speed": 35
     }
   ],
   "places": [
@@ -771,7 +913,7 @@
       "id": "home-0",
       "kind": "home",
       "x": 870,
-      "y": 530,
+      "y": 516,
       "w": 29,
       "h": 19,
       "garden": true,
@@ -781,7 +923,7 @@
       "id": "home-1",
       "kind": "home",
       "x": 928,
-      "y": 530,
+      "y": 516,
       "w": 29,
       "h": 19,
       "garden": true,
@@ -791,7 +933,7 @@
       "id": "home-2",
       "kind": "home",
       "x": 986,
-      "y": 530,
+      "y": 516,
       "w": 29,
       "h": 19,
       "garden": true,
@@ -801,7 +943,7 @@
       "id": "home-3",
       "kind": "home",
       "x": 1044,
-      "y": 530,
+      "y": 516,
       "w": 29,
       "h": 19,
       "garden": true,
@@ -811,7 +953,7 @@
       "id": "home-4",
       "kind": "home",
       "x": 1102,
-      "y": 530,
+      "y": 516,
       "w": 29,
       "h": 19,
       "garden": true,
@@ -821,7 +963,7 @@
       "id": "home-5",
       "kind": "home",
       "x": 1160,
-      "y": 530,
+      "y": 516,
       "w": 29,
       "h": 19,
       "garden": true,
@@ -831,7 +973,7 @@
       "id": "home-6",
       "kind": "home",
       "x": 870,
-      "y": 562,
+      "y": 548,
       "w": 29,
       "h": 19,
       "garden": true,
@@ -841,7 +983,7 @@
       "id": "home-7",
       "kind": "home",
       "x": 928,
-      "y": 562,
+      "y": 548,
       "w": 29,
       "h": 19,
       "garden": true,
@@ -851,7 +993,7 @@
       "id": "home-8",
       "kind": "home",
       "x": 986,
-      "y": 562,
+      "y": 548,
       "w": 29,
       "h": 19,
       "garden": true,
@@ -861,7 +1003,7 @@
       "id": "home-9",
       "kind": "home",
       "x": 1044,
-      "y": 562,
+      "y": 548,
       "w": 29,
       "h": 19,
       "garden": true,
@@ -871,7 +1013,7 @@
       "id": "home-10",
       "kind": "home",
       "x": 1102,
-      "y": 562,
+      "y": 548,
       "w": 29,
       "h": 19,
       "garden": true,
@@ -881,7 +1023,7 @@
       "id": "home-11",
       "kind": "home",
       "x": 1160,
-      "y": 562,
+      "y": 548,
       "w": 29,
       "h": 19,
       "garden": true,
