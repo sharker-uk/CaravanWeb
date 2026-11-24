@@ -63,7 +63,7 @@ root.ManagementArt={tree,building};
             callbacks.onCamera?.(camera);if(shouldPersist)persist();
         }
         function zoom(factor,x=width/2,y=height/2){const before=M.unproject(x,y,camera,width,height);camera.zoom=Math.max(MIN_OVERVIEW_ZOOM,Math.min(4,camera.zoom*factor));const after=M.unproject(x,y,camera,width,height);camera.x+=before[0]-after[0];camera.y+=before[1]-after[1];cameraChanged();}
-        function fit(){dimensions();Object.assign(camera,{x:570,y:400,rotation:0,zoom:baseZoom});cameraChanged();}
+        function fit(){dimensions();const b=sceneBounds(),connected=villageData&&game&&W.usesFarmBoundary(game);Object.assign(camera,connected?{x:(b.left+b.right)/2,y:(b.top+b.bottom)/2,rotation:0,zoom:Math.max(MIN_OVERVIEW_ZOOM,Math.min((width-50)/(b.right-b.left),(height-140)/((b.bottom-b.top)*camera.tilt)))}:{x:570,y:400,rotation:0,zoom:baseZoom});cameraChanged();}
         function pan(dx,dy){const xy=M.unproject(width/2+dx,height/2+dy,camera,width,height);clampCamera(xy[0],xy[1]);cameraChanged();}
         function focus(p){if(!p)return;camera.zoom=Math.max(camera.zoom,width<650?.68:1);camera.x=(p.x+p.w/2)*unit+(width<650?0:140);camera.y=(p.y+p.h/2)*unit+(width<650?160:20);cameraChanged();}
         // Draw the actual village's roads and buildings in the park's coordinate system.
@@ -164,7 +164,7 @@ root.ManagementArt={tree,building};
             const buildings=places.filter(p=>p.kind!=='pitch'&&p.type!=='land_plot').sort((a,b)=>(a.y+a.h)-(b.y+b.h)).map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
             const jobs=game.constructions.map(j=>{const b=j.footprint;return b?`<rect x="${b.x*unit+1}" y="${b.y*unit+1}" width="${b.w*unit-2}" height="${b.h*unit-2}" fill="#d6ad5c55" stroke="#a88948" stroke-width="2" stroke-dasharray="6 4"/>`:'';}).join('');
             const people=layers.people?game.guests.flatMap(g=>(g.party?.members||[{}]).map((m,i)=>{const pos=g.position||{x:g.pitch.x+1,y:g.pitch.y+1},x=pos.x*unit+(i%3)*5,y=pos.y*unit+Math.floor(i/3)*5;return `<g><ellipse cx="${x+1}" cy="${y+8}" rx="3" ry="1.5" fill="#446a4c44"/><path d="M${x} ${y+2}v6" stroke="${/^#[0-9a-fA-F]{6}$/.test(m.appearance?.top||'')?m.appearance.top:'#7a91a0'}" stroke-width="4"/><circle cx="${x}" cy="${y}" r="2.5" fill="#dcbb96"/></g>`;})).join(''):'';
-            return `<rect x="-2400" y="-2400" width="4800" height="4800" fill="url(#grass)"/>${villageFringe()}${ground}${farmBoundary()}${externalFieldPreview()}${externalTerrainArtwork()}${W.usesFarmBoundary(game)?'':places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
+            return `${villageData&&W.usesFarmBoundary(game)?villageFringe():'<rect x="-2400" y="-2400" width="4800" height="4800" fill="url(#grass)"/>'}${ground}${farmBoundary()}${externalFieldPreview()}${externalTerrainArtwork()}${W.usesFarmBoundary(game)?'':places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
         }
         function farmBoundary(){
             if(!W.usesFarmBoundary(game))return '';
