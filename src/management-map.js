@@ -99,7 +99,7 @@ root.ManagementArt={tree,building};
                 const bx=x(b.x),by=y(b.y),w=x(b.x+b.w)-bx,h=y(b.y+b.h)-by;
                 const roof=b.roof||'#b29a7c';
                 if(b.scalePilot){
-                    const front=y(575)+size(v.roads.find(r=>r.id==='res-road').width)/2+size(v.roads.find(r=>r.id==='res-road').pavement);
+                    const front=y(v.nodes[v.roads.find(r=>r.id==='res-road').a][1])+size(v.roads.find(r=>r.id==='res-road').width)/2+size(v.roads.find(r=>r.id==='res-road').pavement);
                     const pathX=bx+w*.5, carW=1.8*unit,carL=4.5*unit;
                     return `<g><rect x="${bx-10}" y="${front}" width="${w+20}" height="${by+h+65-front}" fill="#a0b780" stroke="#668354" stroke-width="3"/>
                     <path d="M${pathX} ${front}V${by}" stroke="#d8cbb1" stroke-width="22"/>
