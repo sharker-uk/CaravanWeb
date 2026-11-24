@@ -6,11 +6,11 @@
     "x": 0,
     "y": 0,
     "w": 1600,
-    "h": 1300
+    "h": 1500
   },
   "park": {
     "x": 850,
-    "y": 76,
+    "y": 180,
     "w": 430,
     "h": 287,
     "gridWidth": 60,
@@ -19,40 +19,40 @@
   },
   "nodes": {
     "north": [
-      770,
-      -30
+      790,
+      0
     ],
     "parkTurn": [
       790,
-      265
+      369
     ],
     "parkGate": [
       911,
-      265
+      369
     ],
     "church": [
-      805,
-      470
+      790,
+      680
     ],
     "centre": [
-      820,
-      635
+      810,
+      780
     ],
     "southVillage": [
-      850,
-      1005
+      1120,
+      1030
     ],
     "south": [
-      850,
-      1330
+      1150,
+      1500
     ],
     "bypassNorth": [
       230,
-      200
+      100
     ],
     "bypassSouth": [
       275,
-      1100
+      1350
     ],
     "west": [
       -30,
@@ -60,25 +60,25 @@
     ],
     "cross": [
       420,
-      600
+      650
     ],
     "beachTurn": [
-      1160,
-      690
+      1190,
+      990
     ],
     "beach": [
-      1300,
-      760
+      1280,
+      990
     ],
     "shore": [
-      1260,
-      1045
+      1250,
+      1150
     ]
   },
   "roads": [
     {
       "id": "north-road",
-      "name": "Natwinch Road",
+      "name": "Ormesby Road",
       "a": "north",
       "b": "parkTurn",
       "width": 24,
@@ -94,7 +94,7 @@
     },
     {
       "id": "church-approach",
-      "name": "Natwinch Road",
+      "name": "Ormesby Road",
       "a": "parkTurn",
       "b": "church",
       "width": 24,
@@ -102,12 +102,13 @@
     },
     {
       "id": "church-narrows",
-      "name": "Church Lane lights",
+      "name": "Ormesby Road",
       "a": "church",
       "b": "centre",
       "width": 13,
       "speed": 30,
-      "singleLane": true
+      "singleLane": false,
+      "maxVehicleWidth": 2.3
     },
     {
       "id": "high-street",
@@ -115,7 +116,17 @@
       "a": "centre",
       "b": "southVillage",
       "width": 23,
-      "speed": 30
+      "speed": 30,
+      "control": [
+        [
+          825,
+          880
+        ],
+        [
+          1030,
+          940
+        ]
+      ]
     },
     {
       "id": "south-road",
@@ -139,7 +150,17 @@
       "a": "bypassNorth",
       "b": "bypassSouth",
       "width": 30,
-      "speed": 75
+      "speed": 75,
+      "control": [
+        [
+          180,
+          450
+        ],
+        [
+          220,
+          1000
+        ]
+      ]
     },
     {
       "id": "south-link",
@@ -176,7 +197,7 @@
     {
       "id": "beach-road",
       "name": "Beach Road",
-      "a": "centre",
+      "a": "southVillage",
       "b": "beachTurn",
       "width": 20,
       "speed": 28
@@ -212,7 +233,7 @@
       "name": "HamptonVilla",
       "kind": "Your park",
       "x": 1055,
-      "y": 205,
+      "y": 310,
       "symbol": "P",
       "description": "Your caravan business sits beside Natwinch Road. The map inset is drawn from your current saved park, including expansion fields and beach access.",
       "next": "Manage pitches, land and beach development in the park view."
@@ -221,8 +242,8 @@
       "id": "village",
       "name": "The High Street",
       "kind": "Village centre",
-      "x": 858,
-      "y": 780,
+      "x": 970,
+      "y": 930,
       "symbol": "S",
       "description": "A tight mix of cottages, village shops, a pub and QuickStop. Park guests and residents share the same streets.",
       "next": "A foundation for local spending, deliveries and resident relationships."
@@ -232,47 +253,27 @@
       "name": "Church Lane narrows",
       "kind": "Traffic pinch point",
       "x": 790,
-      "y": 535,
+      "y": 730,
       "symbol": "!",
-      "description": "A single-lane stretch beside the church. Alternating signals hold traffic; cars leave a gap and wait for the opposite direction to clear.",
+      "description": "Narrow two-way road; large vehicles use bypass.",
       "next": "Watch the queue during a holiday changeover or bypass works."
     },
     {
       "id": "shore",
       "name": "The beach village",
       "kind": "Coastal quarter",
-      "x": 1225,
-      "y": 865,
+      "x": 1260,
+      "y": 1030,
       "symbol": "B",
       "description": "Fishing cottages, a lifeboat house, a small promenade and the long sandy beach. Beach Road links this quarter to the High Street.",
       "next": "The village beach is public. Your park's direct beach entrance remains a separate upgrade."
     },
     {
-      "id": "green",
-      "name": "Kingfisher Green",
-      "kind": "Village life",
-      "x": 1080,
-      "y": 510,
-      "symbol": "G",
-      "description": "A village playing field and pavilion, with a school and residential lanes nearby. Open space gives the village room to breathe.",
-      "next": "A setting for community events and future village relationships."
-    },
-    {
-      "id": "fort",
-      "name": "Old fort meadow",
-      "kind": "Heritage & countryside",
-      "x": 510,
-      "y": 425,
-      "symbol": "F",
-      "description": "Low stone remains and a grassy meadow beside Fen Road. A small landmark beyond the holiday park gates.",
-      "next": "Kept as a village destination in this first map."
-    },
-    {
       "id": "transport",
-      "name": "West field",
+      "name": "Gas Field",
       "kind": "Future transport site",
-      "x": 485,
-      "y": 930,
+      "x": 1050,
+      "y": 1330,
       "symbol": "T",
       "description": "An undeveloped plot near the bypass. This reserves space for the secure parking and shuttle or road train idea we discussed.",
       "next": "Parking purchases, fares and shuttle timetables are future work; no transport charges apply yet."
@@ -281,55 +282,253 @@
       "id": "bypass",
       "name": "Coast bypass",
       "kind": "Through route",
-      "x": 250,
-      "y": 745,
+      "x": 230,
+      "y": 750,
       "symbol": "↔",
       "description": "Through traffic can skirt the village on the western route. Closing it in the traffic study sends those journeys through the church narrows instead.",
       "next": "Use the bypass-works switch to compare the effect on queues."
     },
     {
-      "id": "quickstop",
-      "name": "QuickStop",
-      "kind": "Convenience shop",
-      "x": 886,
-      "y": 687.5,
-      "symbol": "Q",
-      "description": "Groceries, drinks and everyday essentials for guests and residents.",
-      "next": "Future gameplay: buy supplies here rather than placing every shop inside the park.",
-      "buildingId": "shop-1"
+      "id": "trade-0",
+      "name": "C&R",
+      "kind": "shop",
+      "x": 492.5,
+      "y": 204,
+      "buildingId": "trade-0",
+      "symbol": "S",
+      "description": "C&R",
+      "next": "Future village services."
     },
     {
-      "id": "village-supplies",
-      "name": "Village Supplies",
-      "kind": "Hardware & supplies",
-      "x": 886,
-      "y": 732.5,
-      "symbol": "H",
-      "description": "Tools and practical supplies for maintaining and developing the old farm.",
-      "next": "Future gameplay: collect or order park supplies, with delivery traffic on village roads.",
-      "buildingId": "shop-2"
+      "id": "trade-1",
+      "name": "Timber merchant",
+      "kind": "shop",
+      "x": 637.5,
+      "y": 204,
+      "buildingId": "trade-1",
+      "symbol": "S",
+      "description": "Timber merchant",
+      "next": "Future village services."
     },
     {
-      "id": "village-cafe",
+      "id": "trade-2",
+      "name": "Builders merchant",
+      "kind": "shop",
+      "x": 492.5,
+      "y": 294,
+      "buildingId": "trade-2",
+      "symbol": "S",
+      "description": "Builders merchant",
+      "next": "Future village services."
+    },
+    {
+      "id": "trade-3",
+      "name": "Tool hire",
+      "kind": "shop",
+      "x": 637.5,
+      "y": 294,
+      "buildingId": "trade-3",
+      "symbol": "S",
+      "description": "Tool hire",
+      "next": "Future village services."
+    },
+    {
+      "id": "trade-4",
+      "name": "Caravan sales",
+      "kind": "shop",
+      "x": 492.5,
+      "y": 384,
+      "buildingId": "trade-4",
+      "symbol": "S",
+      "description": "Caravan sales",
+      "next": "Future village services."
+    },
+    {
+      "id": "trade-5",
+      "name": "Garage",
+      "kind": "shop",
+      "x": 637.5,
+      "y": 384,
+      "buildingId": "trade-5",
+      "symbol": "S",
+      "description": "Garage",
+      "next": "Future village services."
+    },
+    {
+      "id": "trade-6",
+      "name": "Garden centre",
+      "kind": "shop",
+      "x": 492.5,
+      "y": 474,
+      "buildingId": "trade-6",
+      "symbol": "S",
+      "description": "Garden centre",
+      "next": "Future village services."
+    },
+    {
+      "id": "church-nave",
+      "name": "Holy Trinity Church",
+      "kind": "church",
+      "x": 842.5,
+      "y": 712.5,
+      "buildingId": "church-nave",
+      "symbol": "S",
+      "description": "Holy Trinity Church",
+      "next": "Future village services."
+    },
+    {
+      "id": "fidl",
+      "name": "Fidl",
+      "kind": "shop",
+      "x": 735,
+      "y": 847.5,
+      "buildingId": "fidl",
+      "symbol": "S",
+      "description": "Fidl",
+      "next": "Future village services."
+    },
+    {
+      "id": "old-hall",
+      "name": "Old Hall",
+      "kind": "shop",
+      "x": 930,
+      "y": 814,
+      "buildingId": "old-hall",
+      "symbol": "S",
+      "description": "Old Hall",
+      "next": "Future village services."
+    },
+    {
+      "id": "high-0",
+      "name": "Job Centre",
+      "kind": "shop",
+      "x": 584,
+      "y": 975,
+      "buildingId": "high-0",
+      "symbol": "S",
+      "description": "Job Centre",
+      "next": "Future village services."
+    },
+    {
+      "id": "high-1",
+      "name": "Estate Agents",
+      "kind": "shop",
+      "x": 649,
+      "y": 975,
+      "buildingId": "high-1",
+      "symbol": "S",
+      "description": "Estate Agents",
+      "next": "Future village services."
+    },
+    {
+      "id": "high-2",
+      "name": "Bank",
+      "kind": "shop",
+      "x": 714,
+      "y": 975,
+      "buildingId": "high-2",
+      "symbol": "S",
+      "description": "Bank",
+      "next": "Future village services."
+    },
+    {
+      "id": "high-3",
+      "name": "Council office",
+      "kind": "shop",
+      "x": 779,
+      "y": 975,
+      "buildingId": "high-3",
+      "symbol": "S",
+      "description": "Council office",
+      "next": "Future village services."
+    },
+    {
+      "id": "high-4",
+      "name": "Post Office",
+      "kind": "shop",
+      "x": 844,
+      "y": 975,
+      "buildingId": "high-4",
+      "symbol": "S",
+      "description": "Post Office",
+      "next": "Future village services."
+    },
+    {
+      "id": "high-5",
+      "name": "Brewery Tap",
+      "kind": "shop",
+      "x": 584,
+      "y": 1050,
+      "buildingId": "high-5",
+      "symbol": "S",
+      "description": "Brewery Tap",
+      "next": "Future village services."
+    },
+    {
+      "id": "high-6",
+      "name": "Fish & Chips",
+      "kind": "shop",
+      "x": 649,
+      "y": 1050,
+      "buildingId": "high-6",
+      "symbol": "S",
+      "description": "Fish & Chips",
+      "next": "Future village services."
+    },
+    {
+      "id": "high-7",
+      "name": "Bakery",
+      "kind": "shop",
+      "x": 714,
+      "y": 1050,
+      "buildingId": "high-7",
+      "symbol": "S",
+      "description": "Bakery",
+      "next": "Future village services."
+    },
+    {
+      "id": "high-8",
       "name": "Village Café",
-      "kind": "Café",
-      "x": 947,
-      "y": 666,
-      "symbol": "C",
-      "description": "A place for guests to visit for breakfast and refreshments.",
-      "next": "Future gameplay: off-site guest visits and local spending.",
-      "buildingId": "cafe"
+      "kind": "shop",
+      "x": 779,
+      "y": 1050,
+      "buildingId": "high-8",
+      "symbol": "S",
+      "description": "Village Café",
+      "next": "Future village services."
     },
     {
-      "id": "village-pub",
-      "name": "The Village Pub",
-      "kind": "Pub",
-      "x": 997,
-      "y": 665,
-      "symbol": "P",
-      "description": "A local meeting place for residents and holidaymakers.",
-      "next": "Future gameplay: guest leisure trips and community relationships.",
-      "buildingId": "pub"
+      "id": "high-9",
+      "name": "Pharmacy",
+      "kind": "shop",
+      "x": 844,
+      "y": 1050,
+      "buildingId": "high-9",
+      "symbol": "S",
+      "description": "Pharmacy",
+      "next": "Future village services."
+    },
+    {
+      "id": "brewery",
+      "name": "Brewery",
+      "kind": "shop",
+      "x": 912.5,
+      "y": 1052.5,
+      "buildingId": "brewery",
+      "symbol": "S",
+      "description": "Brewery",
+      "next": "Future village services."
+    },
+    {
+      "id": "tesco",
+      "name": "Tesco",
+      "kind": "shop",
+      "x": 1015,
+      "y": 1222.5,
+      "buildingId": "tesco",
+      "symbol": "S",
+      "description": "Tesco",
+      "next": "Future village services."
     }
   ],
   "sources": [
@@ -349,662 +548,480 @@
   "note": "An authored, compressed fictional layout inspired by Caister. No real-world scale, addresses or traffic forecasts. Geometry is renderer-independent; a Godot adapter is future work.",
   "buildings": [
     {
-      "id": "home-1",
-      "kind": "home",
-      "x": 580,
-      "y": 110,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-2",
-      "kind": "home",
-      "x": 623,
-      "y": 110,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-3",
-      "kind": "home",
-      "x": 666,
-      "y": 110,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-4",
-      "kind": "home",
-      "x": 709,
-      "y": 110,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-5",
-      "kind": "home",
-      "x": 580,
-      "y": 175,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-6",
-      "kind": "home",
-      "x": 623,
-      "y": 175,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-7",
-      "kind": "home",
-      "x": 618,
-      "y": 477,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-8",
-      "kind": "home",
-      "x": 749,
-      "y": 517,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-9",
-      "kind": "home",
-      "x": 650,
-      "y": 325,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-10",
-      "kind": "home",
-      "x": 693,
-      "y": 325,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-11",
-      "kind": "home",
-      "x": 736,
-      "y": 325,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-12",
-      "kind": "home",
-      "x": 650,
-      "y": 381,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-13",
-      "kind": "home",
-      "x": 693,
-      "y": 357,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-14",
-      "kind": "home",
-      "x": 736,
-      "y": 357,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-15",
-      "kind": "home",
-      "x": 650,
-      "y": 437,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-16",
-      "kind": "home",
-      "x": 655,
-      "y": 690,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-17",
-      "kind": "home",
-      "x": 700,
-      "y": 690,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-18",
-      "kind": "home",
-      "x": 745,
-      "y": 690,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-19",
-      "kind": "home",
-      "x": 655,
-      "y": 762,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-20",
-      "kind": "home",
-      "x": 700,
-      "y": 762,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-21",
-      "kind": "home",
-      "x": 745,
-      "y": 762,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-22",
-      "kind": "home",
-      "x": 655,
-      "y": 834,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-23",
-      "kind": "home",
-      "x": 700,
-      "y": 834,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-24",
-      "kind": "home",
-      "x": 745,
-      "y": 834,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-25",
-      "kind": "home",
-      "x": 655,
-      "y": 906,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-26",
-      "kind": "home",
-      "x": 700,
-      "y": 906,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-27",
-      "kind": "home",
-      "x": 950,
-      "y": 780,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-28",
-      "kind": "home",
-      "x": 993,
-      "y": 780,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-29",
-      "kind": "home",
-      "x": 1036,
-      "y": 780,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-30",
-      "kind": "home",
-      "x": 1079,
-      "y": 780,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-31",
-      "kind": "home",
-      "x": 950,
-      "y": 865,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-32",
-      "kind": "home",
-      "x": 993,
-      "y": 865,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-33",
-      "kind": "home",
-      "x": 1036,
-      "y": 865,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-34",
-      "kind": "home",
-      "x": 1079,
-      "y": 865,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-35",
-      "kind": "home",
-      "x": 950,
-      "y": 950,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-36",
-      "kind": "home",
-      "x": 993,
-      "y": 950,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-37",
-      "kind": "home",
-      "x": 1036,
-      "y": 950,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-38",
-      "kind": "home",
-      "x": 1079,
-      "y": 950,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-39",
-      "kind": "home",
-      "x": 1145,
-      "y": 805,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-40",
-      "kind": "home",
-      "x": 1152,
-      "y": 837,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-41",
-      "kind": "home",
-      "x": 1223,
-      "y": 805,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-42",
-      "kind": "home",
-      "x": 1145,
-      "y": 870,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-43",
-      "kind": "home",
-      "x": 1152,
-      "y": 902,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-44",
-      "kind": "home",
-      "x": 1231,
-      "y": 870,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-45",
-      "kind": "home",
-      "x": 1145,
-      "y": 935,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-46",
-      "kind": "home",
-      "x": 1184,
-      "y": 935,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-47",
-      "kind": "home",
-      "x": 890,
-      "y": 1110,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-48",
-      "kind": "home",
-      "x": 937,
-      "y": 1110,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-49",
-      "kind": "home",
-      "x": 984,
-      "y": 1110,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-50",
-      "kind": "home",
-      "x": 1031,
-      "y": 1110,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-51",
-      "kind": "home",
-      "x": 890,
-      "y": 1166,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "home-52",
-      "kind": "home",
-      "x": 937,
-      "y": 1166,
-      "w": 31,
-      "h": 22,
-      "roof": "#ad9c86",
-      "garden": true
-    },
-    {
-      "id": "home-53",
-      "kind": "home",
-      "x": 984,
-      "y": 1166,
-      "w": 31,
-      "h": 22,
-      "roof": "#b99579",
-      "garden": true
-    },
-    {
-      "id": "home-54",
-      "kind": "home",
-      "x": 1031,
-      "y": 1166,
-      "w": 31,
-      "h": 22,
-      "roof": "#9caaa0",
-      "garden": true
-    },
-    {
-      "id": "home-55",
-      "kind": "home",
-      "x": 890,
-      "y": 1222,
-      "w": 31,
-      "h": 22,
-      "roof": "#b9a58a",
-      "garden": true
-    },
-    {
-      "id": "shop-1",
+      "id": "trade-0",
       "kind": "shop",
-      "x": 862,
-      "y": 675,
-      "w": 48,
-      "h": 25,
-      "roof": "#ad8c75"
+      "x": 440,
+      "y": 180,
+      "w": 105,
+      "h": 48,
+      "garden": false,
+      "roof": "#a99b86"
     },
     {
-      "id": "shop-2",
+      "id": "trade-1",
       "kind": "shop",
-      "x": 862,
-      "y": 720,
-      "w": 48,
-      "h": 25,
-      "roof": "#a5ad94"
+      "x": 585,
+      "y": 180,
+      "w": 105,
+      "h": 48,
+      "garden": false,
+      "roof": "#a99b86"
     },
     {
-      "id": "shop-3",
+      "id": "trade-2",
       "kind": "shop",
-      "x": 862,
-      "y": 765,
-      "w": 48,
-      "h": 25,
-      "roof": "#b49b79"
+      "x": 440,
+      "y": 270,
+      "w": 105,
+      "h": 48,
+      "garden": false,
+      "roof": "#a99b86"
     },
     {
-      "id": "shop-4",
+      "id": "trade-3",
       "kind": "shop",
-      "x": 862,
-      "y": 810,
-      "w": 48,
-      "h": 25,
-      "roof": "#ad987e"
+      "x": 585,
+      "y": 270,
+      "w": 105,
+      "h": 48,
+      "garden": false,
+      "roof": "#a99b86"
     },
     {
-      "id": "shop-5",
+      "id": "trade-4",
       "kind": "shop",
-      "x": 862,
-      "y": 855,
-      "w": 48,
-      "h": 25,
-      "roof": "#8b9c8c"
+      "x": 440,
+      "y": 360,
+      "w": 105,
+      "h": 48,
+      "garden": false,
+      "roof": "#a99b86"
     },
     {
-      "id": "cafe",
+      "id": "trade-5",
       "kind": "shop",
-      "x": 920,
-      "y": 651,
-      "w": 54,
-      "h": 30,
-      "roof": "#9b8e76"
+      "x": 585,
+      "y": 360,
+      "w": 105,
+      "h": 48,
+      "garden": false,
+      "roof": "#a99b86"
     },
     {
-      "id": "pub",
+      "id": "trade-6",
       "kind": "shop",
-      "x": 930,
-      "y": 690,
-      "w": 54,
-      "h": 30,
-      "roof": "#ad987b"
+      "x": 440,
+      "y": 450,
+      "w": 105,
+      "h": 48,
+      "garden": false,
+      "roof": "#a99b86"
     },
     {
       "id": "church-nave",
       "kind": "church",
-      "x": 724,
-      "y": 400,
-      "w": 39,
-      "h": 58,
-      "roof": "#9f9e87"
+      "x": 820,
+      "y": 680,
+      "w": 45,
+      "h": 65,
+      "garden": false,
+      "roof": "#a99b86"
     },
     {
-      "id": "church-tower",
-      "kind": "church",
-      "x": 718,
-      "y": 389,
-      "w": 25,
-      "h": 23,
-      "roof": "#b8b49b"
+      "id": "fidl",
+      "kind": "shop",
+      "x": 690,
+      "y": 820,
+      "w": 90,
+      "h": 55,
+      "garden": false,
+      "roof": "#a99b86"
     },
     {
-      "id": "school",
-      "kind": "school",
-      "x": 935,
-      "y": 453,
-      "w": 57,
-      "h": 38,
-      "roof": "#ac977b"
+      "id": "old-hall",
+      "kind": "shop",
+      "x": 890,
+      "y": 790,
+      "w": 80,
+      "h": 48,
+      "garden": false,
+      "roof": "#a99b86"
     },
     {
-      "id": "pavilion",
-      "kind": "pavilion",
-      "x": 1055,
-      "y": 453,
-      "w": 68,
-      "h": 22,
-      "roof": "#8a9c88"
+      "id": "high-0",
+      "kind": "shop",
+      "x": 560,
+      "y": 960,
+      "w": 48,
+      "h": 30,
+      "garden": false,
+      "roof": "#a99b86"
     },
     {
-      "id": "lifeboat",
-      "kind": "lifeboat",
-      "x": 1280,
-      "y": 795,
-      "w": 49,
-      "h": 44,
-      "roof": "#b0886e"
+      "id": "high-1",
+      "kind": "shop",
+      "x": 625,
+      "y": 960,
+      "w": 48,
+      "h": 30,
+      "garden": false,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "high-2",
+      "kind": "shop",
+      "x": 690,
+      "y": 960,
+      "w": 48,
+      "h": 30,
+      "garden": false,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "high-3",
+      "kind": "shop",
+      "x": 755,
+      "y": 960,
+      "w": 48,
+      "h": 30,
+      "garden": false,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "high-4",
+      "kind": "shop",
+      "x": 820,
+      "y": 960,
+      "w": 48,
+      "h": 30,
+      "garden": false,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "high-5",
+      "kind": "shop",
+      "x": 560,
+      "y": 1035,
+      "w": 48,
+      "h": 30,
+      "garden": false,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "high-6",
+      "kind": "shop",
+      "x": 625,
+      "y": 1035,
+      "w": 48,
+      "h": 30,
+      "garden": false,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "high-7",
+      "kind": "shop",
+      "x": 690,
+      "y": 1035,
+      "w": 48,
+      "h": 30,
+      "garden": false,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "high-8",
+      "kind": "shop",
+      "x": 755,
+      "y": 1035,
+      "w": 48,
+      "h": 30,
+      "garden": false,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "high-9",
+      "kind": "shop",
+      "x": 820,
+      "y": 1035,
+      "w": 48,
+      "h": 30,
+      "garden": false,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "brewery",
+      "kind": "shop",
+      "x": 885,
+      "y": 1035,
+      "w": 55,
+      "h": 35,
+      "garden": false,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "tesco",
+      "kind": "shop",
+      "x": 960,
+      "y": 1190,
+      "w": 110,
+      "h": 65,
+      "garden": false,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-0",
+      "kind": "home",
+      "x": 870,
+      "y": 530,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-1",
+      "kind": "home",
+      "x": 928,
+      "y": 530,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-2",
+      "kind": "home",
+      "x": 986,
+      "y": 530,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-3",
+      "kind": "home",
+      "x": 1044,
+      "y": 530,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-4",
+      "kind": "home",
+      "x": 1102,
+      "y": 530,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-5",
+      "kind": "home",
+      "x": 1160,
+      "y": 530,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-6",
+      "kind": "home",
+      "x": 870,
+      "y": 562,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-7",
+      "kind": "home",
+      "x": 928,
+      "y": 562,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-8",
+      "kind": "home",
+      "x": 986,
+      "y": 562,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-9",
+      "kind": "home",
+      "x": 1044,
+      "y": 562,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-10",
+      "kind": "home",
+      "x": 1102,
+      "y": 562,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-11",
+      "kind": "home",
+      "x": 1160,
+      "y": 562,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-12",
+      "kind": "home",
+      "x": 870,
+      "y": 594,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-13",
+      "kind": "home",
+      "x": 928,
+      "y": 594,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-14",
+      "kind": "home",
+      "x": 986,
+      "y": 594,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-15",
+      "kind": "home",
+      "x": 1044,
+      "y": 594,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-16",
+      "kind": "home",
+      "x": 1102,
+      "y": 594,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-17",
+      "kind": "home",
+      "x": 1160,
+      "y": 594,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-18",
+      "kind": "home",
+      "x": 870,
+      "y": 626,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-19",
+      "kind": "home",
+      "x": 928,
+      "y": 626,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-20",
+      "kind": "home",
+      "x": 986,
+      "y": 626,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-21",
+      "kind": "home",
+      "x": 1044,
+      "y": 626,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-22",
+      "kind": "home",
+      "x": 1102,
+      "y": 626,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    },
+    {
+      "id": "home-23",
+      "kind": "home",
+      "x": 1160,
+      "y": 626,
+      "w": 29,
+      "h": 19,
+      "garden": true,
+      "roof": "#a99b86"
+    }
+  ],
+  "reservedAreas": [
+    {
+      "id": "gas-field",
+      "x": 960,
+      "y": 1280,
+      "w": 150,
+      "h": 65
+    },
+    {
+      "id": "old-railway",
+      "x": 1290,
+      "y": 0,
+      "w": 12,
+      "h": 1500
     }
   ]
 }
