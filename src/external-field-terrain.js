@@ -13,7 +13,7 @@ function initialNature(id,x,y){
  // Stable per-tile distribution; no Math.random or hidden save mutations.
  let n=2166136261;
  for(const c of id+':'+key(x,y))n=Math.imul(n^c.charCodeAt(0),16777619)>>>0;
- if(id==='south_field'&&x>=17&&x<=20&&y>=43&&y<=46)return 'barn';
+ if(id==='south_field'&&x>=17&&x<=19&&y>=43&&y<=45)return 'barn';
  return n%11===0?'tree':n%7===0?'debris':null;
 }
 function createParcel(id){
@@ -57,7 +57,7 @@ function canEnter(state,x,y){
  const p=Parcels.inParcel(x,y);
  if(!p)return false;
  const tile=getTile(state,x,y);
- return !['tree','debris','barn'].includes(tile.nature);
+ return !['tree','barn'].includes(tile.nature);
 }
 function clear(state,x,y){
  const p=Parcels.inParcel(x,y);
