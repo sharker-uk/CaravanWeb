@@ -98,6 +98,31 @@ root.ManagementArt={tree,building};
             const buildings=v.buildings.map(b=>{
                 const bx=x(b.x),by=y(b.y),w=x(b.x+b.w)-bx,h=y(b.y+b.h)-by;
                 const roof=b.roof||'#b29a7c';
+                // Commercial identity artwork stays inside the collision footprint.
+                if(/^trade-[0-6]$/.test(b.id)){
+                    const i=Number(b.id.slice(-1));
+                    const palette=['#526c76','#92734e','#827d70','#526e82','#d3d8ce','#68767a','#739b76'];
+                    const rect=(x,y,w,h,fill,stroke='none')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}"/>`;
+                    const line=(x,y,X,Y,c,width=1)=>`<path d="M${x} ${y}L${X} ${Y}" stroke="${c}" stroke-width="${width}"/>`;
+                    const bays=(n)=>Array.from({length:n},(_,j)=>rect(8+j*84/n,75,70/n,20,'#a9b5b5','#48585b')+Array.from({length:4},(_,k)=>line(8+j*84/n,79+k*4,8+j*84/n+70/n,79+k*4,'#738386')).join('')).join('');
+                    let art=rect(0,0,100,100,'#d4c9b0','#665f51')+rect(1,1,98,70,palette[i],'#59645c');
+                    if(i===0){ // DIY retail warehouse
+                        art+=rect(5,8,90,12,'#758e98')+rect(8,29,84,5,'#a5b7b9')+rect(8,48,84,5,'#a5b7b9')+rect(0,72,100,8,'#d77b36')+rect(12,83,76,12,'#b8d5d8','#526c76')+rect(45,81,10,18,'#455e66');
+                    }else if(i===1){ // timber merchant: covered racks
+                        art+=rect(5,5,90,62,'#b29b74')+Array.from({length:5},(_,j)=>rect(9+j*17,10,12,51,'#896b43','#6e5437')+line(12+j*17,12,12+j*17,59,'#d3b789',2)).join('')+bays(2);
+                    }else if(i===2){ // builders merchant: covered aggregate bins
+                        art+=Array.from({length:4},(_,j)=>rect(5+j*23,7,20,57,['#bcb6a5','#c6a47a','#8d8b80','#b4a38d'][j],'#66665e')+Array.from({length:3},(_,k)=>line(7+j*23,20+k*12,22+j*23,20+k*12,'#e1d6bf')).join('')).join('')+bays(3);
+                    }else if(i===3){ // tool hire workshop
+                        art+=Array.from({length:4},(_,j)=>rect(8+j*23,12,14,42,'#8da6b0','#3d596b')).join('')+rect(0,69,100,7,'#d6aa45')+bays(3);
+                    }else if(i===4){ // caravan sales showroom, glazed roof and display silhouettes
+                        art+=rect(4,4,92,63,'#9ebcc1','#627f85')+Array.from({length:3},(_,j)=>rect(10+j*30,15,24,38,'#f3eee0','#7c8987')+rect(13+j*30,20,18,7,'#7d9ca7')+rect(13+j*30,42,18,5,'#b6b4a8')).join('')+rect(5,76,90,18,'#b8d5d8','#627f85');
+                    }else if(i===5){ // garage
+                        art+=rect(7,8,86,48,'#8a9698')+Array.from({length:5},(_,j)=>line(10+j*20,9,10+j*20,55,'#bcc6c5')).join('')+rect(0,69,100,6,'#a24d42')+bays(3);
+                    }else{ // garden centre greenhouse
+                        art+=rect(4,4,92,64,'#b9d3bb','#527c62')+Array.from({length:6},(_,j)=>line(5+j*18,4,5+j*18,68,'#759a83')).join('')+Array.from({length:8},(_,j)=>`<circle cx="${12+(j%4)*24}" cy="${20+Math.floor(j/4)*30}" r="7" fill="${j%2?'#7b9b59':'#547e4c'}"/>`).join('')+rect(8,77,84,17,'#9fb77b','#527c62');
+                    }
+                    return `<g data-commercial-art="${b.id}" transform="translate(${bx} ${by}) scale(${w/100} ${h/100})">${art}</g>`;
+                }
                 if(b.scalePilot){
                     const front=y(v.nodes[v.roads.find(r=>r.id==='res-road').a][1])+size(v.roads.find(r=>r.id==='res-road').width)/2+size(v.roads.find(r=>r.id==='res-road').pavement);
                     const pathX=bx+w*.5, carW=1.8*unit,carL=4.5*unit;
