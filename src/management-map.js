@@ -111,7 +111,6 @@ root.ManagementArt={tree,building};
             if(!T||!externalParcels)return '';
             let art='';
             for(const p of externalParcels.PARCELS){
-                if(!externalParcels.ownsParcel(game.land,p.id))continue;
                 for(let y=p.y;y<p.y+p.h;y++)for(let x=p.x;x<p.x+p.w;x++){
                     const t=T.getTile(game,x,y);
                     if(t?.nature==='tree')art+=A.tree((x+.5)*unit,(y+.75)*unit,8+(x+y)%3,(x+y)%4);
