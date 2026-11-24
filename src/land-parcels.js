@@ -10,7 +10,7 @@ const PARCELS=Object.freeze([
  Object.freeze({id:'north_coastal',name:'North Coastal Field',x:32,y:-10,w:28,h:10,side:'north',price:9000}),
  Object.freeze({id:'south_field',name:'South Field',x:8,y:40,w:24,h:10,side:'south',price:6500}),
  Object.freeze({id:'south_coastal',name:'South Coastal Field',x:32,y:40,w:28,h:10,side:'south',price:9500}),
- Object.freeze({id:'across_road',name:'Roadside Field',x:-20,y:11,w:10,h:17,side:'west',price:8000})
+ Object.freeze({id:'across_road',name:'Roadside Field',x:-20,y:9,w:6,h:22,side:'west',price:8000,development:'commercial'})
 ]);
 // Coastal parcels meet the eastern farm boundary (x=60), not the public beach.
 // Adjacency is intentional: shared edges do not count as overlaps.
