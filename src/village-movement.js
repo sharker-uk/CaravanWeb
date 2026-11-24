@@ -11,6 +11,15 @@ function canWalk(world,x,y){
  // Open countryside and public beach are traversable; the sea is not.
  const seaEdge=world.park?world.park.x+world.park.w+70:world.bounds.w;
  if(x>=seaEdge)return false;
+ // Match the residential renderer's rotated kerbside car footprint.
+ const scale=world.park.w/world.park.gridWidth;
+ const road=world.roads?.find(r=>r.id==='res-road');
+ if(road&&Number.isFinite(scale)&&scale>0){
+  const front=world.nodes[road.a][1]+road.width/2+road.pavement;
+  if((world.buildings||[]).some(b=>b.scalePilot&&b.driveway&&
+   x>=b.x+.4*scale&&x<=b.x+4.9*scale&&
+   y>=front-2.05*scale&&y<=front-.25*scale))return false;
+ }
  // Do not pass through buildings even where they overlap a road shoulder.
  return !(world.buildings||[]).some(b=>x>=b.x-4&&x<=b.x+b.w+4&&y>=b.y-4&&y<=b.y+b.h+4);
 }
