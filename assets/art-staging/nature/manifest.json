@@ -1,0 +1,1154 @@
+{
+  "version": "1.0.0",
+  "tile_size": 16,
+  "pixel_art": true,
+  "atlas_cell_size": 48,
+  "sprite_count": 52,
+  "sprites": [
+    {
+      "id": "oak_maintained",
+      "category": "trees",
+      "file": "trees/oak_maintained.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 8,
+        "y": 0,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "oak_overgrown",
+      "category": "trees",
+      "file": "trees/oak_overgrown.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 56,
+        "y": 0,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "birch_maintained",
+      "category": "trees",
+      "file": "trees/birch_maintained.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 104,
+        "y": 0,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "birch_overgrown",
+      "category": "trees",
+      "file": "trees/birch_overgrown.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 152,
+        "y": 0,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "cherry_maintained",
+      "category": "trees",
+      "file": "trees/cherry_maintained.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 200,
+        "y": 0,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "cherry_overgrown",
+      "category": "trees",
+      "file": "trees/cherry_overgrown.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 248,
+        "y": 0,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "apple_maintained",
+      "category": "trees",
+      "file": "trees/apple_maintained.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 296,
+        "y": 0,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "apple_overgrown",
+      "category": "trees",
+      "file": "trees/apple_overgrown.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 344,
+        "y": 0,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "pine_maintained",
+      "category": "trees",
+      "file": "trees/pine_maintained.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 8,
+        "y": 48,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "pine_overgrown",
+      "category": "trees",
+      "file": "trees/pine_overgrown.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 56,
+        "y": 48,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "autumn_maintained",
+      "category": "trees",
+      "file": "trees/autumn_maintained.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 104,
+        "y": 48,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "autumn_overgrown",
+      "category": "trees",
+      "file": "trees/autumn_overgrown.png",
+      "width": 32,
+      "height": 48,
+      "grid_width": 2,
+      "grid_height": 3,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 152,
+        "y": 48,
+        "w": 32,
+        "h": 48
+      }
+    },
+    {
+      "id": "hedge_maintained",
+      "category": "hedges",
+      "file": "hedges/hedge_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 208,
+        "y": 80,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "hedge_overgrown",
+      "category": "hedges",
+      "file": "hedges/hedge_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 256,
+        "y": 80,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "flower_hedge_maintained",
+      "category": "hedges",
+      "file": "hedges/flower_hedge_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 304,
+        "y": 80,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "flower_hedge_overgrown",
+      "category": "hedges",
+      "file": "hedges/flower_hedge_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 352,
+        "y": 80,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "green_bush_maintained",
+      "category": "shrubs",
+      "file": "shrubs/green_bush_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 16,
+        "y": 128,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "green_bush_overgrown",
+      "category": "shrubs",
+      "file": "shrubs/green_bush_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 64,
+        "y": 128,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "pink_bush_maintained",
+      "category": "shrubs",
+      "file": "shrubs/pink_bush_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 112,
+        "y": 128,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "pink_bush_overgrown",
+      "category": "shrubs",
+      "file": "shrubs/pink_bush_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 160,
+        "y": 128,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "white_bush_maintained",
+      "category": "shrubs",
+      "file": "shrubs/white_bush_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 208,
+        "y": 128,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "white_bush_overgrown",
+      "category": "shrubs",
+      "file": "shrubs/white_bush_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 256,
+        "y": 128,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "blue_bush_maintained",
+      "category": "shrubs",
+      "file": "shrubs/blue_bush_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 304,
+        "y": 128,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "blue_bush_overgrown",
+      "category": "shrubs",
+      "file": "shrubs/blue_bush_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 352,
+        "y": 128,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "daisies_maintained",
+      "category": "flowers",
+      "file": "flowers/daisies_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 16,
+        "y": 176,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "daisies_overgrown",
+      "category": "flowers",
+      "file": "flowers/daisies_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 64,
+        "y": 176,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "wildflowers_maintained",
+      "category": "flowers",
+      "file": "flowers/wildflowers_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 112,
+        "y": 176,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "wildflowers_overgrown",
+      "category": "flowers",
+      "file": "flowers/wildflowers_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 160,
+        "y": 176,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "lavender_maintained",
+      "category": "flowers",
+      "file": "flowers/lavender_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 208,
+        "y": 176,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "lavender_overgrown",
+      "category": "flowers",
+      "file": "flowers/lavender_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 256,
+        "y": 176,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "marigolds_maintained",
+      "category": "flowers",
+      "file": "flowers/marigolds_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 304,
+        "y": 176,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "marigolds_overgrown",
+      "category": "flowers",
+      "file": "flowers/marigolds_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 352,
+        "y": 176,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "wood_fence_maintained",
+      "category": "fences",
+      "file": "fences/wood_fence_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 16,
+        "y": 224,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "wood_fence_overgrown",
+      "category": "fences",
+      "file": "fences/wood_fence_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 64,
+        "y": 224,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "picket_fence_maintained",
+      "category": "fences",
+      "file": "fences/picket_fence_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 112,
+        "y": 224,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "picket_fence_overgrown",
+      "category": "fences",
+      "file": "fences/picket_fence_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 160,
+        "y": 224,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "stone_fence_maintained",
+      "category": "fences",
+      "file": "fences/stone_fence_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 208,
+        "y": 224,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "stone_fence_overgrown",
+      "category": "fences",
+      "file": "fences/stone_fence_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 256,
+        "y": 224,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "wood_gate_maintained",
+      "category": "fences",
+      "file": "fences/wood_gate_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 304,
+        "y": 224,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "wood_gate_overgrown",
+      "category": "fences",
+      "file": "fences/wood_gate_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 352,
+        "y": 224,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "bench_maintained",
+      "category": "decorations",
+      "file": "decorations/bench_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 16,
+        "y": 272,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "bench_overgrown",
+      "category": "decorations",
+      "file": "decorations/bench_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 64,
+        "y": 272,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "rock_maintained",
+      "category": "decorations",
+      "file": "decorations/rock_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 112,
+        "y": 272,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "rock_overgrown",
+      "category": "decorations",
+      "file": "decorations/rock_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 160,
+        "y": 272,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "stump_maintained",
+      "category": "decorations",
+      "file": "decorations/stump_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 208,
+        "y": 272,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "stump_overgrown",
+      "category": "decorations",
+      "file": "decorations/stump_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 256,
+        "y": 272,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "lamp_maintained",
+      "category": "decorations",
+      "file": "decorations/lamp_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 304,
+        "y": 272,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "lamp_overgrown",
+      "category": "decorations",
+      "file": "decorations/lamp_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 352,
+        "y": 272,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "bin_maintained",
+      "category": "decorations",
+      "file": "decorations/bin_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 16,
+        "y": 320,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "bin_overgrown",
+      "category": "decorations",
+      "file": "decorations/bin_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 64,
+        "y": 320,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "sign_maintained",
+      "category": "decorations",
+      "file": "decorations/sign_maintained.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "standard",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 112,
+        "y": 320,
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "id": "sign_overgrown",
+      "category": "decorations",
+      "file": "decorations/sign_overgrown.png",
+      "width": 16,
+      "height": 16,
+      "grid_width": 1,
+      "grid_height": 1,
+      "condition": "overgrown",
+      "anchor": "bottom_center",
+      "footprint": [
+        1,
+        1
+      ],
+      "atlas": {
+        "file": "nature_atlas.png",
+        "x": 160,
+        "y": 320,
+        "w": 16,
+        "h": 16
+      }
+    }
+  ],
+  "notes": "Transparent RGBA PNGs. Sprites are integer multiples of 16px; larger tree artwork has a 1x1 logical collision footprint. Atlas uses 48px slots, not a tightly packed 16px tilemap."
+}

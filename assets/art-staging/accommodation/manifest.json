@@ -1,0 +1,2222 @@
+{
+  "schema": "caravanweb.sprite-pack.v1",
+  "name": "CaravanWeb Buildings and Accommodation",
+  "version": "1.0.0",
+  "tileSize": 16,
+  "pixelArt": true,
+  "background": "transparent",
+  "units": "pixels",
+  "sprites": {
+    "reception_standard": {
+      "file": "sprites/reception_standard.png",
+      "category": "building",
+      "condition": "standard",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "reception",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 16,
+        "y": 16,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "reception_overgrown": {
+      "file": "sprites/reception_overgrown.png",
+      "category": "building",
+      "condition": "overgrown",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "reception",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 112,
+        "y": 16,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "shop_standard": {
+      "file": "sprites/shop_standard.png",
+      "category": "building",
+      "condition": "standard",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "shop",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 208,
+        "y": 16,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "shop_overgrown": {
+      "file": "sprites/shop_overgrown.png",
+      "category": "building",
+      "condition": "overgrown",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "shop",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 304,
+        "y": 16,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "cafe_standard": {
+      "file": "sprites/cafe_standard.png",
+      "category": "building",
+      "condition": "standard",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "cafe",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 400,
+        "y": 16,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "cafe_overgrown": {
+      "file": "sprites/cafe_overgrown.png",
+      "category": "building",
+      "condition": "overgrown",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "cafe",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 496,
+        "y": 16,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "toilets_standard": {
+      "file": "sprites/toilets_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "toilets",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 600,
+        "y": 16,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "toilets_overgrown": {
+      "file": "sprites/toilets_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "toilets",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 696,
+        "y": 16,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "showers_standard": {
+      "file": "sprites/showers_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "showers",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 24,
+        "y": 96,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "showers_overgrown": {
+      "file": "sprites/showers_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "showers",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 120,
+        "y": 96,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "laundry_standard": {
+      "file": "sprites/laundry_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "laundry",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 216,
+        "y": 96,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "laundry_overgrown": {
+      "file": "sprites/laundry_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "laundry",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 312,
+        "y": 96,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "maintenance_standard": {
+      "file": "sprites/maintenance_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "maintenance",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 400,
+        "y": 96,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "maintenance_overgrown": {
+      "file": "sprites/maintenance_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "maintenance",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 496,
+        "y": 96,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "office_standard": {
+      "file": "sprites/office_standard.png",
+      "category": "building",
+      "condition": "standard",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "office",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 600,
+        "y": 96,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "office_overgrown": {
+      "file": "sprites/office_overgrown.png",
+      "category": "building",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "office",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 696,
+        "y": 96,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "gatehouse_standard": {
+      "file": "sprites/gatehouse_standard.png",
+      "category": "building",
+      "condition": "standard",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "gatehouse",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 24,
+        "y": 176,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "gatehouse_overgrown": {
+      "file": "sprites/gatehouse_overgrown.png",
+      "category": "building",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "gatehouse",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 120,
+        "y": 176,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "clubhouse_standard": {
+      "file": "sprites/clubhouse_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 80,
+      "height": 48,
+      "footprint": {
+        "width": 5,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 3
+      },
+      "anchor": {
+        "x": 40,
+        "y": 48
+      },
+      "variantOf": "clubhouse",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 200,
+        "y": 176,
+        "width": 80,
+        "height": 48
+      }
+    },
+    "clubhouse_overgrown": {
+      "file": "sprites/clubhouse_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 80,
+      "height": 48,
+      "footprint": {
+        "width": 5,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 3
+      },
+      "anchor": {
+        "x": 40,
+        "y": 48
+      },
+      "variantOf": "clubhouse",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 296,
+        "y": 176,
+        "width": 80,
+        "height": 48
+      }
+    },
+    "pool_building_standard": {
+      "file": "sprites/pool_building_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 80,
+      "height": 48,
+      "footprint": {
+        "width": 5,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 3
+      },
+      "anchor": {
+        "x": 40,
+        "y": 48
+      },
+      "variantOf": "pool_building",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 392,
+        "y": 176,
+        "width": 80,
+        "height": 48
+      }
+    },
+    "pool_building_overgrown": {
+      "file": "sprites/pool_building_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 80,
+      "height": 48,
+      "footprint": {
+        "width": 5,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 3
+      },
+      "anchor": {
+        "x": 40,
+        "y": 48
+      },
+      "variantOf": "pool_building",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 488,
+        "y": 176,
+        "width": 80,
+        "height": 48
+      }
+    },
+    "restaurant_standard": {
+      "file": "sprites/restaurant_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "restaurant",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 592,
+        "y": 176,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "restaurant_overgrown": {
+      "file": "sprites/restaurant_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "restaurant",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 688,
+        "y": 176,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "arcade_standard": {
+      "file": "sprites/arcade_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "arcade",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 16,
+        "y": 256,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "arcade_overgrown": {
+      "file": "sprites/arcade_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "arcade",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 112,
+        "y": 256,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "kids_club_standard": {
+      "file": "sprites/kids_club_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "kids_club",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 208,
+        "y": 256,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "kids_club_overgrown": {
+      "file": "sprites/kids_club_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "kids_club",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 304,
+        "y": 256,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "gym_standard": {
+      "file": "sprites/gym_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "gym",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 400,
+        "y": 256,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "gym_overgrown": {
+      "file": "sprites/gym_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "gym",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 496,
+        "y": 256,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "recycling_standard": {
+      "file": "sprites/recycling_standard.png",
+      "category": "utility",
+      "condition": "standard",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "recycling",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 600,
+        "y": 256,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "recycling_overgrown": {
+      "file": "sprites/recycling_overgrown.png",
+      "category": "utility",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "recycling",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 696,
+        "y": 256,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "electrical_standard": {
+      "file": "sprites/electrical_standard.png",
+      "category": "utility",
+      "condition": "standard",
+      "width": 32,
+      "height": 32,
+      "footprint": {
+        "width": 2,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": {
+        "x": 16,
+        "y": 32
+      },
+      "variantOf": "electrical",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 32,
+        "y": 344,
+        "width": 32,
+        "height": 32
+      }
+    },
+    "electrical_overgrown": {
+      "file": "sprites/electrical_overgrown.png",
+      "category": "utility",
+      "condition": "overgrown",
+      "width": 32,
+      "height": 32,
+      "footprint": {
+        "width": 2,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": {
+        "x": 16,
+        "y": 32
+      },
+      "variantOf": "electrical",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 128,
+        "y": 344,
+        "width": 32,
+        "height": 32
+      }
+    },
+    "water_plant_standard": {
+      "file": "sprites/water_plant_standard.png",
+      "category": "utility",
+      "condition": "standard",
+      "width": 32,
+      "height": 32,
+      "footprint": {
+        "width": 2,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": {
+        "x": 16,
+        "y": 32
+      },
+      "variantOf": "water_plant",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 224,
+        "y": 344,
+        "width": 32,
+        "height": 32
+      }
+    },
+    "water_plant_overgrown": {
+      "file": "sprites/water_plant_overgrown.png",
+      "category": "utility",
+      "condition": "overgrown",
+      "width": 32,
+      "height": 32,
+      "footprint": {
+        "width": 2,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": {
+        "x": 16,
+        "y": 32
+      },
+      "variantOf": "water_plant",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 320,
+        "y": 344,
+        "width": 32,
+        "height": 32
+      }
+    },
+    "storage_depot_standard": {
+      "file": "sprites/storage_depot_standard.png",
+      "category": "utility",
+      "condition": "standard",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "storage_depot",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 408,
+        "y": 344,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "storage_depot_overgrown": {
+      "file": "sprites/storage_depot_overgrown.png",
+      "category": "utility",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "storage_depot",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 504,
+        "y": 344,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "static_standard_standard": {
+      "file": "sprites/static_standard_standard.png",
+      "category": "accommodation",
+      "condition": "standard",
+      "width": 64,
+      "height": 32,
+      "footprint": {
+        "width": 4,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 2
+      },
+      "anchor": {
+        "x": 32,
+        "y": 32
+      },
+      "variantOf": "static_standard",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 592,
+        "y": 344,
+        "width": 64,
+        "height": 32
+      }
+    },
+    "static_standard_overgrown": {
+      "file": "sprites/static_standard_overgrown.png",
+      "category": "accommodation",
+      "condition": "overgrown",
+      "width": 64,
+      "height": 32,
+      "footprint": {
+        "width": 4,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 2
+      },
+      "anchor": {
+        "x": 32,
+        "y": 32
+      },
+      "variantOf": "static_standard",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 688,
+        "y": 344,
+        "width": 64,
+        "height": 32
+      }
+    },
+    "static_premium_standard": {
+      "file": "sprites/static_premium_standard.png",
+      "category": "accommodation",
+      "condition": "standard",
+      "width": 80,
+      "height": 32,
+      "footprint": {
+        "width": 5,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 2
+      },
+      "anchor": {
+        "x": 40,
+        "y": 32
+      },
+      "variantOf": "static_premium",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 8,
+        "y": 424,
+        "width": 80,
+        "height": 32
+      }
+    },
+    "static_premium_overgrown": {
+      "file": "sprites/static_premium_overgrown.png",
+      "category": "accommodation",
+      "condition": "overgrown",
+      "width": 80,
+      "height": 32,
+      "footprint": {
+        "width": 5,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 2
+      },
+      "anchor": {
+        "x": 40,
+        "y": 32
+      },
+      "variantOf": "static_premium",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 104,
+        "y": 424,
+        "width": 80,
+        "height": 32
+      }
+    },
+    "lodge_standard": {
+      "file": "sprites/lodge_standard.png",
+      "category": "accommodation",
+      "condition": "standard",
+      "width": 80,
+      "height": 48,
+      "footprint": {
+        "width": 5,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 3
+      },
+      "anchor": {
+        "x": 40,
+        "y": 48
+      },
+      "variantOf": "lodge",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 200,
+        "y": 416,
+        "width": 80,
+        "height": 48
+      }
+    },
+    "lodge_overgrown": {
+      "file": "sprites/lodge_overgrown.png",
+      "category": "accommodation",
+      "condition": "overgrown",
+      "width": 80,
+      "height": 48,
+      "footprint": {
+        "width": 5,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 3
+      },
+      "anchor": {
+        "x": 40,
+        "y": 48
+      },
+      "variantOf": "lodge",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 296,
+        "y": 416,
+        "width": 80,
+        "height": 48
+      }
+    },
+    "touring_caravan_standard": {
+      "file": "sprites/touring_caravan_standard.png",
+      "category": "accommodation",
+      "condition": "standard",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "touring_caravan",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 408,
+        "y": 424,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "touring_caravan_overgrown": {
+      "file": "sprites/touring_caravan_overgrown.png",
+      "category": "accommodation",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "touring_caravan",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 504,
+        "y": 424,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "motorhome_standard": {
+      "file": "sprites/motorhome_standard.png",
+      "category": "accommodation",
+      "condition": "standard",
+      "width": 64,
+      "height": 32,
+      "footprint": {
+        "width": 4,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 2
+      },
+      "anchor": {
+        "x": 32,
+        "y": 32
+      },
+      "variantOf": "motorhome",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 592,
+        "y": 424,
+        "width": 64,
+        "height": 32
+      }
+    },
+    "motorhome_overgrown": {
+      "file": "sprites/motorhome_overgrown.png",
+      "category": "accommodation",
+      "condition": "overgrown",
+      "width": 64,
+      "height": 32,
+      "footprint": {
+        "width": 4,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 2
+      },
+      "anchor": {
+        "x": 32,
+        "y": 32
+      },
+      "variantOf": "motorhome",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 688,
+        "y": 424,
+        "width": 64,
+        "height": 32
+      }
+    },
+    "tent_small_standard": {
+      "file": "sprites/tent_small_standard.png",
+      "category": "accommodation",
+      "condition": "standard",
+      "width": 32,
+      "height": 32,
+      "footprint": {
+        "width": 2,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": {
+        "x": 16,
+        "y": 32
+      },
+      "variantOf": "tent_small",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 32,
+        "y": 504,
+        "width": 32,
+        "height": 32
+      }
+    },
+    "tent_small_overgrown": {
+      "file": "sprites/tent_small_overgrown.png",
+      "category": "accommodation",
+      "condition": "overgrown",
+      "width": 32,
+      "height": 32,
+      "footprint": {
+        "width": 2,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": {
+        "x": 16,
+        "y": 32
+      },
+      "variantOf": "tent_small",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 128,
+        "y": 504,
+        "width": 32,
+        "height": 32
+      }
+    },
+    "tent_large_standard": {
+      "file": "sprites/tent_large_standard.png",
+      "category": "accommodation",
+      "condition": "standard",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "tent_large",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 216,
+        "y": 504,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "tent_large_overgrown": {
+      "file": "sprites/tent_large_overgrown.png",
+      "category": "accommodation",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "tent_large",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 312,
+        "y": 504,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "glamping_pod_standard": {
+      "file": "sprites/glamping_pod_standard.png",
+      "category": "accommodation",
+      "condition": "standard",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "glamping_pod",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 408,
+        "y": 504,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "glamping_pod_overgrown": {
+      "file": "sprites/glamping_pod_overgrown.png",
+      "category": "accommodation",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "glamping_pod",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 504,
+        "y": 504,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "camping_cabin_standard": {
+      "file": "sprites/camping_cabin_standard.png",
+      "category": "accommodation",
+      "condition": "standard",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "camping_cabin",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 600,
+        "y": 504,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "camping_cabin_overgrown": {
+      "file": "sprites/camping_cabin_overgrown.png",
+      "category": "accommodation",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "camping_cabin",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 696,
+        "y": 504,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "workshop_standard": {
+      "file": "sprites/workshop_standard.png",
+      "category": "utility",
+      "condition": "standard",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "workshop",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 16,
+        "y": 576,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "workshop_overgrown": {
+      "file": "sprites/workshop_overgrown.png",
+      "category": "utility",
+      "condition": "overgrown",
+      "width": 64,
+      "height": 48,
+      "footprint": {
+        "width": 4,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      },
+      "anchor": {
+        "x": 32,
+        "y": 48
+      },
+      "variantOf": "workshop",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 112,
+        "y": 576,
+        "width": 64,
+        "height": 48
+      }
+    },
+    "storage_barn_standard": {
+      "file": "sprites/storage_barn_standard.png",
+      "category": "utility",
+      "condition": "standard",
+      "width": 80,
+      "height": 48,
+      "footprint": {
+        "width": 5,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 3
+      },
+      "anchor": {
+        "x": 40,
+        "y": 48
+      },
+      "variantOf": "storage_barn",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 200,
+        "y": 576,
+        "width": 80,
+        "height": 48
+      }
+    },
+    "storage_barn_overgrown": {
+      "file": "sprites/storage_barn_overgrown.png",
+      "category": "utility",
+      "condition": "overgrown",
+      "width": 80,
+      "height": 48,
+      "footprint": {
+        "width": 5,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 3
+      },
+      "anchor": {
+        "x": 40,
+        "y": 48
+      },
+      "variantOf": "storage_barn",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 296,
+        "y": 576,
+        "width": 80,
+        "height": 48
+      }
+    },
+    "vehicle_shed_standard": {
+      "file": "sprites/vehicle_shed_standard.png",
+      "category": "utility",
+      "condition": "standard",
+      "width": 80,
+      "height": 48,
+      "footprint": {
+        "width": 5,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 3
+      },
+      "anchor": {
+        "x": 40,
+        "y": 48
+      },
+      "variantOf": "vehicle_shed",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 392,
+        "y": 576,
+        "width": 80,
+        "height": 48
+      }
+    },
+    "vehicle_shed_overgrown": {
+      "file": "sprites/vehicle_shed_overgrown.png",
+      "category": "utility",
+      "condition": "overgrown",
+      "width": 80,
+      "height": 48,
+      "footprint": {
+        "width": 5,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 5,
+        "height": 3
+      },
+      "anchor": {
+        "x": 40,
+        "y": 48
+      },
+      "variantOf": "vehicle_shed",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 488,
+        "y": 576,
+        "width": 80,
+        "height": 48
+      }
+    },
+    "staff_room_standard": {
+      "file": "sprites/staff_room_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "staff_room",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 600,
+        "y": 584,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "staff_room_overgrown": {
+      "file": "sprites/staff_room_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "staff_room",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 696,
+        "y": 584,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "delivery_bay_standard": {
+      "file": "sprites/delivery_bay_standard.png",
+      "category": "utility",
+      "condition": "standard",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "delivery_bay",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 24,
+        "y": 664,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "delivery_bay_overgrown": {
+      "file": "sprites/delivery_bay_overgrown.png",
+      "category": "utility",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "delivery_bay",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 120,
+        "y": 664,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "gazebo_standard": {
+      "file": "sprites/gazebo_standard.png",
+      "category": "decoration",
+      "condition": "standard",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "gazebo",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 216,
+        "y": 656,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "gazebo_overgrown": {
+      "file": "sprites/gazebo_overgrown.png",
+      "category": "decoration",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 48,
+      "footprint": {
+        "width": 3,
+        "height": 3
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 3
+      },
+      "anchor": {
+        "x": 24,
+        "y": 48
+      },
+      "variantOf": "gazebo",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 312,
+        "y": 656,
+        "width": 48,
+        "height": 48
+      }
+    },
+    "pergola_standard": {
+      "file": "sprites/pergola_standard.png",
+      "category": "decoration",
+      "condition": "standard",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "pergola",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 408,
+        "y": 664,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "pergola_overgrown": {
+      "file": "sprites/pergola_overgrown.png",
+      "category": "decoration",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "pergola",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 504,
+        "y": 664,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "bbq_shelter_standard": {
+      "file": "sprites/bbq_shelter_standard.png",
+      "category": "decoration",
+      "condition": "standard",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "bbq_shelter",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 600,
+        "y": 664,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "bbq_shelter_overgrown": {
+      "file": "sprites/bbq_shelter_overgrown.png",
+      "category": "decoration",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "bbq_shelter",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 696,
+        "y": 664,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "picnic_shelter_standard": {
+      "file": "sprites/picnic_shelter_standard.png",
+      "category": "decoration",
+      "condition": "standard",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "picnic_shelter",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 24,
+        "y": 744,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "picnic_shelter_overgrown": {
+      "file": "sprites/picnic_shelter_overgrown.png",
+      "category": "decoration",
+      "condition": "overgrown",
+      "width": 48,
+      "height": 32,
+      "footprint": {
+        "width": 3,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": {
+        "x": 24,
+        "y": 32
+      },
+      "variantOf": "picnic_shelter",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 120,
+        "y": 744,
+        "width": 48,
+        "height": 32
+      }
+    },
+    "kiosk_standard": {
+      "file": "sprites/kiosk_standard.png",
+      "category": "facility",
+      "condition": "standard",
+      "width": 32,
+      "height": 32,
+      "footprint": {
+        "width": 2,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": {
+        "x": 16,
+        "y": 32
+      },
+      "variantOf": "kiosk",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 224,
+        "y": 744,
+        "width": 32,
+        "height": 32
+      }
+    },
+    "kiosk_overgrown": {
+      "file": "sprites/kiosk_overgrown.png",
+      "category": "facility",
+      "condition": "overgrown",
+      "width": 32,
+      "height": 32,
+      "footprint": {
+        "width": 2,
+        "height": 2
+      },
+      "collision": {
+        "x": 0,
+        "y": 0,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": {
+        "x": 16,
+        "y": 32
+      },
+      "variantOf": "kiosk",
+      "atlas": {
+        "file": "buildings_atlas.png",
+        "x": 320,
+        "y": 744,
+        "width": 32,
+        "height": 32
+      }
+    }
+  },
+  "notes": [
+    "Illustrated at native pixel resolution; no AI sheet cropping.",
+    "Footprints are logical tile occupancy; visual canvas is the same size.",
+    "These are new simplified production-format sprites, not exact copies of the concept art.",
+    "Rendering: nearest-neighbour, no image smoothing.",
+    "Overgrown is a visual variant, not a separate placement entity."
+  ]
+}
