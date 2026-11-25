@@ -1,0 +1,2166 @@
+{
+  "pixels_per_metre": 16,
+  "status": "staged candidates; not runtime validated",
+  "assets": [
+    {
+      "id": "residential/detached_victorian",
+      "path": "sprites/residential/detached_victorian.png",
+      "source": "121314",
+      "cell": 1,
+      "footprint_m": [
+        12.0,
+        10.0
+      ],
+      "sprite_px": [
+        192,
+        183
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        341,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential/semi_1930s",
+      "path": "sprites/residential/semi_1930s.png",
+      "source": "121314",
+      "cell": 2,
+      "footprint_m": [
+        14.0,
+        9.0
+      ],
+      "sprite_px": [
+        224,
+        194
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        0,
+        683,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential/semi_1970s",
+      "path": "sprites/residential/semi_1970s.png",
+      "source": "121314",
+      "cell": 3,
+      "footprint_m": [
+        14.0,
+        9.0
+      ],
+      "sprite_px": [
+        224,
+        176
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        0,
+        1024,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential/detached_traditional",
+      "path": "sprites/residential/detached_traditional.png",
+      "source": "121314",
+      "cell": 4,
+      "footprint_m": [
+        10.0,
+        10.0
+      ],
+      "sprite_px": [
+        160,
+        144
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        341,
+        341,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential/detached_gabled",
+      "path": "sprites/residential/detached_gabled.png",
+      "source": "121314",
+      "cell": 5,
+      "footprint_m": [
+        10.0,
+        10.0
+      ],
+      "sprite_px": [
+        160,
+        156
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        341,
+        683,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential/detached_modern",
+      "path": "sprites/residential/detached_modern.png",
+      "source": "121314",
+      "cell": 6,
+      "footprint_m": [
+        12.0,
+        10.0
+      ],
+      "sprite_px": [
+        192,
+        172
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        341,
+        1024,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential/bungalow",
+      "path": "sprites/residential/bungalow.png",
+      "source": "121314",
+      "cell": 7,
+      "footprint_m": [
+        12.0,
+        9.0
+      ],
+      "sprite_px": [
+        192,
+        145
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        683,
+        341,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential/cottage",
+      "path": "sprites/residential/cottage.png",
+      "source": "121314",
+      "cell": 8,
+      "footprint_m": [
+        6.0,
+        8.0
+      ],
+      "sprite_px": [
+        96,
+        104
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        683,
+        683,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential/terrace",
+      "path": "sprites/residential/terrace.png",
+      "source": "121314",
+      "cell": 9,
+      "footprint_m": [
+        5.0,
+        8.0
+      ],
+      "sprite_px": [
+        80,
+        132
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        683,
+        1024,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_side/victorian_side",
+      "path": "sprites/residential_side/victorian_side.png",
+      "source": "122334",
+      "cell": 1,
+      "footprint_m": [
+        10.0,
+        12.0
+      ],
+      "sprite_px": [
+        160,
+        192
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "review",
+      "source_crop": [
+        0,
+        0,
+        341,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_side/semi_1930s_side",
+      "path": "sprites/residential_side/semi_1930s_side.png",
+      "source": "122334",
+      "cell": 2,
+      "footprint_m": [
+        9.0,
+        14.0
+      ],
+      "sprite_px": [
+        144,
+        165
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "review",
+      "source_crop": [
+        341,
+        0,
+        683,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_side/semi_1970s_side",
+      "path": "sprites/residential_side/semi_1970s_side.png",
+      "source": "122334",
+      "cell": 3,
+      "footprint_m": [
+        9.0,
+        14.0
+      ],
+      "sprite_px": [
+        144,
+        154
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "review",
+      "source_crop": [
+        683,
+        0,
+        1024,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_side/detached_side",
+      "path": "sprites/residential_side/detached_side.png",
+      "source": "122334",
+      "cell": 4,
+      "footprint_m": [
+        10.0,
+        10.0
+      ],
+      "sprite_px": [
+        160,
+        149
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "review",
+      "source_crop": [
+        0,
+        341,
+        341,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_side/gabled_side",
+      "path": "sprites/residential_side/gabled_side.png",
+      "source": "122334",
+      "cell": 5,
+      "footprint_m": [
+        10.0,
+        10.0
+      ],
+      "sprite_px": [
+        160,
+        150
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "review",
+      "source_crop": [
+        341,
+        341,
+        683,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_side/modern_front",
+      "path": "sprites/residential_side/modern_front.png",
+      "source": "122334",
+      "cell": 6,
+      "footprint_m": [
+        12.0,
+        10.0
+      ],
+      "sprite_px": [
+        192,
+        191
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "review",
+      "source_crop": [
+        683,
+        341,
+        1024,
+        683
+      ],
+      "edge_contact": true
+    },
+    {
+      "id": "residential_side/bungalow_rear",
+      "path": "sprites/residential_side/bungalow_rear.png",
+      "source": "122334",
+      "cell": 7,
+      "footprint_m": [
+        12.0,
+        9.0
+      ],
+      "sprite_px": [
+        192,
+        143
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "review",
+      "source_crop": [
+        0,
+        683,
+        341,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_side/cottage_side",
+      "path": "sprites/residential_side/cottage_side.png",
+      "source": "122334",
+      "cell": 8,
+      "footprint_m": [
+        8.0,
+        6.0
+      ],
+      "sprite_px": [
+        128,
+        147
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "review",
+      "source_crop": [
+        341,
+        683,
+        683,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_side/terrace_side",
+      "path": "sprites/residential_side/terrace_side.png",
+      "source": "122334",
+      "cell": 9,
+      "footprint_m": [
+        8.0,
+        5.0
+      ],
+      "sprite_px": [
+        128,
+        205
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "review",
+      "source_crop": [
+        683,
+        683,
+        1024,
+        1024
+      ],
+      "edge_contact": true
+    },
+    {
+      "id": "high_street/fish_chips",
+      "path": "sprites/high_street/fish_chips.png",
+      "source": "122650",
+      "cell": 1,
+      "footprint_m": [
+        6.0,
+        8.0
+      ],
+      "sprite_px": [
+        96,
+        124
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        341,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "high_street/bakery",
+      "path": "sprites/high_street/bakery.png",
+      "source": "122650",
+      "cell": 2,
+      "footprint_m": [
+        7.0,
+        9.0
+      ],
+      "sprite_px": [
+        112,
+        130
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        0,
+        683,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "high_street/cafe",
+      "path": "sprites/high_street/cafe.png",
+      "source": "122650",
+      "cell": 3,
+      "footprint_m": [
+        7.0,
+        9.0
+      ],
+      "sprite_px": [
+        112,
+        137
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        0,
+        1024,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "high_street/pharmacy",
+      "path": "sprites/high_street/pharmacy.png",
+      "source": "122650",
+      "cell": 4,
+      "footprint_m": [
+        8.0,
+        10.0
+      ],
+      "sprite_px": [
+        128,
+        137
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        341,
+        341,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "high_street/estate_agents",
+      "path": "sprites/high_street/estate_agents.png",
+      "source": "122650",
+      "cell": 5,
+      "footprint_m": [
+        8.0,
+        10.0
+      ],
+      "sprite_px": [
+        128,
+        124
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        341,
+        683,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "high_street/post_office",
+      "path": "sprites/high_street/post_office.png",
+      "source": "122650",
+      "cell": 6,
+      "footprint_m": [
+        8.0,
+        10.0
+      ],
+      "sprite_px": [
+        128,
+        134
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        341,
+        1024,
+        683
+      ],
+      "edge_contact": true
+    },
+    {
+      "id": "high_street/bank",
+      "path": "sprites/high_street/bank.png",
+      "source": "122650",
+      "cell": 7,
+      "footprint_m": [
+        10.0,
+        12.0
+      ],
+      "sprite_px": [
+        160,
+        165
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        683,
+        341,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "high_street/council",
+      "path": "sprites/high_street/council.png",
+      "source": "122650",
+      "cell": 8,
+      "footprint_m": [
+        10.0,
+        12.0
+      ],
+      "sprite_px": [
+        160,
+        151
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        683,
+        683,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "high_street/pub",
+      "path": "sprites/high_street/pub.png",
+      "source": "122650",
+      "cell": 9,
+      "footprint_m": [
+        15.0,
+        12.0
+      ],
+      "sprite_px": [
+        240,
+        237
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        683,
+        1024,
+        1024
+      ],
+      "edge_contact": true
+    },
+    {
+      "id": "trade/cr_diy",
+      "path": "sprites/trade/cr_diy.png",
+      "source": "122920",
+      "cell": 1,
+      "footprint_m": [
+        15.0,
+        7.0
+      ],
+      "sprite_px": [
+        240,
+        250
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        341,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "trade/timber",
+      "path": "sprites/trade/timber.png",
+      "source": "122920",
+      "cell": 2,
+      "footprint_m": [
+        15.0,
+        7.0
+      ],
+      "sprite_px": [
+        240,
+        242
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        0,
+        683,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "trade/builders",
+      "path": "sprites/trade/builders.png",
+      "source": "122920",
+      "cell": 3,
+      "footprint_m": [
+        15.0,
+        7.0
+      ],
+      "sprite_px": [
+        240,
+        247
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        0,
+        1024,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "trade/tool_hire",
+      "path": "sprites/trade/tool_hire.png",
+      "source": "122920",
+      "cell": 4,
+      "footprint_m": [
+        15.0,
+        7.0
+      ],
+      "sprite_px": [
+        240,
+        240
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        341,
+        341,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "trade/caravan_sales",
+      "path": "sprites/trade/caravan_sales.png",
+      "source": "122920",
+      "cell": 5,
+      "footprint_m": [
+        15.0,
+        7.0
+      ],
+      "sprite_px": [
+        240,
+        233
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        341,
+        683,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "trade/garage",
+      "path": "sprites/trade/garage.png",
+      "source": "122920",
+      "cell": 6,
+      "footprint_m": [
+        15.0,
+        7.0
+      ],
+      "sprite_px": [
+        240,
+        222
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        341,
+        1024,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "trade/garden_centre",
+      "path": "sprites/trade/garden_centre.png",
+      "source": "122920",
+      "cell": 7,
+      "footprint_m": [
+        15.0,
+        7.0
+      ],
+      "sprite_px": [
+        240,
+        227
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        683,
+        341,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "trade/fidl",
+      "path": "sprites/trade/fidl.png",
+      "source": "122920",
+      "cell": 8,
+      "footprint_m": [
+        20.0,
+        15.0
+      ],
+      "sprite_px": [
+        320,
+        322
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        683,
+        683,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "trade/t_mart",
+      "path": "sprites/trade/t_mart.png",
+      "source": "122920",
+      "cell": 9,
+      "footprint_m": [
+        25.0,
+        20.0
+      ],
+      "sprite_px": [
+        400,
+        387
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        683,
+        1024,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "landmarks/church",
+      "path": "sprites/landmarks/church.png",
+      "source": "123426",
+      "cell": 1,
+      "footprint_m": [
+        22.0,
+        12.0
+      ],
+      "sprite_px": [
+        352,
+        343
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        341,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "landmarks/old_hall",
+      "path": "sprites/landmarks/old_hall.png",
+      "source": "123426",
+      "cell": 2,
+      "footprint_m": [
+        20.0,
+        15.0
+      ],
+      "sprite_px": [
+        320,
+        341
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        0,
+        683,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "landmarks/worlds_end",
+      "path": "sprites/landmarks/worlds_end.png",
+      "source": "123426",
+      "cell": 3,
+      "footprint_m": [
+        15.0,
+        12.0
+      ],
+      "sprite_px": [
+        240,
+        236
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        0,
+        1024,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "landmarks/brewery",
+      "path": "sprites/landmarks/brewery.png",
+      "source": "123426",
+      "cell": 4,
+      "footprint_m": [
+        18.0,
+        15.0
+      ],
+      "sprite_px": [
+        288,
+        285
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        341,
+        341,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "landmarks/job_centre",
+      "path": "sprites/landmarks/job_centre.png",
+      "source": "123426",
+      "cell": 5,
+      "footprint_m": [
+        12.0,
+        10.0
+      ],
+      "sprite_px": [
+        192,
+        187
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        341,
+        683,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "landmarks/solicitors",
+      "path": "sprites/landmarks/solicitors.png",
+      "source": "123426",
+      "cell": 6,
+      "footprint_m": [
+        10.0,
+        10.0
+      ],
+      "sprite_px": [
+        160,
+        169
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        341,
+        1024,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "landmarks/convenience",
+      "path": "sprites/landmarks/convenience.png",
+      "source": "123426",
+      "cell": 7,
+      "footprint_m": [
+        8.0,
+        10.0
+      ],
+      "sprite_px": [
+        128,
+        149
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        683,
+        341,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "landmarks/community_hall",
+      "path": "sprites/landmarks/community_hall.png",
+      "source": "123426",
+      "cell": 8,
+      "footprint_m": [
+        15.0,
+        12.0
+      ],
+      "sprite_px": [
+        240,
+        240
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        683,
+        683,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "landmarks/fire_station",
+      "path": "sprites/landmarks/fire_station.png",
+      "source": "123426",
+      "cell": 9,
+      "footprint_m": [
+        16.0,
+        12.0
+      ],
+      "sprite_px": [
+        256,
+        247
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        683,
+        1024,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "tents/a_frame",
+      "path": "sprites/tents/a_frame.png",
+      "source": "133539",
+      "cell": 1,
+      "footprint_m": [
+        2.0,
+        3.0
+      ],
+      "sprite_px": [
+        32,
+        27
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        341,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "tents/dome_blue",
+      "path": "sprites/tents/dome_blue.png",
+      "source": "133539",
+      "cell": 2,
+      "footprint_m": [
+        2.0,
+        2.0
+      ],
+      "sprite_px": [
+        32,
+        24
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        0,
+        683,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "tents/dome_orange",
+      "path": "sprites/tents/dome_orange.png",
+      "source": "133539",
+      "cell": 3,
+      "footprint_m": [
+        3.0,
+        3.0
+      ],
+      "sprite_px": [
+        48,
+        40
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        0,
+        1024,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "tents/tunnel",
+      "path": "sprites/tents/tunnel.png",
+      "source": "133539",
+      "cell": 4,
+      "footprint_m": [
+        3.0,
+        5.0
+      ],
+      "sprite_px": [
+        48,
+        51
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        341,
+        341,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "tents/family",
+      "path": "sprites/tents/family.png",
+      "source": "133539",
+      "cell": 5,
+      "footprint_m": [
+        5.0,
+        6.0
+      ],
+      "sprite_px": [
+        80,
+        74
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        341,
+        683,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "tents/inflatable",
+      "path": "sprites/tents/inflatable.png",
+      "source": "133539",
+      "cell": 6,
+      "footprint_m": [
+        4.0,
+        7.0
+      ],
+      "sprite_px": [
+        64,
+        62
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        341,
+        1024,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "tents/bell",
+      "path": "sprites/tents/bell.png",
+      "source": "133539",
+      "cell": 7,
+      "footprint_m": [
+        5.0,
+        5.0
+      ],
+      "sprite_px": [
+        80,
+        72
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        683,
+        341,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "tents/safari",
+      "path": "sprites/tents/safari.png",
+      "source": "133539",
+      "cell": 8,
+      "footprint_m": [
+        5.0,
+        7.0
+      ],
+      "sprite_px": [
+        80,
+        75
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        341,
+        683,
+        683,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "tents/ridge",
+      "path": "sprites/tents/ridge.png",
+      "source": "133539",
+      "cell": 9,
+      "footprint_m": [
+        4.0,
+        6.0
+      ],
+      "sprite_px": [
+        64,
+        63
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        683,
+        683,
+        1024,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "touring/vintage",
+      "path": "sprites/touring/vintage.png",
+      "source": "134801",
+      "cell": 1,
+      "footprint_m": [
+        2.1,
+        4.5
+      ],
+      "sprite_px": [
+        90,
+        68
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "angled",
+      "source_crop": [
+        0,
+        0,
+        341,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "touring/compact",
+      "path": "sprites/touring/compact.png",
+      "source": "134801",
+      "cell": 2,
+      "footprint_m": [
+        2.1,
+        4.5
+      ],
+      "sprite_px": [
+        90,
+        71
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "angled",
+      "source_crop": [
+        341,
+        0,
+        683,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "touring/aluminium",
+      "path": "sprites/touring/aluminium.png",
+      "source": "134801",
+      "cell": 3,
+      "footprint_m": [
+        2.3,
+        6.0
+      ],
+      "sprite_px": [
+        113,
+        79
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "angled",
+      "source_crop": [
+        683,
+        0,
+        1024,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "touring/family",
+      "path": "sprites/touring/family.png",
+      "source": "134801",
+      "cell": 4,
+      "footprint_m": [
+        2.3,
+        6.0
+      ],
+      "sprite_px": [
+        113,
+        93
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "angled",
+      "source_crop": [
+        0,
+        341,
+        341,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "touring/solar",
+      "path": "sprites/touring/solar.png",
+      "source": "134801",
+      "cell": 5,
+      "footprint_m": [
+        2.3,
+        6.0
+      ],
+      "sprite_px": [
+        113,
+        97
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "angled",
+      "source_crop": [
+        341,
+        341,
+        683,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "touring/twin_axle",
+      "path": "sprites/touring/twin_axle.png",
+      "source": "134801",
+      "cell": 6,
+      "footprint_m": [
+        2.5,
+        8.0
+      ],
+      "sprite_px": [
+        143,
+        121
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "angled",
+      "source_crop": [
+        683,
+        341,
+        1024,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "touring/luxury",
+      "path": "sprites/touring/luxury.png",
+      "source": "134801",
+      "cell": 7,
+      "footprint_m": [
+        2.5,
+        8.0
+      ],
+      "sprite_px": [
+        143,
+        123
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "angled",
+      "source_crop": [
+        0,
+        683,
+        341,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "touring/aerodynamic",
+      "path": "sprites/touring/aerodynamic.png",
+      "source": "134801",
+      "cell": 8,
+      "footprint_m": [
+        2.5,
+        8.0
+      ],
+      "sprite_px": [
+        143,
+        125
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "angled",
+      "source_crop": [
+        341,
+        683,
+        683,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "touring/awning",
+      "path": "sprites/touring/awning.png",
+      "source": "134801",
+      "cell": 9,
+      "footprint_m": [
+        5.0,
+        7.0
+      ],
+      "sprite_px": [
+        163,
+        153
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "angled",
+      "source_crop": [
+        683,
+        683,
+        1024,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "statics/vintage",
+      "path": "sprites/statics/vintage.png",
+      "source": "143509",
+      "cell": 1,
+      "footprint_m": [
+        3.0,
+        9.0
+      ],
+      "sprite_px": [
+        48,
+        116
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "north-south",
+      "source_crop": [
+        0,
+        0,
+        341,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "statics/standard",
+      "path": "sprites/statics/standard.png",
+      "source": "143509",
+      "cell": 2,
+      "footprint_m": [
+        4.0,
+        12.0
+      ],
+      "sprite_px": [
+        64,
+        148
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "north-south",
+      "source_crop": [
+        341,
+        0,
+        683,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "statics/panoramic",
+      "path": "sprites/statics/panoramic.png",
+      "source": "143509",
+      "cell": 3,
+      "footprint_m": [
+        4.0,
+        12.0
+      ],
+      "sprite_px": [
+        64,
+        146
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "north-south",
+      "source_crop": [
+        683,
+        0,
+        1024,
+        341
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "statics/family",
+      "path": "sprites/statics/family.png",
+      "source": "143509",
+      "cell": 4,
+      "footprint_m": [
+        4.0,
+        12.0
+      ],
+      "sprite_px": [
+        64,
+        139
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "north-south",
+      "source_crop": [
+        0,
+        341,
+        341,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "statics/luxury",
+      "path": "sprites/statics/luxury.png",
+      "source": "143509",
+      "cell": 5,
+      "footprint_m": [
+        4.3,
+        13.0
+      ],
+      "sprite_px": [
+        69,
+        148
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "north-south",
+      "source_crop": [
+        341,
+        341,
+        683,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "statics/budget",
+      "path": "sprites/statics/budget.png",
+      "source": "143509",
+      "cell": 6,
+      "footprint_m": [
+        3.5,
+        10.0
+      ],
+      "sprite_px": [
+        56,
+        129
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "north-south",
+      "source_crop": [
+        683,
+        341,
+        1024,
+        683
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "statics/timber_lodge",
+      "path": "sprites/statics/timber_lodge.png",
+      "source": "143509",
+      "cell": 7,
+      "footprint_m": [
+        5.0,
+        12.0
+      ],
+      "sprite_px": [
+        80,
+        136
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "north-south",
+      "source_crop": [
+        0,
+        683,
+        341,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "statics/twin_lodge",
+      "path": "sprites/statics/twin_lodge.png",
+      "source": "143509",
+      "cell": 8,
+      "footprint_m": [
+        6.0,
+        14.0
+      ],
+      "sprite_px": [
+        96,
+        161
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "north-south",
+      "source_crop": [
+        341,
+        683,
+        683,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "statics/coastal_lodge",
+      "path": "sprites/statics/coastal_lodge.png",
+      "source": "143509",
+      "cell": 9,
+      "footprint_m": [
+        7.0,
+        15.0
+      ],
+      "sprite_px": [
+        112,
+        191
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "north-south",
+      "source_crop": [
+        683,
+        683,
+        1024,
+        1024
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_individual/semi_01",
+      "path": "sprites/residential_individual/semi_01.png",
+      "source": "091926",
+      "cell": null,
+      "footprint_m": [
+        14.0,
+        9.0
+      ],
+      "sprite_px": [
+        224,
+        160
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        1376,
+        768
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_individual/semi_02",
+      "path": "sprites/residential_individual/semi_02.png",
+      "source": "092115",
+      "cell": null,
+      "footprint_m": [
+        14.0,
+        9.0
+      ],
+      "sprite_px": [
+        224,
+        153
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        1376,
+        768
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_individual/detached_01",
+      "path": "sprites/residential_individual/detached_01.png",
+      "source": "092840",
+      "cell": null,
+      "footprint_m": [
+        10.0,
+        10.0
+      ],
+      "sprite_px": [
+        160,
+        171
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        1376,
+        768
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_individual/detached_02",
+      "path": "sprites/residential_individual/detached_02.png",
+      "source": "092848",
+      "cell": null,
+      "footprint_m": [
+        10.0,
+        10.0
+      ],
+      "sprite_px": [
+        160,
+        152
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        1376,
+        768
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_individual/bungalow_01",
+      "path": "sprites/residential_individual/bungalow_01.png",
+      "source": "093000",
+      "cell": null,
+      "footprint_m": [
+        12.0,
+        9.0
+      ],
+      "sprite_px": [
+        192,
+        139
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        1376,
+        768
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_individual/cottage_01",
+      "path": "sprites/residential_individual/cottage_01.png",
+      "source": "100219",
+      "cell": null,
+      "footprint_m": [
+        6.0,
+        8.0
+      ],
+      "sprite_px": [
+        96,
+        105
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        1376,
+        768
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_individual/bungalow_l_side",
+      "path": "sprites/residential_individual/bungalow_l_side.png",
+      "source": "101703",
+      "cell": null,
+      "footprint_m": [
+        12.0,
+        12.0
+      ],
+      "sprite_px": [
+        192,
+        191
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        1376,
+        768
+      ],
+      "edge_contact": false
+    },
+    {
+      "id": "residential_individual/bungalow_side",
+      "path": "sprites/residential_individual/bungalow_side.png",
+      "source": "114916",
+      "cell": null,
+      "footprint_m": [
+        9.0,
+        12.0
+      ],
+      "sprite_px": [
+        144,
+        179
+      ],
+      "anchor_normalized": [
+        0.5,
+        1
+      ],
+      "scale_status": "provisional",
+      "orientation": "south-facing candidate",
+      "source_crop": [
+        0,
+        0,
+        1376,
+        768
+      ],
+      "edge_contact": false
+    }
+  ]
+}
