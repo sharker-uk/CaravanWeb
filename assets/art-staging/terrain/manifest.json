@@ -1,0 +1,1026 @@
+{
+  "schema_version": "1.0.0",
+  "pack": "caravanweb-terrain-paths",
+  "tile_size": 16,
+  "pixel_art": true,
+  "filter": "nearest",
+  "license": "CC0-1.0",
+  "author": "OpenAI for CaravanWeb",
+  "files": {
+    "terrain": "terrain.png",
+    "paths": "paths.png"
+  },
+  "layers": {
+    "terrain": "opaque base tiles",
+    "paths": "transparent overlays above terrain"
+  },
+  "bitmask": {
+    "north": 1,
+    "east": 2,
+    "south": 4,
+    "west": 8
+  },
+  "terrain": {
+    "grass": [
+      {
+        "variant": 0,
+        "atlas": "terrain",
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 1,
+        "atlas": "terrain",
+        "x": 16,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 2,
+        "atlas": "terrain",
+        "x": 32,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 3,
+        "atlas": "terrain",
+        "x": 48,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      }
+    ],
+    "lush_grass": [
+      {
+        "variant": 0,
+        "atlas": "terrain",
+        "x": 0,
+        "y": 16,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 1,
+        "atlas": "terrain",
+        "x": 16,
+        "y": 16,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 2,
+        "atlas": "terrain",
+        "x": 32,
+        "y": 16,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 3,
+        "atlas": "terrain",
+        "x": 48,
+        "y": 16,
+        "w": 16,
+        "h": 16
+      }
+    ],
+    "dry_grass": [
+      {
+        "variant": 0,
+        "atlas": "terrain",
+        "x": 0,
+        "y": 32,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 1,
+        "atlas": "terrain",
+        "x": 16,
+        "y": 32,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 2,
+        "atlas": "terrain",
+        "x": 32,
+        "y": 32,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 3,
+        "atlas": "terrain",
+        "x": 48,
+        "y": 32,
+        "w": 16,
+        "h": 16
+      }
+    ],
+    "dirt": [
+      {
+        "variant": 0,
+        "atlas": "terrain",
+        "x": 0,
+        "y": 48,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 1,
+        "atlas": "terrain",
+        "x": 16,
+        "y": 48,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 2,
+        "atlas": "terrain",
+        "x": 32,
+        "y": 48,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 3,
+        "atlas": "terrain",
+        "x": 48,
+        "y": 48,
+        "w": 16,
+        "h": 16
+      }
+    ],
+    "gravel": [
+      {
+        "variant": 0,
+        "atlas": "terrain",
+        "x": 0,
+        "y": 64,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 1,
+        "atlas": "terrain",
+        "x": 16,
+        "y": 64,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 2,
+        "atlas": "terrain",
+        "x": 32,
+        "y": 64,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 3,
+        "atlas": "terrain",
+        "x": 48,
+        "y": 64,
+        "w": 16,
+        "h": 16
+      }
+    ],
+    "sand": [
+      {
+        "variant": 0,
+        "atlas": "terrain",
+        "x": 0,
+        "y": 80,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 1,
+        "atlas": "terrain",
+        "x": 16,
+        "y": 80,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 2,
+        "atlas": "terrain",
+        "x": 32,
+        "y": 80,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 3,
+        "atlas": "terrain",
+        "x": 48,
+        "y": 80,
+        "w": 16,
+        "h": 16
+      }
+    ],
+    "tarmac": [
+      {
+        "variant": 0,
+        "atlas": "terrain",
+        "x": 0,
+        "y": 96,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 1,
+        "atlas": "terrain",
+        "x": 16,
+        "y": 96,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 2,
+        "atlas": "terrain",
+        "x": 32,
+        "y": 96,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 3,
+        "atlas": "terrain",
+        "x": 48,
+        "y": 96,
+        "w": 16,
+        "h": 16
+      }
+    ],
+    "paving": [
+      {
+        "variant": 0,
+        "atlas": "terrain",
+        "x": 0,
+        "y": 112,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 1,
+        "atlas": "terrain",
+        "x": 16,
+        "y": 112,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 2,
+        "atlas": "terrain",
+        "x": 32,
+        "y": 112,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "variant": 3,
+        "atlas": "terrain",
+        "x": 48,
+        "y": 112,
+        "w": 16,
+        "h": 16
+      }
+    ]
+  },
+  "paths": {
+    "footpath": {
+      "width_px": 8,
+      "variants": {
+        "0": {
+          "atlas": "paths",
+          "x": 0,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": []
+        },
+        "1": {
+          "atlas": "paths",
+          "x": 16,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N"
+          ]
+        },
+        "2": {
+          "atlas": "paths",
+          "x": 32,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E"
+          ]
+        },
+        "3": {
+          "atlas": "paths",
+          "x": 48,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E"
+          ]
+        },
+        "4": {
+          "atlas": "paths",
+          "x": 64,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "S"
+          ]
+        },
+        "5": {
+          "atlas": "paths",
+          "x": 80,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "S"
+          ]
+        },
+        "6": {
+          "atlas": "paths",
+          "x": 96,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "S"
+          ]
+        },
+        "7": {
+          "atlas": "paths",
+          "x": 112,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "S"
+          ]
+        },
+        "8": {
+          "atlas": "paths",
+          "x": 128,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "W"
+          ]
+        },
+        "9": {
+          "atlas": "paths",
+          "x": 144,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "W"
+          ]
+        },
+        "10": {
+          "atlas": "paths",
+          "x": 160,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "W"
+          ]
+        },
+        "11": {
+          "atlas": "paths",
+          "x": 176,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "W"
+          ]
+        },
+        "12": {
+          "atlas": "paths",
+          "x": 192,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "S",
+            "W"
+          ]
+        },
+        "13": {
+          "atlas": "paths",
+          "x": 208,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "S",
+            "W"
+          ]
+        },
+        "14": {
+          "atlas": "paths",
+          "x": 224,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "S",
+            "W"
+          ]
+        },
+        "15": {
+          "atlas": "paths",
+          "x": 240,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "S",
+            "W"
+          ]
+        }
+      }
+    },
+    "gravel_path": {
+      "width_px": 8,
+      "variants": {
+        "0": {
+          "atlas": "paths",
+          "x": 0,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": []
+        },
+        "1": {
+          "atlas": "paths",
+          "x": 16,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N"
+          ]
+        },
+        "2": {
+          "atlas": "paths",
+          "x": 32,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E"
+          ]
+        },
+        "3": {
+          "atlas": "paths",
+          "x": 48,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E"
+          ]
+        },
+        "4": {
+          "atlas": "paths",
+          "x": 64,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "S"
+          ]
+        },
+        "5": {
+          "atlas": "paths",
+          "x": 80,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "S"
+          ]
+        },
+        "6": {
+          "atlas": "paths",
+          "x": 96,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "S"
+          ]
+        },
+        "7": {
+          "atlas": "paths",
+          "x": 112,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "S"
+          ]
+        },
+        "8": {
+          "atlas": "paths",
+          "x": 128,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "W"
+          ]
+        },
+        "9": {
+          "atlas": "paths",
+          "x": 144,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "W"
+          ]
+        },
+        "10": {
+          "atlas": "paths",
+          "x": 160,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "W"
+          ]
+        },
+        "11": {
+          "atlas": "paths",
+          "x": 176,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "W"
+          ]
+        },
+        "12": {
+          "atlas": "paths",
+          "x": 192,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "S",
+            "W"
+          ]
+        },
+        "13": {
+          "atlas": "paths",
+          "x": 208,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "S",
+            "W"
+          ]
+        },
+        "14": {
+          "atlas": "paths",
+          "x": 224,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "S",
+            "W"
+          ]
+        },
+        "15": {
+          "atlas": "paths",
+          "x": 240,
+          "y": 16,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "S",
+            "W"
+          ]
+        }
+      }
+    },
+    "tarmac_road": {
+      "width_px": 8,
+      "variants": {
+        "0": {
+          "atlas": "paths",
+          "x": 0,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": []
+        },
+        "1": {
+          "atlas": "paths",
+          "x": 16,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N"
+          ]
+        },
+        "2": {
+          "atlas": "paths",
+          "x": 32,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E"
+          ]
+        },
+        "3": {
+          "atlas": "paths",
+          "x": 48,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E"
+          ]
+        },
+        "4": {
+          "atlas": "paths",
+          "x": 64,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "S"
+          ]
+        },
+        "5": {
+          "atlas": "paths",
+          "x": 80,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "S"
+          ]
+        },
+        "6": {
+          "atlas": "paths",
+          "x": 96,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "S"
+          ]
+        },
+        "7": {
+          "atlas": "paths",
+          "x": 112,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "S"
+          ]
+        },
+        "8": {
+          "atlas": "paths",
+          "x": 128,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "W"
+          ]
+        },
+        "9": {
+          "atlas": "paths",
+          "x": 144,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "W"
+          ]
+        },
+        "10": {
+          "atlas": "paths",
+          "x": 160,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "W"
+          ]
+        },
+        "11": {
+          "atlas": "paths",
+          "x": 176,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "W"
+          ]
+        },
+        "12": {
+          "atlas": "paths",
+          "x": 192,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "S",
+            "W"
+          ]
+        },
+        "13": {
+          "atlas": "paths",
+          "x": 208,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "S",
+            "W"
+          ]
+        },
+        "14": {
+          "atlas": "paths",
+          "x": 224,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "S",
+            "W"
+          ]
+        },
+        "15": {
+          "atlas": "paths",
+          "x": 240,
+          "y": 32,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "S",
+            "W"
+          ]
+        }
+      }
+    },
+    "brick_path": {
+      "width_px": 8,
+      "variants": {
+        "0": {
+          "atlas": "paths",
+          "x": 0,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": []
+        },
+        "1": {
+          "atlas": "paths",
+          "x": 16,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N"
+          ]
+        },
+        "2": {
+          "atlas": "paths",
+          "x": 32,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E"
+          ]
+        },
+        "3": {
+          "atlas": "paths",
+          "x": 48,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E"
+          ]
+        },
+        "4": {
+          "atlas": "paths",
+          "x": 64,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "S"
+          ]
+        },
+        "5": {
+          "atlas": "paths",
+          "x": 80,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "S"
+          ]
+        },
+        "6": {
+          "atlas": "paths",
+          "x": 96,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "S"
+          ]
+        },
+        "7": {
+          "atlas": "paths",
+          "x": 112,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "S"
+          ]
+        },
+        "8": {
+          "atlas": "paths",
+          "x": 128,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "W"
+          ]
+        },
+        "9": {
+          "atlas": "paths",
+          "x": 144,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "W"
+          ]
+        },
+        "10": {
+          "atlas": "paths",
+          "x": 160,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "W"
+          ]
+        },
+        "11": {
+          "atlas": "paths",
+          "x": 176,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "W"
+          ]
+        },
+        "12": {
+          "atlas": "paths",
+          "x": 192,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "S",
+            "W"
+          ]
+        },
+        "13": {
+          "atlas": "paths",
+          "x": 208,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "S",
+            "W"
+          ]
+        },
+        "14": {
+          "atlas": "paths",
+          "x": 224,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "E",
+            "S",
+            "W"
+          ]
+        },
+        "15": {
+          "atlas": "paths",
+          "x": 240,
+          "y": 48,
+          "w": 16,
+          "h": 16,
+          "connections": [
+            "N",
+            "E",
+            "S",
+            "W"
+          ]
+        }
+      }
+    }
+  },
+  "notes": [
+    "Terrain variants are individually seamless at tile boundaries (no forced transition seams).",
+    "Paths use NESW connection bitmasks. Select connections from adjacent path cells of the same type.",
+    "All path sprites have transparent pixels outside their footprint.",
+    "Path center and arms are 8 pixels wide, with edge connections aligned across adjacent tiles.",
+    "Render using nearest-neighbor filtering and integer pixel positions at integer zoom for sharp pixels."
+  ]
+}
