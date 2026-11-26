@@ -30,6 +30,33 @@
         speed:speed=>{if([1,2,4].includes(Number(speed)))setSimulationSpeed(speed);},
         dayLength:minutes=>setDayLengthMinutes(Number(minutes)),
         select(entity){state.selectedEntity=entity;updateUI();},
+        canMarkSurface(x,y){
+            return Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&y>=0&&x<GRID_W&&y<GRID_H&&
+                (!CaravanConnectedWorld.usesFarmBoundary(state)||CaravanConnectedWorld.inFarm(x+.5,y+.5))&&
+                !window.CaravanLandParcels.inParcel(x,y)&&getTileProperties(x,y).buildable;
+        },
+        commissionSurfaces(marks){
+            if(!Array.isArray(marks)||!marks.length)return fail('Mark a route first.');
+            const unique=new Map();
+            for(const m of marks){
+                if(!m||!['road','path'].includes(m.surface)||!this.canMarkSurface(m.x,m.y))
+                    return fail('A marking is outside buildable farm ground or obstructed.');
+                unique.set(m.x+','+m.y,m);
+            }
+            const tiles=[...unique.values()],cost=tiles.reduce((n,m)=>n+(m.surface==='road'?20:10),0);
+            if(state.cash<cost)return fail('Not enough money for this route.');
+            const before=state.constructions.length;
+            for(const {x,y,surface} of tiles){
+                if(!Construction.queueConstruction(state,{kind:'surface',surface,tiles:[{x,y}],footprint:{x,y,w:1,h:1},blocksMovement:false})){
+                    state.constructions.length=before;return fail('Unable to schedule route.');
+                }
+            }
+            if(!spend(cost,'construction','Marked roads and paths')){
+                state.constructions.length=before;return {ok:false};
+            }
+            saveGame();changed();showToast('Construction started · ready in 2 in-game hours.');
+            return {ok:true};
+        },
         build(tool,start,end) {
             const inBounds=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&p.x>=0&&p.x<GRID_W&&p.y>=0&&p.y<GRID_H;
             const allowed=['select','clear','road','path','pitch_grass','pitch_gravel','build_tree',...Object.keys(FACILITY_BUILDINGS).map(t=>'build_'+t),...UTILITY_TYPES.map(t=>'utility_'+t),...Object.keys(StaticCaravans.ACCESSORIES).map(t=>'place_accessory_'+t)];
