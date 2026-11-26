@@ -87,10 +87,11 @@ function walkingPosition(){
  return walker;
 }
 const held=new Set();
-const surfaceMarks=new Map();
+let surfaceMarks=new Map();
 let surfaceTool='',spraying=false,lastMark=null,markState=null,actionMenuOpen=false;
 function getSurfaceMarks(){
- if(markState!==api.getState()){surfaceMarks.clear();markState=api.getState();lastMark=null;}
+ markState=api.getState();
+ surfaceMarks=new Map((markState.surfaceMarks||[]).map(m=>[m.x+','+m.y,m]));
  return [...surfaceMarks.values()].map(m=>({...m,valid:api.canMarkSurface(m.x,m.y)}));
 }
 function refreshMarking(){
@@ -101,9 +102,9 @@ function refreshMarking(){
  panel.querySelector('[data-route-controls]').hidden=!marksAvailable();
  const marks=getSurfaceMarks(),cost=marks.reduce((n,m)=>n+(m.surface==='road'?20:10),0);
  panel.querySelector('output').textContent=marks.length+' tiles · '+money(cost);
- panel.querySelector('[data-commission]').disabled=!marks.length||cost>api.getState().cash||marks.some(m=>!m.valid);
+ panel.querySelector('output').textContent=marks.length+' tiles · estimated '+money(cost)+' · marking is free';
  panel.querySelectorAll('[data-surface]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.surface===surfaceTool)));
- map.drawSurfaceMarks(walking?marks:[]);
+ map.drawSurfaceMarks(marks);
 }
 function marksAvailable(){return surfaceMarks.size>0||['road','path'].includes(surfaceTool);}
 function sprayAtPlayer(){
@@ -116,20 +117,19 @@ function sprayAtPlayer(){
   if(erase||api.canMarkSurface(p.x,lastMark.y))put(p.x,lastMark.y);
   else if(api.canMarkSurface(lastMark.x,p.y))put(lastMark.x,p.y);
  }
- put(p.x,p.y);lastMark=p;refreshMarking();
+ put(p.x,p.y);markState.surfaceMarks=[...surfaceMarks.values()];lastMark=p;refreshMarking();
 }
-function stopSpray(){spraying=false;lastMark=null;}
+function stopSpray(){if(spraying&&api)api.save();spraying=false;lastMark=null;}
 function installMarking(){
  const panel=document.createElement('div');panel.id='gp-marking';
  panel.style.cssText='position:absolute;bottom:105px;left:12px;z-index:6;background:#fff8e8;color:#294a36;padding:10px;border:1px solid #718c70;border-radius:10px;max-width:calc(100% - 24px)';
- panel.innerHTML='<div><button data-toggle-actions>E · Actions</button> <strong data-equipped></strong></div><div data-action-menu hidden><button data-surface="clear">Clear Trees/Bushes</button> <button data-surface="road">Mark Road</button> <button data-surface="path">Mark Path</button></div><small>R · Use selected action (hold to mark while walking)</small><div data-route-controls hidden><output></output> <button data-commission>Build route</button> <button data-clear>Clear markings</button><small> · Shift + R erases</small></div>';
+ panel.innerHTML='<div><button data-toggle-actions>E · Actions</button> <strong data-equipped></strong></div><div data-action-menu hidden><button data-surface="clear">Clear Trees/Bushes</button> <button data-surface="road">Mark Road</button> <button data-surface="path">Mark Path</button></div><small>R · Use selected action (hold to mark while walking)</small><div data-route-controls hidden><output></output> <span>Hire builder in ParkPad</span> <button data-clear>Clear markings</button><small> · Shift + R erases</small></div>';
  $('.map-shell').append(panel);
  panel.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.hasAttribute('data-toggle-actions')){actionMenuOpen=!actionMenuOpen;stopSpray();stopWalking();}
   if(b.hasAttribute('data-surface')){surfaceTool=b.dataset.surface;actionMenuOpen=false;stopSpray();stopWalking();}
-  if(b.hasAttribute('data-clear')){surfaceMarks.clear();stopSpray();}
-  if(b.hasAttribute('data-commission')&&api.commissionSurfaces(getSurfaceMarks()).ok){surfaceMarks.clear();stopSpray();map.invalidate();render(true);}
+  if(b.hasAttribute('data-clear')){api.getState().surfaceMarks=[];surfaceMarks.clear();stopSpray();api.save();}
   refreshMarking();$('#park-map').focus({preventScroll:true});
  });
  window.addEventListener('blur',stopSpray);
@@ -423,7 +423,7 @@ window.addEventListener('caravan:ready',()=>{
       api.getState().playerPath=[];
       api.save();
     }
-    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,getSurfaceMarks:()=>walking?getSurfaceMarks():[],onGround:target=>{
+    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,getSurfaceMarks:()=>getSurfaceMarks(),onGround:target=>{
         const st=api.getState();
         const nature=(window.CaravanLandParcels.inParcel(target.x,target.y)?window.CaravanExternalTerrain.getTile(st,target.x,target.y):st.tiles[target.y]?.[target.x])?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
