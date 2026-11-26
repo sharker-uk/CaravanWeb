@@ -35,6 +35,16 @@
                 (!CaravanConnectedWorld.usesFarmBoundary(state)||CaravanConnectedWorld.inFarm(x+.5,y+.5))&&
                 !window.CaravanLandParcels.inParcel(x,y)&&getTileProperties(x,y).buildable;
         },
+        surfaceQuote(surface){
+            const marks=(state.surfaceMarks||[]).filter(m=>m.surface===surface);
+            const cost=marks.length*(surface==='road'?20:10);
+            return {count:marks.length,cost,ok:marks.length>0&&state.cash>=cost&&marks.every(m=>this.canMarkSurface(m.x,m.y))};
+        },
+        hireBuilder(surface){
+            if(!['road','path'].includes(surface))return fail('Choose road or path construction.');
+            const marks=(state.surfaceMarks||[]).filter(m=>m.surface===surface);
+            return this.commissionSurfaces(marks);
+        },
         commissionSurfaces(marks){
             if(!Array.isArray(marks)||!marks.length)return fail('Mark a route first.');
             const unique=new Map();
@@ -54,7 +64,8 @@
             if(!spend(cost,'construction','Marked roads and paths')){
                 state.constructions.length=before;return {ok:false};
             }
-            saveGame();changed();showToast('Construction started · ready in 2 in-game hours.');
+            state.surfaceMarks=(state.surfaceMarks||[]).filter(m=>!unique.has(m.x+','+m.y));
+            saveGame();changed();showToast('Builder hired · ready in 2 in-game hours.');
             return {ok:true};
         },
         build(tool,start,end) {
