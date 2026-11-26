@@ -38,7 +38,87 @@
             : 0;
     }
 
+    const FIREWOOD_SALE = 'firewood sale';
+
+    function findStall(state) {
+        return state.landmarks.find(landmark => landmark.type === 'selling_stall');
+    }
+
+    function ensureFarmStall(state) {
+        if (state.parkPackageId) return;
+        const stall = findStall(state);
+        if (stall) {
+            state.landmarks = state.landmarks.map(item =>
+                item === stall ? {...item, interactable: true} : item);
+            return;
+        }
+        const house = state.landmarks.find(landmark => landmark.type === 'farmhouse' &&
+            landmark.name === 'Run-down farmhouse' && landmark.w === 6 && landmark.h === 5);
+        if (!house) return;
+
+        const reserved = [...state.pitches, ...state.facilities, ...state.landmarks,
+            ...state.constructions.map(job => job.footprint)];
+        const candidates = [];
+        for (let x = house.x; x < house.x + house.w; x++) {
+            candidates.push({x, y: house.y + house.h});
+        }
+        for (let y = house.y + house.h - 1; y >= house.y; y--) {
+            candidates.push({x: house.x - 1, y}, {x: house.x + house.w, y});
+        }
+        const site = candidates.find(({x, y}) => {
+            const tile = state.tiles[y]?.[x];
+            return tile?.terrain === 'grass' && !tile.nature && !tile.road && !tile.path &&
+                !Object.values(tile.utilities || {}).some(Boolean) &&
+                !(Math.floor(state.player?.x) === x && Math.floor(state.player?.y) === y) &&
+                !reserved.some(item => item.blocksBuilding !== false &&
+                    x >= item.x && x < item.x + item.w && y >= item.y && y < item.y + item.h);
+        });
+        if (site) state.landmarks.push({...site, w: 1, h: 1, type: 'selling_stall',
+            name: 'Farmhouse selling stall', blocksBuilding: true, blocksMovement: true, interactable: true});
+    }
+
+    function normalizeStall(raw) {
+        return {
+            stock: Number.isSafeInteger(raw?.stock) ? Math.max(0, raw.stock) : 0,
+            hasSold: raw?.hasSold === true
+        };
+    }
+
+    function transferFirewood(state, bundles) {
+        if (!findStall(state) || !Number.isSafeInteger(bundles) || !bundles ||
+            state.wood - bundles < 0 || state.firewoodStall.stock + bundles < 0 ||
+            !Number.isSafeInteger(state.firewoodStall.stock + bundles) ||
+            !Number.isSafeInteger(state.wood - bundles)) return false;
+        state.wood -= bundles;
+        state.firewoodStall.stock += bundles;
+        return true;
+    }
+
+    function todayFirewoodSales(state) {
+        return state.transactions.filter(entry =>
+            entry.day === state.day && entry.category === FIREWOOD_SALE).length;
+    }
+
+    function processFirewoodHour(state, recordTransaction, random = Math.random) {
+        const stall = state.firewoodStall;
+        // Open 09:00–18:00. The first stocked hour introduces the mechanic.
+        if (!stall.stock || state.hour < 9 || state.hour >= 18 || !findStall(state)) return false;
+        const reputation = Math.min(5, Math.max(1, state.rating));
+        const chance = (0.25 + (reputation - 1) * 0.10) * (state.weather === 'Rain' ? 0.4 : 1);
+        if (stall.hasSold && random() >= chance) return false;
+        if (!recordTransaction(TIMBER_SELL_PRICE, FIREWOOD_SALE, 'Sold 1 bundle of firewood')) return false;
+        stall.stock--;
+        stall.hasSold = true;
+        return true;
+    }
+
     const api = {
+        findStall,
+        ensureFarmStall,
+        normalizeStall,
+        transferFirewood,
+        todayFirewoodSales,
+        processFirewoodHour,
         TIMBER_SELL_PRICE,
         harvestYield,
         calculateBeauty,

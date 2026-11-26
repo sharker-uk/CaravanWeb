@@ -266,6 +266,10 @@ function renderDetail(state){
         actions+=actionButton('toggleFacility',f.isOperational===false?'Reopen facility':'Close facility');
     }else{
         body=`<p>${esc(({farmhouse:'The park office and home at the heart of your coastal business.',rusty_resales:'Browse the static caravan catalogue, compare trade-ins and arrange delivery to an eligible hardstanding pitch.',fiddl_shop:'Buy pitch accessories for your park. Choose an item here, then place it on the map.',job_centre:'Hire grounds staff or book a handyman from the Park tab.',for_sale:'Inspect expansion fields from Land & beach.'})[p.type]||'Part of your coastal park.')}</p>`;
+        if(p.type==='selling_stall'){
+            body='<p>Sell firewood to passing villagers at the farmhouse entrance.</p>';
+            actions=actionButton('firewood','Manage firewood stall',false,true);
+        }
         if(p.type==='rusty_resales')actions=actionButton('rusty','Browse static caravans',false,true);
         if(p.type==='fiddl_shop')actions=actionButton('fiddl','Browse accessories',false,true);
         if(p.type==='job_centre')actions='<button data-open-settings class="primary">Open staffing</button>';
@@ -399,6 +403,18 @@ document.addEventListener('keydown',e=>{
   if(key==='e'){e.preventDefault();if(!e.repeat){actionMenuOpen=!actionMenuOpen;stopSpray();stopWalking();refreshMarking();}return;}
   if(key==='escape'&&(actionMenuOpen||surfaceTool)){e.preventDefault();if(actionMenuOpen)actionMenuOpen=false;else surfaceTool='';stopSpray();refreshMarking();return;}
   if(actionMenuOpen)return;
+  if(key==='r'&&interaction?.stall){
+   e.preventDefault();
+   if(e.repeat)return;
+   if(!LivingParkMovement.adjacent(LivingParkMovement.tile(walkingPosition()),interaction)){
+    announce('Walk next to the firewood stall before interacting.');
+    return;
+   }
+   stopWalking();
+   interaction=null;
+   runAction('firewood');
+   return;
+  }
   if(key==='r'&&['road','path'].includes(surfaceTool)){e.preventDefault();if(!e.repeat){spraying=true;lastMark=null;api.getState().playerPath=[];sprayAtPlayer();}return;}
   if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();if(!held.has(key))map.followPlayer(walkingPosition());held.add(key);return;}
   if(key==='r'&&surfaceTool==='clear'){
@@ -435,7 +451,12 @@ window.addEventListener('caravan:ready',()=>{
       api.save();
     }
     map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,getSurfaceMarks:()=>getSurfaceMarks(),onGround:target=>{
-        const st=api.getState();
+        const st=api.getState(),stall=LandManagement.findStall(st);
+        if(stall?.x===target.x&&stall.y===target.y){
+            interaction={...target,stall:true};
+            if(walkTo(target,true))announce('Approach the firewood stall, then press R to stock it.');
+            return;
+        }
         const nature=(window.CaravanLandParcels.inParcel(target.x,target.y)?window.CaravanExternalTerrain.getTile(st,target.x,target.y):st.tiles[target.y]?.[target.x])?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
         if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press R with Clear Trees/Bushes selected.');
