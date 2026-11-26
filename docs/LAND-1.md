@@ -47,3 +47,5 @@ This is a **development-only purchase flow**, not the planned two-day conveyanci
 The grant and purchase UI are exposed only with the `landTest=1` URL parameter. A normal new game keeps the original starting cash and does not expose this instant external purchase route. The grant is applied only when creating a new farm, not on opening existing saves. Purchases use the existing economy ledger and the saved land ownership list.
 
 **Known limitation:** this checkpoint proves purchase, ledger and persistence. External construction, player clearing, utility connection and path/pitch placement are **not yet integrated** into the live 60×40 simulation. Do not describe the purchased South Field as fully playable yet. The field art remains a preview and its irregular boundary is not yet the authoritative ownership polygon.
+
+<!-- Preview rebuild requested 2026-11-26 for baseline gameplay verification. -->
