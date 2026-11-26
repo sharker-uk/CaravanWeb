@@ -27,6 +27,8 @@
         guests: [],
         guestArrivalProgress: 0,
         dailyGuestArrivals: 0,
+        bookingRequests: [],
+        bookingSequence: 0,
         facilities: [],
         landmarks: [],
         land: null,

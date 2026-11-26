@@ -136,7 +136,39 @@
             : null;
     }
 
+    function bookingOverlaps(bookings, pitchId, arrivalDay, departureDay) {
+        return bookings.some(booking => booking.status === 'approved' &&
+            booking.pitchId === pitchId && arrivalDay < booking.departureDay &&
+            departureDay > booking.arrivalDay);
+    }
+
+    function normalizeBookingRequests(raw) {
+        if (!Array.isArray(raw)) return [];
+        const seen = new Set();
+        return raw.filter(booking => {
+            const party = booking?.party;
+            if (!party || !['family', 'couple', 'friends', 'solo'].includes(party.type) ||
+                !Number.isInteger(party.adults) || party.adults < 1 ||
+                !Number.isInteger(party.children) || party.children < 0 ||
+                party.headcount !== party.adults + party.children || party.headcount > 20 ||
+                typeof booking.id !== 'string' || seen.has(booking.id) ||
+                !['tent', 'towed', 'static'].includes(booking.accommodation) ||
+                !['pending', 'approved'].includes(booking.status) ||
+                (booking.status === 'approved' && typeof booking.pitchId !== 'string') ||
+                !Number.isSafeInteger(booking.expiresAt) || booking.expiresAt < 0 ||
+                !Number.isSafeInteger(booking.arrivalDay) || booking.arrivalDay < 1 ||
+                !Number.isSafeInteger(booking.departureDay) ||
+                booking.departureDay <= booking.arrivalDay ||
+                booking.departureDay > booking.arrivalDay + 14 ||
+                !Number.isSafeInteger(booking.dailyIncome) || booking.dailyIncome < 1) return false;
+            seen.add(booking.id);
+            return true;
+        });
+    }
+
     const api = {
+        bookingOverlaps,
+        normalizeBookingRequests,
         getDemandPeriod,
         getDemandProfile,
         isArrivalTimeAllowed,

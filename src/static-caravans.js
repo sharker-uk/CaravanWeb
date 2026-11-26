@@ -219,6 +219,10 @@
         if (pitch.occupied || (state.guests || []).some(guest => guest.pitch === pitch)) {
             return {eligible: false, reason: 'This pitch is occupied by guests.'};
         }
+        if ((state.bookingRequests || []).some(request =>
+            request.status === 'approved' && request.pitchId === pitch.id)) {
+            return {eligible: false, reason: 'This pitch has a confirmed booking.'};
+        }
         const reservationMatchesOrder = options.orderId &&
             (pitch.deliveryReserved === options.orderId ||
                 pitch.replacementReserved === options.orderId);

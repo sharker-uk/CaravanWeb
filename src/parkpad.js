@@ -14,7 +14,7 @@
   ['build','🧱','Park Development','Pitches and facilities'],
   ['utilities','⚡','Utilities','Water, electricity and services'],
   ['finances','📊','Accounts','Your income and expenditure'],
-  ['guests','🧳','Guests','Bookings and visitor needs'],
+  ['guests','🧳','Bookings','Requests, upcoming arrivals and guests staying now'],
   ['settings','🏠','Park Office','Records, saves and settings'],
   ['jobs','📋','Job Centre','Advertise jobs and recruit staff']
  ];
@@ -28,6 +28,13 @@
  const state=()=>game()?.getState();
  const land=()=>window.CaravanLandParcels;
  function syncBalance(){const s=state();if(s)balance.textContent=money(Math.floor(s.cash));}
+ function syncBookingCount(){
+  const badge=document.getElementById('parkpad-booking-count');
+  if(!badge||!state())return;
+  const count=pendingBookingRequests().length;
+  const label=count? ` (${count} pending)`:'';
+  if(badge.textContent!==label)badge.textContent=label;
+ }
  function navigate(view){
   if(view!=='estate'){pendingSouthPurchase=false;purchaseFeedback='';}
   current=view;root.dataset.parkpadView=view;locationLabel.textContent=view==='home'?'Home':apps.find(a=>a[0]===view)?.[2]||view;
@@ -40,10 +47,10 @@
   if(view==='estate')renderEstate();
   if(view==='jobs')renderJobs();
   if(view==='contractors')renderContractors();
-  syncBalance();
+  syncBalance();syncBookingCount();
  }
  function renderHome(){
-  content.innerHTML=`<div class="parkpad-intro"><p class="parkpad-kicker">NORFOLK COAST · PARKPAD</p><h1>Your park. Your business.</h1><p>Local services and everything you need to run your caravan park.</p></div><div class="parkpad-app-grid">${apps.map(([id,icon,name,desc])=>`<button class="parkpad-app" data-parkpad-open="${id}"><span class="parkpad-icon">${icon}</span><strong>${name}</strong><small>${desc}</small></button>`).join('')}</div>`;
+  content.innerHTML=`<div class="parkpad-intro"><p class="parkpad-kicker">NORFOLK COAST · PARKPAD</p><h1>Your park. Your business.</h1><p>Local services and everything you need to run your caravan park.</p></div><div class="parkpad-app-grid">${apps.map(([id,icon,name,desc])=>`<button class="parkpad-app" data-parkpad-open="${id}"><span class="parkpad-icon">${icon}</span><strong>${name}${id==='guests'?'<span id="parkpad-booking-count"></span>':''}</strong><small>${desc}</small></button>`).join('')}</div>`;
  }
  let contractorKey='';
  function renderContractors(){
@@ -101,8 +108,9 @@
  document.querySelector('#parkpad-home-button').addEventListener('click',()=>navigate('home'));
  document.querySelector('#parkpad-close').addEventListener('click',()=>document.querySelector('#mg-walk-mode')?.click());
  document.querySelector('#parkpad-save').addEventListener('click',()=>{if(game()?.save())window.showToast?.('Park saved.');});
+ window.addEventListener('caravan:open-bookings',()=>navigate('guests'));
  window.addEventListener('caravan:ready',()=>{ready=true;navigate('home');});
- window.addEventListener('caravan:change',()=>{if(!ready)return;syncBalance();if(current==='estate'&&estateKey()!==lastEstateKey)renderEstate();if(current==='contractors'&&tabletOpen()){const s=state(),quotes=['road','path'].map(surface=>({surface,...game().surfaceQuote(surface)}));if(JSON.stringify([s.cash,quotes,s.constructions.filter(j=>j.kind==='surface').length])!==contractorKey)renderContractors();}});
+ window.addEventListener('caravan:change',()=>{if(!ready)return;syncBalance();syncBookingCount();if(current==='estate'&&estateKey()!==lastEstateKey)renderEstate();if(current==='contractors'&&tabletOpen()){const s=state(),quotes=['road','path'].map(surface=>({surface,...game().surfaceQuote(surface)}));if(JSON.stringify([s.cash,quotes,s.constructions.filter(j=>j.kind==='surface').length])!==contractorKey)renderContractors();}});
  // Existing management shell has already registered its own ready listener.
  // On a late injection the game may already exist.
  if(game()?.getState?.()){ready=true;navigate('home');}

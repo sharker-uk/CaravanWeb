@@ -168,6 +168,8 @@ let state = GameStateApi ? GameStateApi.createGameState() : {
     pitches: [],
     caravans: [],
     staticDeliveries: [],
+    bookingRequests: [],
+    bookingSequence: 0,
     accessoryInventory: {bbq: 0, patio: 0, firepit: 0, hot_tub: 0},
     staticAssetSequence: 0,
     guests: [],
@@ -296,6 +298,8 @@ function init() {
         if(data.externalTerrain?.[parcel.id])state.externalTerrain[parcel.id]=CaravanExternalTerrain.normalise(data.externalTerrain[parcel.id],parcel.id);
     }
     LandExpansion.syncLandmarks(state);
+    state.bookingRequests = data.bookingRequests;
+    state.bookingSequence = data.bookingSequence;
     state.staticDeliveries = Array.isArray(data.staticDeliveries) ? data.staticDeliveries : [];
     state.accessoryInventory = data.accessoryInventory || {bbq: 0, patio: 0, firepit: 0, hot_tub: 0};
     state.staticAssetSequence = Number.isInteger(data.staticAssetSequence)
@@ -453,6 +457,8 @@ function generateNewMap() {
     state.pitches = [];
     state.caravans = [];
     state.staticDeliveries = [];
+    state.bookingRequests = [];
+    state.bookingSequence = 0;
     state.accessoryInventory = {bbq: 0, patio: 0, firepit: 0, hot_tub: 0};
     state.staticAssetSequence = 0;
     state.guests = [];
@@ -1027,6 +1033,8 @@ function saveGame() {
             surfaceMarks: state.surfaceMarks || [],
             pitches: state.pitches,
             staticDeliveries: state.staticDeliveries,
+            bookingRequests: state.bookingRequests,
+            bookingSequence: state.bookingSequence,
             accessoryInventory: state.accessoryInventory,
             staticAssetSequence: state.staticAssetSequence,
             guests: state.guests.map(guest => ({
@@ -1212,46 +1220,149 @@ function onHourly() {
         }
     }
     if (pitchCapabilitiesChanged) refreshPitchCapabilities();
-    const candidate = createArrivalCandidate();
-    const demand = GuestParties.getDemandProfile(state.day);
-    const entertainmentAvailable = candidate
-        ? ParkServices.canUseEntertainment(state, candidate.party.headcount).valid
-        : false;
-    const bookingInterest = GuestParties.getBookingInterest(
-        candidate?.party, entertainmentAvailable
-    );
-    const passesInterestCheck = bookingInterest >= 1 || Math.random() < bookingInterest;
-    if (candidate && passesInterestCheck && Economy.shouldAcceptGuest(state, {
-        demandMultiplier: demand.multiplier,
-        eligible: true
-    })) {
-        candidate.party.spendingMultiplier =
-            GuestParties.getSpendingMultiplier(candidate.party, entertainmentAvailable);
-        candidate.bedtimeHour = GuestParties.getBedtimeHour(
-            candidate.party, entertainmentAvailable
-        );
-        arriveGuest(candidate);
-    }
+    processBookingArrivals();
+    createBookingRequest();
     saveGame();
 }
 
-function createArrivalCandidate() {
-    const party = GuestParties.createGuestParty(state.day);
-    const accommodations = ['tent', 'towed', 'static'].filter(accommodation =>
-        GuestParties.isArrivalTimeAllowed(accommodation, state.hour)
-    );
-    const candidates = PitchCapabilities.findCandidates(pitchCapabilityIndex, {
-        accommodations,
-        headcount: party.headcount,
-        requiredServices: ['toilets']
+function pendingBookingRequests() {
+    const now = Construction.getGameTimeMinutes(state);
+    return state.bookingRequests.filter(request => request.status === 'pending' && request.expiresAt > now);
+}
+
+function bookingSummary(request) {
+    const nights = request.departureDay - request.arrivalDay;
+    const {adults, children} = request.party;
+    const accommodation = {tent: 'Tent', towed: 'Touring caravan', static: 'Static caravan'}[request.accommodation];
+    return `${accommodation} · ${adults} adult${adults === 1 ? '' : 's'}${children ? ` + ${children} child${children === 1 ? '' : 'ren'}` : ''} · Day ${request.arrivalDay} · ${nights} night${nights === 1 ? '' : 's'} · £${request.dailyIncome * nights}`;
+}
+
+function bookingInboxMarkup() {
+    const pending = pendingBookingRequests();
+    const index = pending.length ? PitchCapabilities.rebuild(state) : null;
+    const arrivals = state.bookingRequests.filter(request => request.status === 'approved')
+        .sort((a, b) => a.arrivalDay - b.arrivalDay);
+    return `<h3>Booking requests</h3>${pending.length ? pending.map(request => {
+        const options = bookingPitchOptions(request, index);
+        return `<form class="booking-request" data-booking-request="${escapeHtml(request.id)}">
+            <p><strong>${escapeHtml(bookingSummary(request))}</strong></p>
+            <p>Respond by ${formatGameTime(request.expiresAt)}. Payment at check-in.</p>
+            ${options.length ? `<label>Pitch <select name="pitch">${options.map(pitch =>
+                `<option value="${escapeHtml(ensurePitchId(pitch))}">Pitch ${state.pitches.indexOf(pitch) + 1}</option>`
+            ).join('')}</select></label>` : '<p>No suitable free pitch for these dates. Check bookings, pitch access and working toilets.</p>'}
+            <button type="submit" ${options.length ? '' : 'disabled'}>Approve</button>
+            <button type="submit" data-decline>Decline</button>
+        </form>`;
+    }).join('') : '<p>No requests awaiting a response.</p>'}
+    <h3>Upcoming arrivals</h3>${arrivals.length ? `<ul>${arrivals.map(request => {
+        const pitch = state.pitches.findIndex(item => ensurePitchId(item) === request.pitchId);
+        return `<li>${escapeHtml(bookingSummary(request))} · ${pitch < 0 ? 'Pitch unavailable' : `Pitch ${pitch + 1}`}</li>`;
+    }).join('')}</ul>` : '<p>No confirmed arrivals.</p>'}`;
+}
+
+function handleBookingResponse(event) {
+    const form = event.target.closest('[data-booking-request]');
+    if (!form) return false;
+    event.preventDefault();
+    respondToBooking(form.dataset.bookingRequest,
+        event.submitter?.hasAttribute('data-decline') ? null : form.elements.pitch?.value);
+    return true;
+}
+
+function bookingPitchOptions(request, index = PitchCapabilities.rebuild(state)) {
+    const {accommodation, party, arrivalDay, departureDay} = request;
+    if (!FacilityOperations.canHostParty(state, accommodation, party.headcount).valid) return [];
+    return PitchCapabilities.findCandidates(index, {
+        accommodations: [accommodation], headcount: party.headcount, requiredServices: ['toilets']
+    }).map(({pitch}) => pitch).filter(pitch =>
+        isGuestAccommodationValid(pitch, accommodation, party.headcount) &&
+        ParkServices.getPitchServiceCheck(state, pitch, accommodation, party.headcount).valid &&
+        departureDay - arrivalDay <= ParkServices.getMaximumStayDays(state, pitch, accommodation, party.headcount) &&
+        !GuestParties.bookingOverlaps(state.bookingRequests, ensurePitchId(pitch), arrivalDay, departureDay));
+}
+
+function createBookingRequest() {
+    if (state.hour < 8 || state.hour >= 20 ||
+        state.bookingRequests.filter(request => request.status === 'pending').length >= 3) return;
+    const first = state.bookingSequence === 0;
+    const arrivalDay = state.day + 2;
+    const party = GuestParties.createGuestParty(arrivalDay);
+    const entertainment = ParkServices.canUseEntertainment(state, party.headcount).valid;
+    const interest = GuestParties.getBookingInterest(party, entertainment);
+    if (!first && interest < 1 && Math.random() >= interest) return;
+
+    const request = {party, arrivalDay, departureDay: arrivalDay + (first ? 1 : 1 + Math.floor(Math.random() * 3))};
+    const index = PitchCapabilities.rebuild(state);
+    const options = ['tent', 'towed', 'static'].flatMap(accommodation =>
+        bookingPitchOptions({...request, accommodation}, index).map(pitch => ({pitch, accommodation})));
+    if (!options.length) return;
+    if (!first && !Economy.shouldAcceptGuest(state, {
+        demandMultiplier: GuestParties.getDemandProfile(arrivalDay).multiplier, eligible: true
+    })) return;
+    if (first) state.dailyGuestArrivals++;
+
+    const {pitch, accommodation} = options[Math.floor(Math.random() * options.length)];
+    const van = accommodation === 'static' ? StaticCaravans.findInstalledVan(state, pitch) : null;
+    const baseRate = StaticCaravans.getModel(van?.modelId)?.dailyRent || getGuestDailyIncome(state.rating);
+    request.id = `request-${++state.bookingSequence}`;
+    request.accommodation = accommodation;
+    request.status = 'pending';
+    request.expiresAt = Math.floor(Construction.getGameTimeMinutes(state)) + 1440;
+    request.dailyIncome = Math.max(1, baseRate + Math.max(0, party.adults - 1) * 8 + party.children * 5);
+    state.bookingRequests.push(request);
+}
+
+function respondToBooking(id, pitchId) {
+    const request = state.bookingRequests.find(item => item.id === id && item.status === 'pending');
+    if (!request || request.expiresAt <= Construction.getGameTimeMinutes(state)) {
+        showToast('This booking request has expired.');
+        return false;
+    }
+    if (pitchId === null) {
+        state.bookingRequests = state.bookingRequests.filter(item => item !== request);
+        showToast('Booking declined.');
+    } else {
+        const pitch = bookingPitchOptions(request).find(item => ensurePitchId(item) === pitchId);
+        if (!pitch) {
+            showToast('That pitch is no longer available for this stay.');
+            return false;
+        }
+        request.pitchId = pitchId;
+        request.status = 'approved';
+        request.bookedDay = state.day;
+        showToast(`Booking confirmed · arriving Day ${request.arrivalDay}.`);
+    }
+    saveGame();
+    updateUI();
+    return true;
+}
+
+function processBookingArrivals() {
+    const now = Construction.getGameTimeMinutes(state);
+    state.bookingRequests = state.bookingRequests.filter(request => {
+        if (request.status === 'pending') return request.expiresAt > now;
+        if (request.arrivalDay > state.day) return true;
+        const lastHour = request.accommodation === 'static' ? 20 : 17;
+        if (request.arrivalDay < state.day || state.hour > lastHour) {
+            showToast(`Booking ${request.id} could not check in. No payment was taken.`);
+            return false;
+        }
+        if (!GuestParties.isArrivalTimeAllowed(request.accommodation, state.hour)) return true;
+        const pitch = state.pitches.find(item => ensurePitchId(item) === request.pitchId);
+        if (!pitch) return true;
+        const party = {...request.party};
+        const entertainment = ParkServices.canUseEntertainment(state, party.headcount).valid;
+        party.spendingMultiplier = GuestParties.getSpendingMultiplier(party, entertainment);
+        return !arriveGuest({
+            pitch, accommodation: request.accommodation, party, request,
+            bedtimeHour: GuestParties.getBedtimeHour(party, entertainment)
+        });
     });
-    if (!candidates.length) return null;
-    return {...candidates[Math.floor(Math.random() * candidates.length)], party};
 }
 
 function arriveGuest(candidate) {
     if (!candidate) return false;
-    const {pitch, accommodation, party} = candidate;
+    const {pitch, accommodation, party, request} = candidate;
     const facilityCheck = FacilityOperations.canHostParty(state, accommodation, party.headcount);
     const serviceCheck = ParkServices.getPitchServiceCheck(state, pitch, accommodation, party.headcount);
     if (!facilityCheck.valid || !serviceCheck.valid || pitch.occupied ||
@@ -1266,22 +1377,24 @@ function arriveGuest(candidate) {
     const maximumStayDays = accommodation === 'static'
         ? 14
         : ParkServices.getMaximumStayDays(state, pitch, accommodation, party.headcount);
-    const stayDaysRemaining = 1 + Math.floor(Math.random() * maximumStayDays);
+    const stayDaysRemaining = request ? request.departureDay - request.arrivalDay
+        : 1 + Math.floor(Math.random() * maximumStayDays);
+    if (stayDaysRemaining > maximumStayDays) return false;
     const installedVan = accommodation === 'static'
         ? StaticCaravans.findInstalledVan(state, pitch) : null;
     const baseDailyIncome = accommodation === 'static'
         ? StaticCaravans.getModel(installedVan?.modelId)?.dailyRent ||
             getGuestDailyIncome(ratingAtArrival)
         : getGuestDailyIncome(ratingAtArrival);
-    const dailyIncome = baseDailyIncome +
-        Math.max(0, party.adults - 1) * 8 + party.children * 5;
+    const dailyIncome = request?.dailyIncome ?? (baseDailyIncome +
+        Math.max(0, party.adults - 1) * 8 + party.children * 5);
     const booking = {
-        id: `booking-${state.day}-${state.pitches.indexOf(pitch)}-${state.dailyGuestArrivals}`,
-        bookedDay: state.day,
+        id: request?.id ?? `booking-${state.day}-${state.pitches.indexOf(pitch)}-${state.dailyGuestArrivals}`,
+        bookedDay: request?.bookedDay ?? state.day,
         arrivalDay: state.day,
         departureDay: state.day + stayDaysRemaining,
         status: 'checked-in',
-        source: 'demand',
+        source: request ? 'approved request' : 'demand',
         requiredFacilities: FacilityOperations.getRequiredFacilities(accommodation)
     };
     const assignedMembers = CharacterSystem.createPartyMembers(party, state.guestProfilePool);
@@ -1308,10 +1421,10 @@ function arriveGuest(candidate) {
         experienceScore: state.satisfaction,
         lastUtilityReliability: 100
     };
+    if (!recordTransaction(guest.totalIncome, 'guest payment', 'Guest stay paid at check-in')) return false;
     pitch.occupied = true;
     state.guests.push(guest);
     updateVisitorCount();
-    recordTransaction(guest.totalIncome, 'guest payment', 'Guest stay paid upfront');
     showToast(`${party.type} party (${party.headcount}) checked in for ${guest.stayDaysRemaining} day${guest.stayDaysRemaining === 1 ? '' : 's'} · £${guest.totalIncome} paid`);
     playSound(660, 'sine', 0.12);
     return true;
@@ -2230,6 +2343,11 @@ function updateUI() {
         return;
     }
     state.beauty = LandManagement.calculateBeauty(state.tiles, state.pitches, state.facilities);
+    const notice = document.getElementById('walkabout-bookings');
+    const pending = pendingBookingRequests();
+    notice.hidden = !pending.length && !state.bookingRequests.length;
+    const noticeLabel = pending.length ? `New booking request · ${pending.length} pending` : 'Bookings';
+    if (notice.textContent !== noticeLabel) notice.textContent = noticeLabel;
     document.getElementById('cash-display').innerText = Math.floor(state.cash).toLocaleString();
     const woodDisplay = document.getElementById('wood-display');
     if (woodDisplay) woodDisplay.innerText = Math.floor(state.wood).toLocaleString();
@@ -2462,7 +2580,9 @@ function sellSelectedCaravan() {
     const caravan = state.selectedEntity;
     if (!caravan) return;
     if (caravan.pitch.occupied || caravan.pitch.deliveryReserved ||
-        caravan.pitch.replacementReserved || caravan.pitch.constructionReserved) {
+        caravan.pitch.replacementReserved || caravan.pitch.constructionReserved ||
+        state.bookingRequests.some(request =>
+            request.status === 'approved' && request.pitchId === ensurePitchId(caravan.pitch))) {
         showToast('This static cannot be sold while its pitch is occupied or reserved.');
         return;
     }
@@ -2867,6 +2987,8 @@ window.CaravanWebParkAdapter = {
         state.facilities = facilities;
         state.vehicles = [];
         state.landmarks = [];
+        state.bookingRequests = [];
+        state.bookingSequence = 0;
         state.land = LandExpansion.createState(false);
         state.constructions = [];
         state.themeImages = images;
@@ -2921,6 +3043,15 @@ window.onload = () => {
     document.getElementById('sleep-confirm').addEventListener('click', sleepThroughNight);
     document.getElementById('sleep-cancel').addEventListener('click', dismissSleepPrompt);
     document.getElementById('vendor-close').addEventListener('click', closeVendor);
+    function showBookingInbox() {
+        openVendor('Bookings', () => {
+            document.getElementById('vendor-content').innerHTML = bookingInboxMarkup();
+        });
+    }
+    document.getElementById('walkabout-bookings')?.addEventListener('click', showBookingInbox);
+    document.getElementById('vendor-content').addEventListener('submit', event => {
+        if (handleBookingResponse(event)) showBookingInbox();
+    });
     document.getElementById('vendor-content').addEventListener('change', event => {
         if (event.target.id === 'rusty-pitch') renderRustyResales(event.target.value);
     });
