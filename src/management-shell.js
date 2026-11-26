@@ -143,11 +143,22 @@ function installMarking(){
   if(b.hasAttribute('data-clear')){api.getState().surfaceMarks=[];surfaceMarks.clear();stopSpray();api.save();}
   refreshMarking();$('#park-map').focus({preventScroll:true});
  });
- window.addEventListener('blur',stopSpray);
  refreshMarking();
 }
 const canWalk=(state,x,y)=>world.usesFarmBoundary(state)?world.tileWalkable(state,x,y,null,null):GameStateApi.getTileProperties(state,x,y).walkable;
 function stopWalking(){held.clear();if(api){api.getState().playerPath=[];}}
+function releaseWalkingInput(){
+ lastFrame=0;
+ stopWalking();
+ stopSpray();
+ if(actionMenuOpen){actionMenuOpen=false;refreshMarking();}
+}
+window.addEventListener('blur',releaseWalkingInput);
+window.addEventListener('pagehide',releaseWalkingInput);
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden)releaseWalkingInput();
+ else lastFrame=0;
+});
 function setTablet(open){
  if(!ready)return;
  walking=!open;actionMenuOpen=false;stopWalking();stopSpray();interaction=null;api.tool('select');
@@ -177,7 +188,7 @@ function walkTo(target,approach=false){
 }
 function walkingFrame(timestamp){
  requestAnimationFrame(walkingFrame);
- if(!ready){lastFrame=timestamp;return;}
+ if(!ready||document.hidden){lastFrame=0;return;}
  const dt=Math.min((timestamp-(lastFrame||timestamp))/1000,.05);lastFrame=timestamp;
  if(!walking||actionMenuOpen||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  const state=api.getState();
@@ -385,9 +396,8 @@ $('#mg-panel').addEventListener('change',e=>{if(e.target.id==='mg-day-length'){a
 $('#mg-import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>5*1024*1024)throw new Error('Choose a game save under 5 MB.');const result=api.importSave(await file.text());if(result.ok){stopWalking();interaction=null;app.selected=null;app.route=false;map.invalidate();resetFilters();if(walking)map.followPlayer(walkingPosition());}}catch(error){announce(error.message);}finally{e.target.value='';render(true);}});
 window.addEventListener('hashchange',()=>{const id=new URLSearchParams(location.hash.slice(1)).get('place');select(id);});
 document.addEventListener('keyup',e=>{held.delete(e.key.toLowerCase());if(e.key.toLowerCase()==='r')stopSpray();});
-window.addEventListener('blur',()=>held.clear());
 document.addEventListener('keydown',e=>{
- if(!ready)return;
+ if(!ready||document.hidden)return;
  const key=e.key.toLowerCase();
  const editing=e.target.closest('input,select,textarea,[contenteditable="true"]');
  if(key==='tab'&&!editing&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&!document.querySelector('dialog[open]')&&$('#vendor-dialog').hidden){
