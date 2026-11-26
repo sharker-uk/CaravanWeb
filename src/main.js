@@ -145,7 +145,8 @@ const PALETTE = {
     tree: '#1e8449'
 };
 const STARTING_LANDMARKS = [
-    {type: 'farmhouse', name: 'Run-down farmhouse', x: 10, y: 18, w: 6, h: 5, blocksBuilding: true, blocksMovement: true, interactable: true},
+    {type: 'farmhouse', name: 'Run-down farmhouse', x: 8, y: 18, w: 6, h: 5, blocksBuilding: true, blocksMovement: true, interactable: true},
+    {type: 'selling_stall', name: 'Farmhouse selling stall', x: 9, y: 23, w: 1, h: 1, blocksBuilding: true, blocksMovement: true, interactable: false},
     {type: 'for_sale', name: 'Land for sale', x: 29, y: 12, w: 17, h: 16, blocksBuilding: true, blocksMovement: false, interactable: false}
 ];
 
@@ -457,6 +458,7 @@ function generateNewMap() {
     state.guests = [];
     state.facilities = [];
     state.landmarks = STARTING_LANDMARKS.map(landmark => ({...landmark}));
+    state.surfaceMarks = [];
     state.land = LandExpansion.createState(true);
     state.externalTerrain = {};
     LandExpansion.syncLandmarks(state);
@@ -1636,9 +1638,10 @@ function getTileBounds(tiles) {
 }
 
 function startConstruction(kind, payload, footprint, cost, description, category = 'construction') {
+    const duration=kind==='surface'?Construction.surfaceDuration(payload.surface,payload.tiles.length):['pitch','pitches'].includes(kind)?1440:120;
     const job = Construction.queueConstruction(state, {
         kind, ...payload, footprint, blocksMovement: true
-    });
+    },duration);
     if (!job) {
         console.error('Unable to queue construction.', {kind, payload, footprint});
         showToast('❌ Construction could not be scheduled.');
@@ -1653,7 +1656,7 @@ function startConstruction(kind, payload, footprint, cost, description, category
         pitch.constructionReserved = true;
     }
     saveGame();
-    showToast('Construction started · ready in 2 in-game hours.');
+    showToast('Construction started · ready in '+(duration/60)+' in-game hours.');
     return true;
 }
 
