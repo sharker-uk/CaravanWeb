@@ -254,6 +254,12 @@ root.ManagementArt={tree,building};
             if(focusedId)labels.querySelector(`[data-place="${CSS.escape(focusedId)}"]`)?.focus({preventScroll:true});
         }
         let playerFacing='down',lastPlayerPosition=null,lastSpriteFrame='',playerMotionSince=0;
+        function drawSurfaceMarks(marks){
+            let layer=world.querySelector('#gp-surface-marks');
+            if(!layer){world.insertAdjacentHTML('beforeend','<g id="gp-surface-marks" pointer-events="none"></g>');layer=world.querySelector('#gp-surface-marks');}
+            layer.innerHTML=marks.map(({x,y,surface,valid})=>`<rect x="${x*unit+2}" y="${y*unit+2}" width="${unit-4}" height="${unit-4}" rx="3" fill="${valid?'#ffffff22':'#d43b4166'}" stroke="${surface==='road'?'#fff':'#f5d76e'}" stroke-width="2" stroke-dasharray="4 3"/>`).join('');
+            const player=world.querySelector('#living-park-player');if(player)world.append(player);
+        }
         function updatePlayer(p){
             if(!p)return;
             // Use the same avatar renderer as the walking game, rather than a
@@ -284,6 +290,7 @@ root.ManagementArt={tree,building};
             game=nextGame;places=nextPlaces;selected=options.selected;visibleIds=options.visibleIds||null;route=options.route||null;tool=options.tool||'select';layers={...layers,...options.layers};
             const key=JSON.stringify([game.tiles,places.map(p=>[p.id,p.status,p.guest?.accommodation,p.van?.modelId,p.entity.decking,p.entity.accessories]),game.constructions,game.externalTerrain,game.land?.ownedPlotIds,game.guests.map(g=>[g.position,g.party?.headcount]),[...visibleIds||[]],layers,tool]);
             if(key!==worldKey){scene.innerHTML=worldMarkup();worldKey=key;}
+            drawSurfaceMarks(callbacks.getSurfaceMarks?.()||[]);
             updatePlayer(callbacks.getWalker?.() || game.player);
             // Keep focused map controls alive when only time / condition values change.
             const pinKey=JSON.stringify(places.map(p=>[p.id,p.status,p.id===selected,!visibleIds||visibleIds.has(p.id)]));
@@ -316,7 +323,7 @@ root.ManagementArt={tree,building};
         labels.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&e.target.dataset.place){e.preventDefault();e.stopPropagation();callbacks.onSelect(e.target.dataset.place);}});
         new ResizeObserver(()=>{dimensions();cameraChanged();}).observe(svg);
         dimensions();
-        const api={render,updatePlayer,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},canWalk:(state,x,y)=>W.canOccupy(state,x,y,villageData,placement,root.GameState.canOccupyPlayer),
+        const api={render,updatePlayer,drawSurfaceMarks,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},canWalk:(state,x,y)=>W.canOccupy(state,x,y,villageData,placement,root.GameState.canOccupyPlayer),
             followPlayer:(p,dt)=>{const framing=root.CaravanWorldCamera,target=framing.target(p,{width,height});
                 const distance=Math.hypot(camera.x-target.x,camera.y-target.y);
                 const next=dt===undefined||distance<.1?target:framing.smooth(camera,target,dt);
