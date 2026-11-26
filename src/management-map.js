@@ -56,6 +56,7 @@ root.ManagementArt={tree,building};
             const accessories=(p.entity.accessories||[]).map(item=>`<rect x="${item.x*unit+4}" y="${item.y*unit+4}" width="${item.w*unit-8}" height="${item.h*unit-8}" rx="4" fill="${item.type==='hot_tub'?'#739a97':'#ba9b70'}" stroke="#798d6b"/>`).join('');
             return lot+decking+unitArt+accessories;
         }
+        if(p.type==='selling_stall'){const x=p.x*unit,y=p.y*unit;return `<g pointer-events="none"><rect x="${x+2}" y="${y+7}" width="16" height="11" rx="1" fill="#996a3d" stroke="#60432b"/><path d="M${x+1} ${y+7}l3 -5h12l3 5z" fill="#d5b47a" stroke="#60432b"/><path d="M${x+5} ${y+10}h10" stroke="#e5cba1" stroke-width="2"/></g>`;}
         const facility={farmhouse:'office',reception:'reception',washrooms:'toilets',toilets:'toilets',showers:'showers',laundry:'laundry',shop:'shop',pub:'clubhouse',restaurant:'restaurant',arcade:'arcade',entertainment_space:'clubhouse',pool:'pool_building',activity_centre:'gym',entertainment_hub:'clubhouse',maintenance:'maintenance',barn:'storage_barn',rusty:'workshop'}[p.type];
         if(facility)return `<image href="assets/art-staging/accommodation/sprites/${facility}_standard.png" x="${p.x*unit}" y="${p.y*unit}" width="${p.w*unit}" height="${p.h*unit}" preserveAspectRatio="xMidYMax meet" pointer-events="none"/>`;
         return A.building(obj);
