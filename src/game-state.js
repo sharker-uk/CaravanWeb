@@ -6,6 +6,7 @@
         cash: 1500,
         initialBalance: 1500,
         wood: 0,
+        firewoodStall: {stock: 0, hasSold: false},
         beauty: 50,
         tools: {axe: true, shovel: false},
         transactions: [],

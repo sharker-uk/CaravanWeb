@@ -7,7 +7,7 @@
     const rules = root.GameRules || (typeof require === 'function' ? require('./game-rules.js') : null);
     const land = root.LandExpansion || (typeof require === 'function' ? require('./land-expansion.js') : null);
     const names = {toilets:'Toilet block',showers:'Shower block',laundry:'Laundry',shop:'Park shop',playground:'Playground',pub:'Pub',restaurant:'Restaurant',arcade:'Arcade',entertainment_space:'Events space',pool:'Pool',activity_centre:'Activity centre',entertainment_hub:'Entertainment hub'};
-    const symbols = {toilets:'WC',showers:'SH',laundry:'L',shop:'S',playground:'P',pub:'PB',restaurant:'R',arcade:'A',pool:'PL',farmhouse:'H',rusty_resales:'R',fiddl_shop:'F',job_centre:'J',for_sale:'£'};
+    const symbols = {toilets:'WC',showers:'SH',laundry:'L',shop:'S',playground:'P',pub:'PB',restaurant:'R',arcade:'A',pool:'PL',farmhouse:'H',firewood_stall:'£',rusty_resales:'R',fiddl_shop:'F',job_centre:'J',for_sale:'£'};
     function getPlaces(state) {
         const index = capabilities.rebuild(state);
         const pitches = (state.pitches || []).map((pitch, i) => {

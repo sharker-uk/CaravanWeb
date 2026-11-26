@@ -1,5 +1,7 @@
 (function (globalScope) {
-    const CURRENT_SAVE_SCHEMA = 14;
+    const CURRENT_SAVE_SCHEMA = 15;
+    const timber = globalScope.LandManagement ||
+        (typeof require === 'function' ? require('./land-management.js') : null);
     const landApi = globalScope.LandExpansion || (typeof require === 'function' ? require('./land-expansion.js') : null);
     const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
     const facilityApi = globalScope.FacilityOperations ||
@@ -409,6 +411,7 @@
             ...saveData,
             schemaVersion: CURRENT_SAVE_SCHEMA,
             cash: Number.isFinite(saveData.cash) ? saveData.cash : 1500,
+            firewoodStall: timber.normalizeStall(saveData.firewoodStall),
             wood: Number.isFinite(saveData.wood) ? Math.max(0, Math.floor(saveData.wood)) : 0,
             tools: {
                 axe: true,
@@ -484,6 +487,7 @@
 
         migrated.land = landApi.restoreState(migrated);
         if (Number(saveData.schemaVersion || 0) < 14) migrateFarmLayout(migrated);
+        timber.ensureFarmStall(migrated);
         landApi.syncLandmarks(migrated);
         return migrated;
     }

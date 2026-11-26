@@ -185,6 +185,10 @@ function renderDetail(state){
         actions+=actionButton('toggleFacility',f.isOperational===false?'Reopen facility':'Close facility');
     }else{
         body=`<p>${esc(({farmhouse:'The park office and home at the heart of your coastal business.',rusty_resales:'Browse the static caravan catalogue, compare trade-ins and arrange delivery to an eligible hardstanding pitch.',fiddl_shop:'Buy pitch accessories for your park. Choose an item here, then place it on the map.',job_centre:'Hire grounds staff or book a handyman from the Park tab.',for_sale:'Inspect expansion fields from Land & beach.'})[p.type]||'Part of your coastal park.')}</p>`;
+        if(p.type==='firewood_stall'){
+            body='<p>Sell firewood to passing villagers at the farmhouse entrance.</p>';
+            actions=actionButton('firewood','Manage firewood stall',false,true);
+        }
         if(p.type==='rusty_resales')actions=actionButton('rusty','Browse static caravans',false,true);
         if(p.type==='fiddl_shop')actions=actionButton('fiddl','Browse accessories',false,true);
         if(p.type==='job_centre')actions='<button data-open-settings class="primary">Open staffing</button>';
@@ -232,7 +236,7 @@ function renderPanel(state){
         html+=transactions.length?`<div class="table-scroll"><table><thead><tr><th>Day</th><th>Transaction</th><th>Amount</th><th>Balance</th></tr></thead><tbody>${transactions.map(t=>`<tr><td>${t.day}</td><td>${esc(t.description)}<small>${esc(title(t.category))}</small></td><td class="${t.amount<0?'negative':'positive'}">${money(t.amount)}</td><td>${money(t.balance)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="panel-empty"><h3>A clean set of books.</h3><p>Your first building project or guest booking will appear here. The starting scenario includes its opening assets.</p></div>';
     }
     if(app.view==='settings'){
-        html=panelHeader('THE PARK OFFICE','Keep the park ticking.','Staff, tools, time settings and a safe place for your progress.')+`<div class="settings-grid"><article><h3>Your team</h3><p>${state.groundsStaff?'Grounds staff are cleaning and maintaining toilets for £1 per game hour.':'Grounds staff unlock at 4 facilities and 6 pitches. Hiring costs £250, then £1 per game hour.'}</p><button class="primary" data-action="grounds" ${!state.groundsStaff&&(state.facilities.length<4||state.pitches.length<6||state.cash<250)?'disabled':''}>${state.groundsStaff?'Dismiss grounds staff':'Hire grounds staff · £250'}</button><p>A handyman can cover urgent repairs for 24 game hours.</p><button data-action="handyman" ${state.handymanContractHoursRemaining>0||state.cash<100?'disabled':''}>${state.handymanContractHoursRemaining>0?'Handyman booked · '+state.handymanContractHoursRemaining+'h left':'Book handyman · £100'}</button></article><article><h3>Tools & timber</h3><button data-action="fiddl">Browse pitch accessories</button><p>The shovel unlocks hardstanding preparation and utility trenching.</p><button data-action="shovel" ${state.tools.shovel||state.cash<350?'disabled':''}>${state.tools.shovel?'Shovel owned':'Buy shovel · £350'}</button><p>${state.wood} timber in storage.</p><button data-action="timber" ${state.wood<=0?'disabled':''}>Sell timber · ${money(LandManagement.getTimberSaleValue(state.wood))}</button><h3>Game pace</h3><label for="mg-day-length">Day length setting: ${state.dayLengthMinutes} min</label><input id="mg-day-length" type="range" min="3" max="60" value="${state.dayLengthMinutes}"></article><article><h3>Your save</h3><p>Progress is saved in this browser. Export a game file to keep a portable copy or move to another device.</p><button class="primary" id="mg-export">Export game save</button><button id="mg-import">Import game save</button><button id="mg-export-backup" ${!api.getBackup()?'disabled':''}>Export recovery backup</button><p>A previous-save backup is created before loading a file or starting another scenario.</p></article><article><h3>A different perspective</h3><p>The classic avatar view uses the same simulation and local save. Your management camera is stored separately.</p><a class="button-link" href="walkabout.html">Open classic walkabout</a><h3>Start another park</h3><p>Choose a new farm or a developed park. Your current park is kept as a recovery backup.</p><button id="mg-new-park">Choose a new scenario</button></article></div>`;
+        html=panelHeader('THE PARK OFFICE','Keep the park ticking.','Staff, tools, time settings and a safe place for your progress.')+`<div class="settings-grid"><article><h3>Your team</h3><p>${state.groundsStaff?'Grounds staff are cleaning and maintaining toilets for £1 per game hour.':'Grounds staff unlock at 4 facilities and 6 pitches. Hiring costs £250, then £1 per game hour.'}</p><button class="primary" data-action="grounds" ${!state.groundsStaff&&(state.facilities.length<4||state.pitches.length<6||state.cash<250)?'disabled':''}>${state.groundsStaff?'Dismiss grounds staff':'Hire grounds staff · £250'}</button><p>A handyman can cover urgent repairs for 24 game hours.</p><button data-action="handyman" ${state.handymanContractHoursRemaining>0||state.cash<100?'disabled':''}>${state.handymanContractHoursRemaining>0?'Handyman booked · '+state.handymanContractHoursRemaining+'h left':'Book handyman · £100'}</button></article><article><h3>Tools & timber</h3><button data-action="fiddl">Browse pitch accessories</button><p>The shovel unlocks hardstanding preparation and utility trenching.</p><button data-action="shovel" ${state.tools.shovel||state.cash<350?'disabled':''}>${state.tools.shovel?'Shovel owned':'Buy shovel · £350'}</button><p>${state.wood} timber in storage.</p>${LandManagement.findStall(state)?'<button data-action="firewood">Manage firewood stall</button>':''}<h3>Game pace</h3><label for="mg-day-length">Day length setting: ${state.dayLengthMinutes} min</label><input id="mg-day-length" type="range" min="3" max="60" value="${state.dayLengthMinutes}"></article><article><h3>Your save</h3><p>Progress is saved in this browser. Export a game file to keep a portable copy or move to another device.</p><button class="primary" id="mg-export">Export game save</button><button id="mg-import">Import game save</button><button id="mg-export-backup" ${!api.getBackup()?'disabled':''}>Export recovery backup</button><p>A previous-save backup is created before loading a file or starting another scenario.</p></article><article><h3>A different perspective</h3><p>The classic avatar view uses the same simulation and local save. Your management camera is stored separately.</p><a class="button-link" href="walkabout.html">Open classic walkabout</a><h3>Start another park</h3><p>Choose a new farm or a developed park. Your current park is kept as a recovery backup.</p><button id="mg-new-park">Choose a new scenario</button></article></div>`;
     }
     if(html!==lastPanel){replaceKeepingFocus($('#mg-panel'),html);lastPanel=html;}
 }
@@ -307,10 +311,15 @@ document.addEventListener('keydown',e=>{
   if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();held.add(key);return;}
   if(key==='e'&&interaction){
    e.preventDefault();const p=LivingParkMovement.tile(walkingPosition());
-   if(LivingParkMovement.adjacent(p,interaction)&&['tree','debris'].includes(api.getState().tiles[interaction.y]?.[interaction.x]?.nature)){
+   if(!LivingParkMovement.adjacent(p,interaction)){
+    announce('Walk next to the target before interacting.');
+   }else if(interaction.stall){
+    runAction('firewood');
+    interaction=null;
+   }else if(['tree','debris'].includes(api.getState().tiles[interaction.y]?.[interaction.x]?.nature)){
     const result=api.build('clear',interaction,interaction);
     if(result.ok){interaction=null;map.invalidate();render(true);}
-   }else announce('Walk next to the tree or debris before interacting.');
+   }
   }
   return;
  }
@@ -331,7 +340,13 @@ window.addEventListener('caravan:ready',()=>{
       api.save();
     }
     map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,onGround:target=>{
-        const nature=api.getState().tiles[target.y]?.[target.x]?.nature;
+        const state=api.getState(),stall=LandManagement.findStall(state);
+        if(stall?.x===target.x&&stall.y===target.y){
+            interaction={...target,stall:true};
+            if(walkTo(target,true))announce('Approach the firewood stall, then press E to stock it.');
+            return;
+        }
+        const nature=state.tiles[target.y]?.[target.x]?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
         if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press E to clear it.');
     },onSelect:id=>{if(!walking)select(id);},onBuild:(tool,start,end)=>{if(walking)return;api.build(tool,start,end);$('#mg-build-hint').dataset.preview='';map.invalidate();render(true);},onPreview:p=>{$('#mg-build-hint').dataset.preview='true';$('#mg-build-hint').innerHTML=`<strong>${esc(p.label)}${p.cost===null?'':' · '+money(p.cost)}</strong><span>Release to build · Subject to game placement checks</span><button id="mg-cancel-tool">Cancel</button>`;}});

@@ -5,6 +5,7 @@ function tree(x,y,r=12,shade=0){const cs=['#68875b','#738f61','#809968','#5c7d55
 function building(p,hero=false){
  const x=p.x-p.w/2,y=p.y-p.h/2,w=p.w,h=p.h;
  const fill=p.type==='static'?({Basic:'#d5cfb8',Silver:'#d8ddd0',Gold:'#d7c9aa',Bronze:'#bdc7ad',Platinum:'#e6e2d4'}[p.tier]):p.type==='touring'?'#ecebd9':'#9a9a7a';
+ if(p.id==='firewood_stall')return `<g><rect x="${p.x-7}" y="${p.y-5}" width="14" height="13" rx="1" fill="#765232"/><path d="M${p.x-9} ${p.y-4}l3-6h12l3 6Z" fill="#d7b478" stroke="#765232"/><text x="${p.x}" y="${p.y+5}" text-anchor="middle" font-size="9" fill="#fff4dc">£</text></g>`;
  if(p.id==='pond')return `<ellipse cx="${p.x}" cy="${p.y}" rx="64" ry="42" fill="#8aab85"/><ellipse cx="${p.x}" cy="${p.y-3}" rx="52" ry="32" fill="#7fa7a0" stroke="#acc19a" stroke-width="4"/><path d="m${p.x-25} ${p.y-6}q15-6 30 0m-12 16h20" fill="none" stroke="#b8cdc0" stroke-width="2"/>`;
  if(p.id==='beach')return `<g stroke="#8b9070" stroke-width="3"><path d="M${x} ${y}v25m${x+35} ${y}v25m-35-15h35m-35-9h35"/></g>`;
  if(p.id==='playground')return `<rect x="${x-6}" y="${y-6}" width="${w+12}" height="${h+12}" rx="9" fill="#c9bc92"/><path d="m${x+10} ${y+34} 13-37 13 37m-26-30h45m-8-7 9 37m-16-30v19m-10-19v19" stroke="#9e7755" stroke-width="3" fill="none"/><path d="M${x+27} ${y+22}h12" stroke="#667e60" stroke-width="5"/>`;
