@@ -87,11 +87,62 @@ function walkingPosition(){
  return walker;
 }
 const held=new Set();
+const surfaceMarks=new Map();
+let surfaceTool='',sprayPointer=null,lastMark=null,markState=null;
+function getSurfaceMarks(){
+ if(markState!==api.getState()){surfaceMarks.clear();markState=api.getState();lastMark=null;}
+ return [...surfaceMarks.values()].map(m=>({...m,valid:api.canMarkSurface(m.x,m.y)}));
+}
+function refreshMarking(){
+ const panel=$('#gp-marking');if(!panel)return;
+ panel.hidden=!walking;
+ const marks=getSurfaceMarks(),cost=marks.reduce((n,m)=>n+(m.surface==='road'?20:10),0);
+ panel.querySelector('output').textContent=marks.length+' tiles · '+money(cost);
+ panel.querySelector('[data-commission]').disabled=!marks.length||cost>api.getState().cash||marks.some(m=>!m.valid);
+ panel.querySelectorAll('[data-surface]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.surface===surfaceTool)));
+ map.drawSurfaceMarks(walking?marks:[]);
+}
+function sprayAtPlayer(){
+ if(!surfaceTool)return;
+ getSurfaceMarks();
+ const p=LivingParkMovement.tile(walkingPosition());
+ const erase=held.has('shift');
+ const put=(x,y)=>{const key=x+','+y;if(erase)surfaceMarks.delete(key);else if(api.canMarkSurface(x,y))surfaceMarks.set(key,{x,y,surface:surfaceTool});};
+ if(lastMark&&lastMark.x!==p.x&&lastMark.y!==p.y){
+  if(erase||api.canMarkSurface(p.x,lastMark.y))put(p.x,lastMark.y);
+  else if(api.canMarkSurface(lastMark.x,p.y))put(lastMark.x,p.y);
+ }
+ put(p.x,p.y);lastMark=p;refreshMarking();
+}
+function stopSpray(){sprayPointer=null;lastMark=null;}
+function installMarking(){
+ const panel=document.createElement('div');panel.id='gp-marking';
+ panel.style.cssText='position:absolute;bottom:105px;left:12px;z-index:6;background:#fff8e8;color:#294a36;padding:10px;border:1px solid #718c70;border-radius:10px;max-width:calc(100% - 24px)';
+ panel.innerHTML='<div><button data-surface="road">Road £20</button> <button data-surface="path">Path £10</button> <button data-surface="">Walk</button></div><small>Hold left mouse while walking to spray · Shift erases</small><div><output></output> <button data-commission>Build route</button> <button data-clear>Clear</button></div>';
+ $('.map-shell').append(panel);
+ panel.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.hasAttribute('data-surface')){surfaceTool=b.dataset.surface;stopSpray();stopWalking();}
+  if(b.hasAttribute('data-clear')){surfaceMarks.clear();stopSpray();}
+  if(b.hasAttribute('data-commission')&&api.commissionSurfaces(getSurfaceMarks()).ok){surfaceMarks.clear();stopSpray();map.invalidate();render(true);}
+  refreshMarking();$('#park-map').focus({preventScroll:true});
+ });
+ const svg=$('#park-map');
+ svg.addEventListener('pointerdown',e=>{
+  if(!walking||!surfaceTool||e.button!==0||e.pointerType==='touch')return;
+  e.preventDefault();e.stopImmediatePropagation();sprayPointer=e.pointerId;lastMark=null;svg.setPointerCapture(e.pointerId);api.getState().playerPath=[];sprayAtPlayer();
+ },true);
+ for(const event of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(event,e=>{
+  if(e.pointerId!==sprayPointer)return;stopSpray();e.stopImmediatePropagation();
+ },true);
+ window.addEventListener('blur',stopSpray);
+ refreshMarking();
+}
 const canWalk=(state,x,y)=>world.usesFarmBoundary(state)?world.tileWalkable(state,x,y,null,null):GameStateApi.getTileProperties(state,x,y).walkable;
 function stopWalking(){held.clear();if(api){api.getState().playerPath=[];}}
 function setTablet(open){
  if(!ready)return;
- walking=!open;stopWalking();interaction=null;api.tool('select');
+ walking=!open;stopWalking();stopSpray();interaction=null;api.tool('select');
  document.body.classList.toggle('tablet-open',open);
  window.dispatchEvent(new CustomEvent('caravan:tablet',{detail:{open}}));
  $('#park-map').setAttribute('aria-label',open
@@ -101,7 +152,7 @@ function setTablet(open){
  if(button){button.textContent=open?'🚶 Resume walking':'📱 Tablet';button.setAttribute('aria-label',open?'Close tablet and return to walking':'Open management tablet');button.setAttribute('aria-pressed',String(open));}
  if(open&&api.getState().walkingInVillage)map.followPlayer(api.getState().player);
  if(!open){map.followPlayer(walkingPosition());document.getElementById('park-map').focus({preventScroll:true});}
- map.invalidate();render(true);
+ map.invalidate();render(true);refreshMarking();
 }
 function walkTo(target,approach=false){
  if(!walking)return false;
@@ -130,6 +181,7 @@ function walkingFrame(timestamp){
   state.walkingInVillage=inVillage;
   interaction=null;
  }
+ if(sprayPointer!==null&&surfaceTool){const p=LivingParkMovement.tile(player);if(!lastMark||p.x!==lastMark.x||p.y!==lastMark.y)sprayAtPlayer();}
  map.updatePlayer(player);
  if(moving&&!inVillage&&(world.inFarm(player.x,player.y)||window.CaravanLandParcels.inParcel(player.x,player.y))){
   Object.assign(state.player,player);
@@ -233,7 +285,7 @@ $('#mg-purchase').addEventListener('close',()=>{purchaseId=null;});
 $('#mg-purchase-confirm').addEventListener('click',()=>{if(!purchaseId)return;$('#mg-purchase-confirm').disabled=true;const result=api.purchaseLand(purchaseId);if(result.ok){$('#mg-purchase').close();map.invalidate();}else $('#mg-purchase-body').textContent=result.reasons.join(' ');render(true);});
 function toolButton(tool,label,meta,disabled=false){return `<button class="build-tool" data-tool="${tool}" aria-pressed="${api.getState().activeTool===tool}" ${disabled?'disabled':''}><strong>${label}</strong><small>${meta}</small><span aria-hidden="true">+</span></button>`;}
 function renderBuild(state){
-    const html=`<div class="build-intro"><p>Choose a tool, then lay it out on the map. The game checks space, funds and connections before starting work.</p><button id="mg-stop-build" class="text-button">Return to selecting</button></div><h3>Ground & pitches</h3>${toolButton('path','Park path','£10 / tile · Drag an area')}${toolButton('road','Park road','£20 / tile · Drag an area')}${toolButton('pitch_grass','Grass pitch','£100 each · Draw at least 4 × 6 tiles')}${toolButton('pitch_gravel','Hardstanding','£250 each · Draw at least 4 × 8 tiles',!state.tools.shovel)}<h3>Facilities</h3>${Object.entries(api.facilityDefinitions).map(([type,f])=>toolButton('build_'+type,M.names[type],`${money(f.cost)} · ${f.w} × ${f.h} tiles · Click to place`)).join('')}${toolButton('build_tree','Plant a tree','£30 · Click clear ground')}`;
+    const html=`<div class="build-intro"><p>Choose a tool, then lay it out on the map. The game checks space, funds and connections before starting work.</p><button id="mg-stop-build" class="text-button">Return to selecting</button></div><h3>Ground & pitches</h3><p>Roads and paths are marked physically in walking mode.</p>${toolButton('pitch_grass','Grass pitch','£100 each · Draw at least 4 × 6 tiles')}${toolButton('pitch_gravel','Hardstanding','£250 each · Draw at least 4 × 8 tiles',!state.tools.shovel)}<h3>Facilities</h3>${Object.entries(api.facilityDefinitions).map(([type,f])=>toolButton('build_'+type,M.names[type],`${money(f.cost)} · ${f.w} × ${f.h} tiles · Click to place`)).join('')}${toolButton('build_tree','Plant a tree','£30 · Click clear ground')}`;
     if(html!==lastBuild){replaceKeepingFocus($('#build-list'),html);lastBuild=html;}
 }
 function renderUtilities(state){
@@ -335,6 +387,8 @@ document.addEventListener('keydown',e=>{
  }
  if(editing||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  if(walking){
+  if(key==='shift'){held.add(key);return;}
+  if(key==='escape'&&surfaceTool){surfaceTool='';stopSpray();refreshMarking();return;}
   if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();if(!held.has(key))map.followPlayer(walkingPosition());held.add(key);return;}
   if(key==='e'){
    e.preventDefault();
@@ -369,7 +423,7 @@ window.addEventListener('caravan:ready',()=>{
       api.getState().playerPath=[];
       api.save();
     }
-    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,onGround:target=>{
+    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,getSurfaceMarks:()=>walking?getSurfaceMarks():[],onGround:target=>{
         const st=api.getState();
         const nature=(window.CaravanLandParcels.inParcel(target.x,target.y)?window.CaravanExternalTerrain.getTile(st,target.x,target.y):st.tiles[target.y]?.[target.x])?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
@@ -379,6 +433,7 @@ window.addEventListener('caravan:ready',()=>{
     render(true);
     const walkButton=document.createElement('button');walkButton.id='mg-walk-mode';walkButton.type='button';walkButton.textContent='📱 Tablet';walkButton.setAttribute('aria-pressed','false');walkButton.setAttribute('aria-label','Open management tablet');walkButton.style.cssText='position:absolute;bottom:52px;right:18px;z-index:5;padding:10px 14px;border-radius:12px;background:#fff8e8;color:#294a36;border:2px solid #718c70;cursor:pointer;font-weight:700;box-shadow:0 3px 12px #223c3522';
     $('.map-shell').append(walkButton);walkButton.addEventListener('click',()=>setTablet(walking));
+    installMarking();
     frameStartingPlayer();
     const plan=map.getCamera().tilt===1;$('#mg-plan').setAttribute('aria-pressed',String(plan));$('#mg-plan').textContent=plan?'◇ Landscape view':'◇ Plan view';
     let exists=false;try{exists=Boolean(localStorage.getItem('caravan_tycoon_save'));}catch{}
