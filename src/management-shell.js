@@ -6,7 +6,7 @@ document.body.classList.remove('tablet-open');
 document.body.insertAdjacentHTML('afterbegin', `<div id="management-app">
 <header class="masthead">
  <a class="brand" href="./" aria-label="Caravan Web home"><svg viewBox="0 0 46 40" aria-hidden="true"><path d="M4 28V13q0-5 5-5h22q5 0 5 5v15Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 15h12v8H8Zm17 0h7v13h-7M36 27h6v4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="30" r="4" fill="currentColor"/><circle cx="29" cy="30" r="4" fill="currentColor"/></svg><span>CARAVAN<span class="brand-web">WEB</span><small>A LITTLE SPACE. A GROWING BUSINESS.</small></span></a>
- <nav class="main-nav" aria-label="Management views"><button data-view="map" aria-pressed="true">Park map</button><button data-view="land" aria-pressed="false"><span class="land-label-wide">Land & beach</span><span class="land-label-narrow">Land</span></button><button data-view="guests" aria-pressed="false">Guests</button><button data-view="finances" aria-pressed="false">Finances</button><button data-view="build" aria-pressed="false">Build</button><button data-view="settings" aria-pressed="false">Park</button></nav>
+ <nav class="main-nav" aria-label="Management views"><button data-view="map" aria-pressed="true">Park map</button><button data-view="land" aria-pressed="false"><span class="land-label-wide">Land & beach</span><span class="land-label-narrow">Land</span></button><button data-view="guests" aria-pressed="false">Bookings <span id="mg-booking-count" hidden></span></button><button data-view="finances" aria-pressed="false">Finances</button><button data-view="build" aria-pressed="false">Build</button><button data-view="settings" aria-pressed="false">Park</button></nav>
  <div class="header-balance"><small>AVAILABLE CASH</small><strong id="mg-cash">£1,500</strong></div><button id="mg-save" class="save-control">Save park</button>
 </header>
 <div class="management-status">
@@ -35,6 +35,10 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="management-app">
    <filter id="tree-shadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="4" dy="6" stdDeviation="2" flood-color="#324e35" flood-opacity=".13"/></filter>
    <filter id="pin-shadow" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#223c35" flood-opacity=".25"/></filter>
   </defs><g id="mg-world"></g><g id="mg-map-labels"></g></svg>
+  <div id="mg-booking-notice" class="booking-notice" hidden>
+   <button id="mg-booking-open" type="button"><strong>New booking request</strong><span id="mg-booking-summary"></span></button>
+   <span id="mg-booking-announcement" class="sr-only" role="status"></span>
+  </div>
   <div id="mg-priorities" class="priorities"></div>
   <div id="mg-queue" class="construction-queue"></div>
   <div class="map-caption"><span class="caption-line"></span><span>A coastal park. A slower pace.</span><small>The big picture, with the little details.</small></div>
@@ -48,7 +52,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="management-app">
  </section>
 </main>
 <dialog id="mg-welcome"><p class="eyebrow">WELCOME TO CARAVAN WEB</p><h2>Your own little<br>piece of the coast.</h2><p>Build a park from the ground up, or take the keys to an established one. Manage pitches, guests, services and cash from the map.</p><button class="scenario-card" data-start="new"><strong>Start from scratch <span>£1,500</span></strong><small>An overgrown farm, a little savings and a lot of possibility.</small></button><button class="scenario-card" data-start="developed"><strong>Take over a developed park <span>£20,000</span></strong><small>12 pitches, 4 statics and working utilities. A few things need your attention.</small></button><p class="fine-print">Both are playable scenarios using the actual game simulation. Your park saves in this browser. Choosing a new scenario creates a recovery backup of an existing park.</p><button id="mg-welcome-close" class="quiet" hidden>Keep my current park</button></dialog>
-<dialog id="mg-help-dialog"><button class="dialog-close" aria-label="Close help">×</button><p class="eyebrow">THE PARK OFFICE</p><h2>Less walking.<br>More managing.</h2><p>Everything on this map comes from your game. Select a pitch or facility to inspect bookings, connections and maintenance. Open Guests or Finances for the wider picture.</p><ul><li>Drag to explore, scroll or pinch to zoom. Q / E turns the map.</li><li>Build: choose a tool, then drag a tile area. Fixed-size facilities need a single click. Right-drag always pans.</li><li>Paths take at least two hours, roads four hours and pitches one day. Resume time to finish the work.</li><li>Statics are ordered from Rusty Resales. All four mains hookups must reach an empty hardstanding pitch.</li><li>Use the Park tab to export or import a save, manage staff, or open the classic walkabout view.</li><li>Space pauses time when the map is focused. Escape cancels a tool or closes a panel.</li></ul><button class="primary" id="mg-help-done">Back to the park</button></dialog>
+<dialog id="mg-help-dialog"><button class="dialog-close" aria-label="Close help">×</button><p class="eyebrow">THE PARK OFFICE</p><h2>Less walking.<br>More managing.</h2><p>Everything on this map comes from your game. Select a pitch or facility to inspect bookings, connections and maintenance. Open Bookings or Finances for the wider picture.</p><ul><li>Drag to explore, scroll or pinch to zoom. Q / E turns the map.</li><li>Build: choose a tool, then drag a tile area. Fixed-size facilities need a single click. Right-drag always pans.</li><li>Paths take at least two hours, roads four hours and pitches one day. Resume time to finish the work.</li><li>Statics are ordered from Rusty Resales. All four mains hookups must reach an empty hardstanding pitch.</li><li>Use the Park tab to export or import a save, manage staff, or open the classic walkabout view.</li><li>Space pauses time when the map is focused. Escape cancels a tool or closes a panel.</li></ul><button class="primary" id="mg-help-done">Back to the park</button></dialog>
 <dialog id="mg-purchase" aria-labelledby="mg-purchase-title"><p class="eyebrow">ROOM TO GROW</p><h2 id="mg-purchase-title">Review purchase</h2><div id="mg-purchase-body"></div><div class="purchase-buttons"><button id="mg-purchase-cancel">Keep looking</button><button id="mg-purchase-confirm" class="primary">Confirm purchase</button></div></dialog>
 <input type="file" accept=".json,application/json" id="mg-import-file" hidden>
 </div>`);
@@ -306,8 +310,8 @@ function renderPanel(state){
     let html='';
     if(app.view==='guests'){
         const people=state.guests.reduce((n,g)=>n+(g.party?.headcount||1),0);
-        html=panelHeader('GUEST RELATIONS','Good days start here.','Current bookings and the people staying in your park.')+`<div class="panel-metrics"><div><b>${people}</b><small>Guests staying</small></div><div><b>${state.guests.length}</b><small>Booked pitches</small></div><div><b>${Math.round(state.satisfaction)}%</b><small>Satisfaction</small></div><div><b>${api.getDemand().score}%</b><small>Current demand</small></div></div>`;
-        html+=state.guests.length?`<div class="table-scroll"><table><thead><tr><th>Pitch & party</th><th>Guests</th><th>Stay remaining</th><th>Upfront paid</th><th>Activity</th></tr></thead><tbody>${state.guests.map(g=>{const p=places.find(p=>p.entity===g.pitch);return `<tr><td><button data-select="${esc(p?.id)}" class="text-button">${esc(p?.name||'Pitch')}</button><small>${esc(title(g.party?.type))} · ${esc((g.party?.members||[]).map(m=>m.name).filter(Boolean).join(', '))}</small></td><td>${g.party?.headcount||1}</td><td>${g.stayDaysRemaining} ${g.stayDaysRemaining===1?'day':'days'}</td><td>${money(g.totalIncome)}</td><td>${esc(title(g.activity||'relaxing'))}</td></tr>`;}).join('')}</tbody></table></div>`:'<div class="panel-empty"><h3>Your next guests are on their way.</h3><p>Resume time during arrival hours. Bookings need a suitable available pitch, enough toilet capacity and local service access.</p><button class="primary" data-view="build">Prepare the park</button></div>';
+        html=panelHeader('GUEST RELATIONS','Bookings','Review requests, upcoming arrivals and guests staying now.')+bookingInboxMarkup()+`<div class="panel-metrics"><div><b>${people}</b><small>Guests staying</small></div><div><b>${state.guests.length}</b><small>Booked pitches</small></div><div><b>${Math.round(state.satisfaction)}%</b><small>Satisfaction</small></div><div><b>${api.getDemand().score}%</b><small>Current demand</small></div></div>`;
+        html+=state.guests.length?`<div class="table-scroll"><table><thead><tr><th>Pitch & party</th><th>Guests</th><th>Stay remaining</th><th>Paid at check-in</th><th>Activity</th></tr></thead><tbody>${state.guests.map(g=>{const p=places.find(p=>p.entity===g.pitch);return `<tr><td><button data-select="${esc(p?.id)}" class="text-button">${esc(p?.name||'Pitch')}</button><small>${esc(title(g.party?.type))} · ${esc((g.party?.members||[]).map(m=>m.name).filter(Boolean).join(', '))}</small></td><td>${g.party?.headcount||1}</td><td>${g.stayDaysRemaining} ${g.stayDaysRemaining===1?'day':'days'}</td><td>${money(g.totalIncome)}</td><td>${esc(title(g.activity||'relaxing'))}</td></tr>`;}).join('')}</tbody></table></div>`:'<div class="panel-empty"><h3>Your next guests are on their way.</h3><p>Resume time during arrival hours. Bookings need a suitable available pitch, enough toilet capacity and local service access.</p><button class="primary" data-view="build">Prepare the park</button></div>';
     }
     if(app.view==='finances'){
         const b=api.getBalance(),transactions=state.transactions.slice(-50).reverse();
@@ -323,6 +327,15 @@ function renderPanel(state){
 }
 function render(force=false){
     if(!ready)return;const state=api.getState();places=M.getPlaces(state);
+    const pending=pendingBookingRequests();
+    const count=$('#mg-booking-count');
+    count.hidden=!pending.length;
+    setText('mg-booking-count',String(pending.length));
+    $('#mg-booking-notice').hidden=!pending.length||(!walking&&app.view==='guests');
+    if(pending.length){
+        setText('mg-booking-summary', pending.length===1 ? bookingSummary(pending[0]) : `${pending.length} requests awaiting a response`);
+    }
+    setText('mg-booking-announcement',pending.length ? `${pending.length} booking request${pending.length===1?'':'s'} awaiting a response` : '');
     if(app.selected&&!places.some(p=>p.id===app.selected)){app.selected=null;app.route=false;}
     setText('mg-cash',money(Math.floor(state.cash)));setText('mg-clock',`Day ${state.day} · ${String(state.hour).padStart(2,'0')}:${String(Math.floor(state.minute)).padStart(2,'0')}`);setText('mg-weather',state.weather);setText('mg-occupancy',`${state.pitches.filter(p=>p.occupied).length} / ${state.pitches.length} pitches`);setText('mg-guests',`${state.guests.reduce((n,g)=>n+(g.party?.headcount||1),0)} guests`);setText('mg-rating',`${state.rating.toFixed(1)} / 5`);setText('mg-pause',state.isPaused?'Resume':'Pause');$('#mg-pause').setAttribute('aria-label',state.isPaused?'Resume time':'Pause time');
     document.querySelectorAll('[data-game-speed]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.gameSpeed)===state.simulationSpeed)));
@@ -380,6 +393,14 @@ $('#management-app').addEventListener('click',e=>{
     if(e.target.closest('#mg-export-backup')){download(api.getBackup(),'caravanweb-recovery-backup.json');return;}
     if(e.target.closest('#mg-import')){$('#mg-import-file').click();return;}
     if(e.target.closest('#mg-new-park'))showWelcome();
+});
+$('#mg-booking-open').addEventListener('click',()=>{
+    if(walking)setTablet(true);
+    window.dispatchEvent(new Event('caravan:open-bookings'));
+    $('#mg-panel').querySelector('select, [data-decline], [data-close-panel]')?.focus();
+});
+$('#mg-panel').addEventListener('submit', event=>{
+    if(handleBookingResponse(event))render(true);
 });
 $('#mg-panel').addEventListener('change',e=>{if(e.target.id==='mg-day-length'){api.dayLength(e.target.value);render(true);}});
 $('#mg-import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>5*1024*1024)throw new Error('Choose a game save under 5 MB.');const result=api.importSave(await file.text());if(result.ok){stopWalking();interaction=null;app.selected=null;app.route=false;map.invalidate();resetFilters();if(walking)map.followPlayer(walkingPosition());}}catch(error){announce(error.message);}finally{e.target.value='';render(true);}});

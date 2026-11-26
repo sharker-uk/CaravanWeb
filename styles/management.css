@@ -23,3 +23,29 @@ body[data-management=true]{color:var(--ink);background:var(--paper);user-select:
 .village-link{pointer-events:auto}
 
 .map-actions .village-link{margin:0;display:inline-flex;align-items:center;padding:9px 12px;font-size:10px;background:#f4f6e8;color:#52714d;pointer-events:auto}@media(max-width:700px){.map-actions .village-link{font-size:9px;padding:8px}.map-actions{display:flex;gap:5px}}
+
+.booking-notice {
+    position: absolute;
+    z-index: 8;
+    top: 72px;
+    right: 24px;
+    max-width: min(340px, calc(100% - 48px));
+}
+.booking-notice button {
+    display: grid;
+    gap: 5px;
+    padding: 10px 14px;
+    text-align: left;
+    background: #fff8e8;
+    color: #294a36;
+    border: 1px solid #718c70;
+    border-radius: 8px;
+}
+.booking-request {
+    padding: 12px 0;
+    border-bottom: 1px solid #dbe3ce;
+}
+.booking-request button,
+.booking-request select {
+    margin: 4px 6px 0 0;
+}

@@ -1,5 +1,7 @@
 (function (globalScope) {
-    const CURRENT_SAVE_SCHEMA = 14;
+    const CURRENT_SAVE_SCHEMA = 15;
+    const guestParties = globalScope.GuestParties ||
+        (typeof require === 'function' ? require('./guest-parties.js') : null);
     const landApi = globalScope.LandExpansion || (typeof require === 'function' ? require('./land-expansion.js') : null);
     const UTILITY_TYPES = ['gas', 'water', 'electricity', 'waste'];
     const facilityApi = globalScope.FacilityOperations ||
@@ -429,6 +431,9 @@
             guests: normalizeGuests(saveData.guests, currentDay),
             caravans,
             staticDeliveries,
+            bookingRequests: guestParties.normalizeBookingRequests(saveData.bookingRequests),
+            bookingSequence: Number.isSafeInteger(saveData.bookingSequence)
+                ? Math.max(0, saveData.bookingSequence) : 0,
             accessoryInventory: Object.fromEntries(Object.keys(staticCaravansApi.ACCESSORIES)
                 .map(id => [id, Number.isInteger(saveData.accessoryInventory?.[id])
                     ? Math.max(0, saveData.accessoryInventory[id]) : 0])),
