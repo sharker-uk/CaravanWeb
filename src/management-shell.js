@@ -48,7 +48,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="management-app">
  </section>
 </main>
 <dialog id="mg-welcome"><p class="eyebrow">WELCOME TO CARAVAN WEB</p><h2>Your own little<br>piece of the coast.</h2><p>Build a park from the ground up, or take the keys to an established one. Manage pitches, guests, services and cash from the map.</p><button class="scenario-card" data-start="new"><strong>Start from scratch <span>£1,500</span></strong><small>An overgrown farm, a little savings and a lot of possibility.</small></button><button class="scenario-card" data-start="developed"><strong>Take over a developed park <span>£20,000</span></strong><small>12 pitches, 4 statics and working utilities. A few things need your attention.</small></button><p class="fine-print">Both are playable scenarios using the actual game simulation. Your park saves in this browser. Choosing a new scenario creates a recovery backup of an existing park.</p><button id="mg-welcome-close" class="quiet" hidden>Keep my current park</button></dialog>
-<dialog id="mg-help-dialog"><button class="dialog-close" aria-label="Close help">×</button><p class="eyebrow">THE PARK OFFICE</p><h2>Less walking.<br>More managing.</h2><p>Everything on this map comes from your game. Select a pitch or facility to inspect bookings, connections and maintenance. Open Guests or Finances for the wider picture.</p><ul><li>Drag to explore, scroll or pinch to zoom. Q / E turns the map.</li><li>Build: choose a tool, then drag a tile area. Fixed-size facilities need a single click. Right-drag always pans.</li><li>Roads, paths, pitches and utilities take two in-game hours. Resume time to finish the work.</li><li>Statics are ordered from Rusty Resales. All four mains hookups must reach an empty hardstanding pitch.</li><li>Use the Park tab to export or import a save, manage staff, or open the classic walkabout view.</li><li>Space pauses time when the map is focused. Escape cancels a tool or closes a panel.</li></ul><button class="primary" id="mg-help-done">Back to the park</button></dialog>
+<dialog id="mg-help-dialog"><button class="dialog-close" aria-label="Close help">×</button><p class="eyebrow">THE PARK OFFICE</p><h2>Less walking.<br>More managing.</h2><p>Everything on this map comes from your game. Select a pitch or facility to inspect bookings, connections and maintenance. Open Guests or Finances for the wider picture.</p><ul><li>Drag to explore, scroll or pinch to zoom. Q / E turns the map.</li><li>Build: choose a tool, then drag a tile area. Fixed-size facilities need a single click. Right-drag always pans.</li><li>Paths take at least two hours, roads four hours and pitches one day. Resume time to finish the work.</li><li>Statics are ordered from Rusty Resales. All four mains hookups must reach an empty hardstanding pitch.</li><li>Use the Park tab to export or import a save, manage staff, or open the classic walkabout view.</li><li>Space pauses time when the map is focused. Escape cancels a tool or closes a panel.</li></ul><button class="primary" id="mg-help-done">Back to the park</button></dialog>
 <dialog id="mg-purchase" aria-labelledby="mg-purchase-title"><p class="eyebrow">ROOM TO GROW</p><h2 id="mg-purchase-title">Review purchase</h2><div id="mg-purchase-body"></div><div class="purchase-buttons"><button id="mg-purchase-cancel">Keep looking</button><button id="mg-purchase-confirm" class="primary">Confirm purchase</button></div></dialog>
 <input type="file" accept=".json,application/json" id="mg-import-file" hidden>
 </div>`);
@@ -88,7 +88,7 @@ function walkingPosition(){
 }
 const held=new Set();
 let surfaceMarks=new Map();
-let surfaceTool='',spraying=false,lastMark=null,markState=null,actionMenuOpen=false;
+let surfaceTool='',spraying=false,lastMark=null,markState=null,actionMenuOpen=false,roadAxis=null;
 function getSurfaceMarks(){
  markState=api.getState();
  surfaceMarks=new Map((markState.surfaceMarks||[]).map(m=>[m.x+','+m.y,m]));
@@ -111,14 +111,26 @@ function sprayAtPlayer(){
  getSurfaceMarks();
  const p=LivingParkMovement.tile(walkingPosition());
  const erase=held.has('shift');
- const put=(x,y)=>{const key=x+','+y;if(erase)surfaceMarks.delete(key);else if(api.canMarkSurface(x,y))surfaceMarks.set(key,{x,y,surface:surfaceTool});};
- if(lastMark&&lastMark.x!==p.x&&lastMark.y!==p.y){
-  if(erase||api.canMarkSurface(p.x,lastMark.y))put(p.x,lastMark.y);
-  else if(api.canMarkSurface(lastMark.x,p.y))put(lastMark.x,p.y);
+ const put=(x,y,axis)=>{
+  const cells=surfaceTool==='road'?[{x,y},{x:x+(axis==='y'?1:0),y:y+(axis==='x'?1:0)}]:[{x,y}];
+  if(!erase&&!cells.every(c=>api.canMarkSurface(c.x,c.y)||api.getState().tiles[c.y]?.[c.x]?.[surfaceTool]))return false;
+  for(const c of cells){const key=c.x+','+c.y;if(erase)surfaceMarks.delete(key);else if(api.canMarkSurface(c.x,c.y))surfaceMarks.set(key,{...c,surface:surfaceTool});}
+  return true;
+ };
+ if(surfaceTool==='road'&&!lastMark){lastMark=p;return;}
+ if(lastMark){
+  const dx=p.x-lastMark.x,dy=p.y-lastMark.y;
+  if(dx||dy){
+   const axis=dx?'x':'y';
+   if(roadAxis&&roadAxis!==axis)put(lastMark.x,lastMark.y,roadAxis);
+   put(lastMark.x,lastMark.y,axis);
+   if(dx&&dy){put(p.x,lastMark.y,'x');put(p.x,lastMark.y,'y');}
+   roadAxis=dy?'y':'x';
+  }
  }
- put(p.x,p.y);markState.surfaceMarks=[...surfaceMarks.values()];lastMark=p;refreshMarking();
+ put(p.x,p.y,roadAxis||'x');markState.surfaceMarks=[...surfaceMarks.values()];lastMark=p;refreshMarking();
 }
-function stopSpray(){if(spraying&&api)api.save();spraying=false;lastMark=null;}
+function stopSpray(){if(spraying&&api)api.save();spraying=false;lastMark=null;roadAxis=null;}
 function installMarking(){
  const panel=document.createElement('div');panel.id='gp-marking';
  panel.style.cssText='position:absolute;bottom:105px;left:12px;z-index:6;background:#fff8e8;color:#294a36;padding:10px;border:1px solid #718c70;border-radius:10px;max-width:calc(100% - 24px)';
