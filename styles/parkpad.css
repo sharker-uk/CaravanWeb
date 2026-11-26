@@ -153,7 +153,7 @@ body.tablet-open #management-app[data-parkpad-visible="true"][data-parkpad-view=
 }
 
 /* Job Centre uses the same ParkPad shell as Estate Agents. */
-body.tablet-open #management-app[data-parkpad-view="jobs"] .parkpad-screen{display:block}
-body.tablet-open #management-app[data-parkpad-view="jobs"] .workspace{visibility:hidden}
-body.tablet-open #management-app[data-parkpad-view="jobs"] .parkpad-screen,
-body.tablet-open #management-app[data-parkpad-view="jobs"] .parkpad-bar{visibility:visible}
+body.tablet-open #management-app:is([data-parkpad-view="jobs"],[data-parkpad-view="contractors"]) .parkpad-screen{display:block}
+body.tablet-open #management-app:is([data-parkpad-view="jobs"],[data-parkpad-view="contractors"]) .workspace{visibility:hidden}
+body.tablet-open #management-app:is([data-parkpad-view="jobs"],[data-parkpad-view="contractors"]) .parkpad-screen,
+body.tablet-open #management-app:is([data-parkpad-view="jobs"],[data-parkpad-view="contractors"]) .parkpad-bar{visibility:visible}
