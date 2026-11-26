@@ -99,9 +99,8 @@ function refreshMarking(){
  panel.hidden=!walking;
  panel.querySelector('[data-action-menu]').hidden=!actionMenuOpen;
  panel.querySelector('[data-equipped]').textContent=({road:'Mark Road',path:'Mark Path',clear:'Clear Trees/Bushes'})[surfaceTool]||'No action selected';
- panel.querySelector('[data-route-controls]').hidden=!marksAvailable();
  const marks=getSurfaceMarks(),cost=marks.reduce((n,m)=>n+(m.surface==='road'?20:10),0);
- panel.querySelector('output').textContent=marks.length+' tiles · '+money(cost);
+ panel.querySelector('[data-route-controls]').hidden=!marksAvailable();
  panel.querySelector('output').textContent=marks.length+' tiles · estimated '+money(cost)+' · marking is free';
  panel.querySelectorAll('[data-surface]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.surface===surfaceTool)));
  map.drawSurfaceMarks(marks);
