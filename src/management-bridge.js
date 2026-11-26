@@ -3,12 +3,20 @@
     'use strict';
     if (!MANAGEMENT_MODE) return;
     const SAVE_KEY='caravan_tycoon_save', BACKUP_KEY='caravan_tycoon_management_backup';
+    const landTestEnabled=new URLSearchParams(location.search).get('landTest')==='1';
+    const TEST_GRANT=12000;
+    const applyLandTestCapital=()=>{if(!landTestEnabled||state.landTestGrantApplied)return false;
+        if(!Economy.recordTransaction(state,TEST_GRANT,'development test','Temporary South Field testing capital'))return false;
+        state.landTestGrantApplied=true;return true;};
     const changed=()=>{refreshPitchCapabilities();updateUI();};
     const getSave=()=>saveGame() ? localStorage.getItem(SAVE_KEY) : null;
     const backup=()=>{const current=localStorage.getItem(SAVE_KEY);if(current)localStorage.setItem(BACKUP_KEY,current);};
     const fail=message=>{showToast(message);return {ok:false,reason:message};};
     window.CaravanGame = {
         getState:()=>state,
+        landTestEnabled:()=>landTestEnabled,
+        southFieldQuote:()=>landTestEnabled?LandExpansion.southFieldQuote(state):{ok:false,reasons:['Development test is disabled.']},
+        purchaseSouthFieldTest(){if(!landTestEnabled)return fail('Development test is disabled.');const result=LandExpansion.purchaseSouthFieldTest(state,recordTransaction);if(result.ok){saveGame();changed();showToast('South Field purchased for the development test.');}else showToast(result.reasons.join(' '));return result;},
         purchaseLand(id){const result=id==='beach'?LandExpansion.purchaseBeach(state,recordTransaction):LandExpansion.purchasePlot(state,id,recordTransaction);if(result.ok){saveGame();changed();showToast(id==='beach'?'Beach access construction started.':'Field purchased. Clear and connect it to develop more pitches.');}else showToast(result.reasons.join(' '));return result;},
         toggleBeach(){const result=LandExpansion.toggleBeach(state);if(result.ok){saveGame();changed();}else showToast(result.reasons.join(' '));return result;},
         getCapabilities:()=>PitchCapabilities.rebuild(state),
@@ -22,6 +30,45 @@
         speed:speed=>{if([1,2,4].includes(Number(speed)))setSimulationSpeed(speed);},
         dayLength:minutes=>setDayLengthMinutes(Number(minutes)),
         select(entity){state.selectedEntity=entity;updateUI();},
+        canMarkSurface(x,y){
+            return Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&y>=0&&x<GRID_W&&y<GRID_H&&
+                (!CaravanConnectedWorld.usesFarmBoundary(state)||CaravanConnectedWorld.inFarm(x+.5,y+.5))&&
+                !window.CaravanLandParcels.inParcel(x,y)&&getTileProperties(x,y).buildable;
+        },
+        surfaceQuote(surface){
+            const marks=(state.surfaceMarks||[]).filter(m=>m.surface===surface);
+            const cost=marks.length*(surface==='road'?20:10);
+            return {count:marks.length,cost,hours:marks.length?Construction.surfaceDuration(surface,marks.length)/60:0,ok:marks.length>0&&state.cash>=cost&&marks.every(m=>this.canMarkSurface(m.x,m.y))};
+        },
+        hireBuilder(surface){
+            if(!['road','path'].includes(surface))return fail('Choose road or path construction.');
+            const marks=(state.surfaceMarks||[]).filter(m=>m.surface===surface);
+            return this.commissionSurfaces(marks);
+        },
+        commissionSurfaces(marks){
+            if(!Array.isArray(marks)||!marks.length)return fail('Mark a route first.');
+            const unique=new Map();
+            for(const m of marks){
+                if(!m||!['road','path'].includes(m.surface)||!this.canMarkSurface(m.x,m.y))
+                    return fail('A marking is outside buildable farm ground or obstructed.');
+                unique.set(m.x+','+m.y,m);
+            }
+            const tiles=[...unique.values()],cost=tiles.reduce((n,m)=>n+(m.surface==='road'?20:10),0);
+            if(state.cash<cost)return fail('Not enough money for this route.');
+            const before=state.constructions.length;
+            const durations=Object.fromEntries(['road','path'].map(s=>[s,Construction.surfaceDuration(s,tiles.filter(t=>t.surface===s).length)]));
+            for(const {x,y,surface} of tiles){
+                if(!Construction.queueConstruction(state,{kind:'surface',surface,tiles:[{x,y}],footprint:{x,y,w:1,h:1},blocksMovement:false},durations[surface])){
+                    state.constructions.length=before;return fail('Unable to schedule route.');
+                }
+            }
+            if(!spend(cost,'construction','Marked roads and paths')){
+                state.constructions.length=before;return {ok:false};
+            }
+            state.surfaceMarks=(state.surfaceMarks||[]).filter(m=>!unique.has(m.x+','+m.y));
+            saveGame();changed();showToast('Builder hired · see construction quotation for duration.');
+            return {ok:true};
+        },
         build(tool,start,end) {
             const inBounds=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&p.x>=0&&p.x<GRID_W&&p.y>=0&&p.y<GRID_H;
             const allowed=['select','clear','road','path','pitch_grass','pitch_gravel','build_tree',...Object.keys(FACILITY_BUILDINGS).map(t=>'build_'+t),...UTILITY_TYPES.map(t=>'utility_'+t),...Object.keys(StaticCaravans.ACCESSORIES).map(t=>'place_accessory_'+t)];
@@ -64,6 +111,7 @@
                 if(previousText){if(!saveGame())return {ok:false};previousText=localStorage.getItem(SAVE_KEY);backup();}
                 state=GameStateApi.createGameState({transactions:[]});
                 generateNewMap();
+                if(mode==='new')applyLandTestCapital();
                 if(mode==='developed')ManagementModel.applyDevelopedScenario(state,(pitch,model,options)=>new Caravan(pitch,model,options));
                 state.selectedEntity=null;state.activeTool='select';state.isPaused=true;
                 if(!saveGame())throw new Error('The new park could not be saved.');

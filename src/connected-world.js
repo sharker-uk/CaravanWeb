@@ -5,13 +5,17 @@
     const gate = {x: farm.west, y: 25, minY: 24, maxY: 26};
     const radius = 0.18;
 
+    // One uniform map-unit conversion, anchored at the playable park gate.
     function placeVillage(village) {
-        const scale = village.park.w / village.park.gridWidth;
-        const [x, y] = village.nodes.parkGate;
+        const p = village.park;
+        const [gx, gy] = village.nodes.parkGate;
+        const scale = p.w / p.gridWidth;
+        if (!Number.isFinite(scale) || scale <= 0 || !Number.isFinite(gx) || !Number.isFinite(gy))
+            throw Error('Invalid village scale or gate anchor');
         return {
-            toVillage: (px, py) => [x + (px - gate.x) * scale, y + (py - gate.y) * scale],
-            toScene: ([vx, vy]) => [gate.x + (vx - x) / scale, gate.y + (vy - y) / scale],
-            toSceneLength: length => length / scale
+            toVillage: (px, py) => [gx + (px - gate.x)*scale, gy + (py - gate.y)*scale],
+            toScene: ([x,y]) => [gate.x + (x-gx)/scale, gate.y + (y-gy)/scale],
+            toSceneLength: length => length/scale
         };
     }
 
@@ -23,22 +27,40 @@
         return state.land?.enabled === true && !state.parkPackageId;
     }
 
-    function canOccupy(state, x, y, village, placement, canOccupyPark) {
-        if (!usesFarmBoundary(state)) return canOccupyPark(state, x, y);
-        if (y >= farm.north - radius && y < farm.south + radius && Math.abs(x - gate.x) < radius) {
-            if (y - radius < gate.minY || y + radius > gate.maxY || !village) return false;
-            // Check the farm-side part of the opening against live park obstacles.
-            if (!canOccupyPark(state, Math.max(gate.x + radius, x), y)) return false;
+    // One world-space tile resolver for the original park, every expansion
+    // parcel and the public village. No field-specific movement branches.
+    function tileWalkable(state, tx, ty, village, placement) {
+        const parcels=root.CaravanLandParcels;
+        const parcel=parcels?.inParcel(tx,ty);
+        if(parcel){
+            return root.CaravanExternalTerrain?.canEnter(state,tx,ty)===true;
         }
-        if (inFarm(x, y)) return canOccupyPark(state, x, y);
-        if (!village) return false;
-        return [-radius, radius].every(dx => [-radius, radius].every(dy => {
-            const [vx, vy] = placement.toVillage(x + dx, y + dy);
-            return root.CaravanVillageMovement.canWalk(village, vx, vy);
-        }));
+        if(inFarm(tx+.5,ty+.5))
+            return root.GameState?.getTileProperties(state,tx,ty)?.walkable===true;
+        if(!village||!placement)return false;
+        const [vx,vy]=placement.toVillage(tx+.5,ty+.5);
+        return root.CaravanVillageMovement?.canWalk(village,vx,vy)===true;
+    }
+    function canOccupy(state,x,y,village,placement,canOccupyPark){
+        if(!usesFarmBoundary(state))return canOccupyPark(state,x,y);
+        // Keep the original public gate's narrow opening. All other
+        // transitions are resolved by the same tile-space collision rules.
+        const nearGate=Math.abs(x-gate.x)<radius &&
+            y>=farm.north-radius&&y<farm.south+radius;
+        if(nearGate&&(y-radius<gate.minY||y+radius>gate.maxY||!village))return false;
+        return [[0,0],[-radius,-radius],[radius,-radius],[-radius,radius],[radius,radius]]
+            .every(([dx,dy])=>{
+                const sx=x+dx,sy=y+dy;
+                const tx=Math.floor(sx),ty=Math.floor(sy);
+                const parcel=root.CaravanLandParcels?.inParcel(tx,ty);
+                if(parcel||inFarm(sx,sy))return tileWalkable(state,tx,ty,village,placement);
+                if(!village||!placement)return false;
+                const [vx,vy]=placement.toVillage(sx,sy);
+                return root.CaravanVillageMovement.canWalk(village,vx,vy);
+            });
     }
 
-    const api = {farm, gate, placeVillage, inFarm, usesFarmBoundary, canOccupy};
+    const api = {farm, gate, placeVillage, inFarm, usesFarmBoundary, tileWalkable, canOccupy};
     root.CaravanConnectedWorld = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

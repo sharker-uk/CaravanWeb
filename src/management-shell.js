@@ -48,7 +48,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="management-app">
  </section>
 </main>
 <dialog id="mg-welcome"><p class="eyebrow">WELCOME TO CARAVAN WEB</p><h2>Your own little<br>piece of the coast.</h2><p>Build a park from the ground up, or take the keys to an established one. Manage pitches, guests, services and cash from the map.</p><button class="scenario-card" data-start="new"><strong>Start from scratch <span>£1,500</span></strong><small>An overgrown farm, a little savings and a lot of possibility.</small></button><button class="scenario-card" data-start="developed"><strong>Take over a developed park <span>£20,000</span></strong><small>12 pitches, 4 statics and working utilities. A few things need your attention.</small></button><p class="fine-print">Both are playable scenarios using the actual game simulation. Your park saves in this browser. Choosing a new scenario creates a recovery backup of an existing park.</p><button id="mg-welcome-close" class="quiet" hidden>Keep my current park</button></dialog>
-<dialog id="mg-help-dialog"><button class="dialog-close" aria-label="Close help">×</button><p class="eyebrow">THE PARK OFFICE</p><h2>Less walking.<br>More managing.</h2><p>Everything on this map comes from your game. Select a pitch or facility to inspect bookings, connections and maintenance. Open Guests or Finances for the wider picture.</p><ul><li>Drag to explore, scroll or pinch to zoom. Q / E turns the map.</li><li>Build: choose a tool, then drag a tile area. Fixed-size facilities need a single click. Right-drag always pans.</li><li>Roads, paths, pitches and utilities take two in-game hours. Resume time to finish the work.</li><li>Statics are ordered from Rusty Resales. All four mains hookups must reach an empty hardstanding pitch.</li><li>Use the Park tab to export or import a save, manage staff, or open the classic walkabout view.</li><li>Space pauses time when the map is focused. Escape cancels a tool or closes a panel.</li></ul><button class="primary" id="mg-help-done">Back to the park</button></dialog>
+<dialog id="mg-help-dialog"><button class="dialog-close" aria-label="Close help">×</button><p class="eyebrow">THE PARK OFFICE</p><h2>Less walking.<br>More managing.</h2><p>Everything on this map comes from your game. Select a pitch or facility to inspect bookings, connections and maintenance. Open Guests or Finances for the wider picture.</p><ul><li>Drag to explore, scroll or pinch to zoom. Q / E turns the map.</li><li>Build: choose a tool, then drag a tile area. Fixed-size facilities need a single click. Right-drag always pans.</li><li>Paths take at least two hours, roads four hours and pitches one day. Resume time to finish the work.</li><li>Statics are ordered from Rusty Resales. All four mains hookups must reach an empty hardstanding pitch.</li><li>Use the Park tab to export or import a save, manage staff, or open the classic walkabout view.</li><li>Space pauses time when the map is focused. Escape cancels a tool or closes a panel.</li></ul><button class="primary" id="mg-help-done">Back to the park</button></dialog>
 <dialog id="mg-purchase" aria-labelledby="mg-purchase-title"><p class="eyebrow">ROOM TO GROW</p><h2 id="mg-purchase-title">Review purchase</h2><div id="mg-purchase-body"></div><div class="purchase-buttons"><button id="mg-purchase-cancel">Keep looking</button><button id="mg-purchase-confirm" class="primary">Confirm purchase</button></div></dialog>
 <input type="file" accept=".json,application/json" id="mg-import-file" hidden>
 </div>`);
@@ -62,6 +62,16 @@ let walking=true,interaction=null,lastFrame=0,lastAutosave=0;
 let walker=null, walkerState=null;
 const world=window.CaravanConnectedWorld;
 
+// Start at a human-scale view, independent of the previous overview zoom.
+function frameStartingPlayer(){
+ const p=walkingPosition(),camera=map.getCamera();
+ const rect=document.getElementById('park-map').getBoundingClientRect();
+ const target=window.CaravanWorldCamera.target(p,{width:rect.width,height:rect.height});
+ map.north();
+ if(map.getCamera().tilt!==1)map.togglePlan();
+ map.zoom(target.zoom/camera.zoom);
+ map.followPlayer(p);
+}
 function walkingPosition(){
  const state=api.getState();
  if(state!==walkerState){
@@ -77,12 +87,72 @@ function walkingPosition(){
  return walker;
 }
 const held=new Set();
-const canWalk=(state,x,y)=>GameStateApi.getTileProperties(state,x,y).walkable;
+let surfaceMarks=new Map();
+let surfaceTool='',spraying=false,lastMark=null,markState=null,actionMenuOpen=false,roadAxis=null;
+function getSurfaceMarks(){
+ markState=api.getState();
+ surfaceMarks=new Map((markState.surfaceMarks||[]).map(m=>[m.x+','+m.y,m]));
+ return [...surfaceMarks.values()].map(m=>({...m,valid:api.canMarkSurface(m.x,m.y)}));
+}
+function refreshMarking(){
+ const panel=$('#gp-marking');if(!panel)return;
+ panel.hidden=!walking;
+ panel.querySelector('[data-action-menu]').hidden=!actionMenuOpen;
+ panel.querySelector('[data-equipped]').textContent=({road:'Mark Road',path:'Mark Path',clear:'Clear Trees/Bushes'})[surfaceTool]||'No action selected';
+ const marks=getSurfaceMarks(),cost=marks.reduce((n,m)=>n+(m.surface==='road'?20:10),0);
+ panel.querySelector('[data-route-controls]').hidden=!marksAvailable();
+ panel.querySelector('output').textContent=marks.length+' tiles · estimated '+money(cost)+' · marking is free';
+ panel.querySelectorAll('[data-surface]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.surface===surfaceTool)));
+ map.drawSurfaceMarks(marks);
+}
+function marksAvailable(){return surfaceMarks.size>0||['road','path'].includes(surfaceTool);}
+function sprayAtPlayer(){
+ if(!['road','path'].includes(surfaceTool))return;
+ getSurfaceMarks();
+ const p=LivingParkMovement.tile(walkingPosition());
+ const erase=held.has('shift');
+ const put=(x,y,axis)=>{
+  const cells=surfaceTool==='road'?[{x,y},{x:x+(axis==='y'?1:0),y:y+(axis==='x'?1:0)}]:[{x,y}];
+  if(!erase&&!cells.every(c=>api.canMarkSurface(c.x,c.y)||api.getState().tiles[c.y]?.[c.x]?.[surfaceTool]))return false;
+  for(const c of cells){const key=c.x+','+c.y;if(erase)surfaceMarks.delete(key);else if(api.canMarkSurface(c.x,c.y))surfaceMarks.set(key,{...c,surface:surfaceTool});}
+  return true;
+ };
+ if(surfaceTool==='road'&&!lastMark){lastMark=p;return;}
+ if(lastMark){
+  const dx=p.x-lastMark.x,dy=p.y-lastMark.y;
+  if(dx||dy){
+   const axis=dx?'x':'y';
+   if(roadAxis&&roadAxis!==axis)put(lastMark.x,lastMark.y,roadAxis);
+   put(lastMark.x,lastMark.y,axis);
+   if(dx&&dy){put(p.x,lastMark.y,'x');put(p.x,lastMark.y,'y');}
+   roadAxis=dy?'y':'x';
+  }
+ }
+ put(p.x,p.y,roadAxis||'x');markState.surfaceMarks=[...surfaceMarks.values()];lastMark=p;refreshMarking();
+}
+function stopSpray(){if(spraying&&api)api.save();spraying=false;lastMark=null;roadAxis=null;}
+function installMarking(){
+ const panel=document.createElement('div');panel.id='gp-marking';
+ panel.style.cssText='position:absolute;bottom:105px;left:12px;z-index:6;background:#fff8e8;color:#294a36;padding:10px;border:1px solid #718c70;border-radius:10px;max-width:calc(100% - 24px)';
+ panel.innerHTML='<div><button data-toggle-actions>E · Actions</button> <strong data-equipped></strong></div><div data-action-menu hidden><button data-surface="clear">Clear Trees/Bushes</button> <button data-surface="road">Mark Road</button> <button data-surface="path">Mark Path</button></div><small>R · Use selected action (hold to mark while walking)</small><div data-route-controls hidden><output></output> <span>Hire builder in ParkPad</span> <button data-clear>Clear markings</button><small> · Shift + R erases</small></div>';
+ $('.map-shell').append(panel);
+ panel.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.hasAttribute('data-toggle-actions')){actionMenuOpen=!actionMenuOpen;stopSpray();stopWalking();}
+  if(b.hasAttribute('data-surface')){surfaceTool=b.dataset.surface;actionMenuOpen=false;stopSpray();stopWalking();}
+  if(b.hasAttribute('data-clear')){api.getState().surfaceMarks=[];surfaceMarks.clear();stopSpray();api.save();}
+  refreshMarking();$('#park-map').focus({preventScroll:true});
+ });
+ window.addEventListener('blur',stopSpray);
+ refreshMarking();
+}
+const canWalk=(state,x,y)=>world.usesFarmBoundary(state)?world.tileWalkable(state,x,y,null,null):GameStateApi.getTileProperties(state,x,y).walkable;
 function stopWalking(){held.clear();if(api){api.getState().playerPath=[];}}
 function setTablet(open){
  if(!ready)return;
- walking=!open;stopWalking();interaction=null;api.tool('select');
+ walking=!open;actionMenuOpen=false;stopWalking();stopSpray();interaction=null;api.tool('select');
  document.body.classList.toggle('tablet-open',open);
+ window.dispatchEvent(new CustomEvent('caravan:tablet',{detail:{open}}));
  $('#park-map').setAttribute('aria-label',open
   ? 'Park management map. Drag to pan, scroll to zoom, or select a place.'
   : 'Park and village. Use WASD or the arrow keys to walk. Open the tablet to manage the park.');
@@ -90,15 +160,15 @@ function setTablet(open){
  if(button){button.textContent=open?'🚶 Resume walking':'📱 Tablet';button.setAttribute('aria-label',open?'Close tablet and return to walking':'Open management tablet');button.setAttribute('aria-pressed',String(open));}
  if(open&&api.getState().walkingInVillage)map.followPlayer(api.getState().player);
  if(!open){map.followPlayer(walkingPosition());document.getElementById('park-map').focus({preventScroll:true});}
- map.invalidate();render(true);
+ map.invalidate();render(true);refreshMarking();
 }
 function walkTo(target,approach=false){
  if(!walking)return false;
  const state=api.getState(),player=walkingPosition();
- if(world.usesFarmBoundary(state)&&(!world.inFarm(player.x,player.y)||!world.inFarm(target.x,target.y))){
+ if(world.usesFarmBoundary(state)&&(!map.canWalk(state,player.x,player.y)||!map.canWalk(state,target.x+.5,target.y+.5))){
   announce('Use WASD or the arrow keys to walk in the village.');return false;
  }
- const walkable=(s,x,y)=>canWalk(s,x,y)&&(!world.usesFarmBoundary(s)||world.inFarm(x,y));
+ const walkable=(s,x,y)=>world.usesFarmBoundary(s)?map.canWalk(s,x+.5,y+.5):canWalk(s,x,y);
  const path=LivingParkMovement.route(state,player,target,walkable,approach);
  if(!path){announce('No walkable route to that spot.');return false;}
  state.playerPath=path.map(p=>({x:p.x+.5,y:p.y+.5}));
@@ -109,22 +179,23 @@ function walkingFrame(timestamp){
  requestAnimationFrame(walkingFrame);
  if(!ready){lastFrame=timestamp;return;}
  const dt=Math.min((timestamp-(lastFrame||timestamp))/1000,.05);lastFrame=timestamp;
- if(!walking||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
+ if(!walking||actionMenuOpen||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  const state=api.getState();
  const player=walkingPosition();
  const input={left:held.has('a')||held.has('arrowleft'),right:held.has('d')||held.has('arrowright'),up:held.has('w')||held.has('arrowup'),down:held.has('s')||held.has('arrowdown')};
  const moving=LivingParkMovement.advance(state,dt,input,GameStateApi.getTileProperties,map.canWalk,4,player);
- const inVillage=world.usesFarmBoundary(state)&&!world.inFarm(player.x,player.y);
+ const inVillage=world.usesFarmBoundary(state)&&!world.inFarm(player.x,player.y)&&!window.CaravanLandParcels.inParcel(player.x,player.y);
  if(inVillage!==Boolean(state.walkingInVillage)){
   state.walkingInVillage=inVillage;
   interaction=null;
  }
+ if(spraying&&['road','path'].includes(surfaceTool)){const p=LivingParkMovement.tile(player);if(!lastMark||p.x!==lastMark.x||p.y!==lastMark.y)sprayAtPlayer();}
  map.updatePlayer(player);
- if(moving&&!inVillage){
+ if(moving&&!inVillage&&(world.inFarm(player.x,player.y)||window.CaravanLandParcels.inParcel(player.x,player.y))){
   Object.assign(state.player,player);
   if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
  }
- map.followPlayer(player,dt);
+ if(held.size>0)map.followPlayer(player,dt);
 }
 requestAnimationFrame(walkingFrame);
 try{const ids=JSON.parse(localStorage.getItem('caravanweb_management_saved_v1')||'[]');if(Array.isArray(ids))app.saved=ids.filter(id=>typeof id==='string');}catch{}
@@ -154,7 +225,12 @@ function renderResults(){
     $('#mg-saved').setAttribute('aria-pressed',app.savedOnly);
     document.querySelectorAll('[data-category]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.category===app.category)));
     let last='';const html=list.map(p=>{const group=p.kind==='pitch'?'PITCHES & CARAVANS':p.kind==='facility'?'PARK FACILITIES':p.kind==='land'?'LAND & BEACH':'AROUND THE PARK',heading=group!==last?`<div class="result-group">${group}</div>`:'';last=group;return `${heading}<button class="result-item" data-select="${esc(p.id)}" aria-label="Manage ${esc(p.name)}" aria-pressed="${p.id===app.selected}"><span class="result-icon">${p.van?'<svg viewBox="0 0 40 32" aria-hidden="true"><path d="M4 24V10q0-4 4-4h24q4 0 4 4v14Z" fill="#b6c9a2" stroke="#789773"/><path d="M9 11h11v7H9Zm17 0h6v13h-6" fill="#f8f8e8" stroke="#789773"/><circle cx="12" cy="25" r="3" fill="#67805d"/><circle cx="29" cy="25" r="3" fill="#67805d"/></svg>':esc(p.symbol)}</span><span class="result-copy"><strong>${esc(p.name)}</strong><small>${esc(p.label)}</small></span><span class="result-end"><i class="status-dot ${p.status}" title="${p.status}"></i><span class="sr-only">${p.status}</span>${app.saved.includes(p.id)?'♥':'›'}</span></button>`;}).join('')||'<div class="empty">A little room to grow.<small>No places match these filters. A new park starts with just the farm and village shops.</small><button data-reset class="text-button">Reset filters</button></div>';
-    if(html!==lastResults){replaceKeepingFocus($('#mg-results'),html);lastResults=html;}
+    if(app.view==='land'&&api.landTestEnabled?.()){
+        const q=api.southFieldQuote();
+        const card='<div class="result-group">CAISTER COASTAL ESTATES · DEVELOPMENT TEST</div><div class="result-item" style="display:block;padding:14px"><strong>South Field · '+money(q.price)+'</strong><p>Old barn and overgrown ground. Instant completion is enabled for this development test only.</p><p>'+ (q.plot?.owned?'Purchased · South Field is now owned':q.reasons.map(esc).join(' ')) +'</p>'+(!q.plot?.owned?'<button class="primary" data-test-south-buy '+(q.ok?'':'disabled')+'>Purchase South Field instantly</button>':'')+'</div>';
+        const output=card+html;
+        if(output!==lastResults){replaceKeepingFocus($('#mg-results'),output);lastResults=output;}
+    }else if(html!==lastResults){replaceKeepingFocus($('#mg-results'),html);lastResults=html;}
 }
 function detailHero(p){if(p.kind==='land')return `<svg viewBox="0 0 285 104" aria-hidden="true"><rect width="285" height="104" fill="#dce5ce"/><path d="M0 86H285" stroke="#d0c5a4" stroke-width="20"/>${ManagementArt.tree(58,76,19,2)}${ManagementArt.tree(225,68,16,1)}${p.type==='beach_gate'?'<path d="M120 54v40m40-40v40m-40-29h40m-40 16h40" stroke="#9a8966" stroke-width="4"/>':'<path d="M99 84V40h85v44Z" fill="#eae3c9" stroke="#a3926c"/><text x="141" y="68" text-anchor="middle" fill="#6a7857" font-size="13">'+(p.status==='owned'?'YOUR FIELD':'FOR SALE')+'</text>'}</svg>`;const obj={id:p.type,x:145,y:55,w:95,h:42,type:p.kind==='pitch'?(p.van?'static':p.guest?.accommodation==='tent'?'tent':'touring'):'facility',tier:p.van?StaticCaravans.getModel(p.van.modelId)?.tierName:'Silver'};return `<svg viewBox="0 0 285 104" aria-hidden="true"><rect width="285" height="104" fill="#dce5ce"/><path d="M0 87H285" stroke="#c3c7a4" stroke-width="18"/>${ManagementArt.tree(42,64,17,2)}${ManagementArt.tree(242,64,17,1)}${ManagementArt.building(obj)}</svg>`;}
 function actionButton(action,label,disabled=false,primary=false){return `<button data-action="${action}" ${disabled?'disabled':''} class="${primary?'primary':''}" id="mg-action-${action}">${label}</button>`;}
@@ -164,6 +240,11 @@ function renderDetail(state){
     let body='',actions='';
     if(p.kind==='land'){
         const card=landCard(state,p);body=card.body;actions=card.actions;
+        if(app.view==='land'&&api.landTestEnabled?.()){
+            const q=api.southFieldQuote();
+            body='<div class="readiness"><strong>CAISTER COASTAL ESTATES · DEVELOPMENT TEST</strong><p>South Field · '+money(q.price)+' · Old barn included. Instant completion for testing only.</p><p>'+(q.plot?.owned?'South Field is already owned.':q.reasons.map(esc).join(' '))+'</p></div>'+body;
+            actions=(q.plot?.owned?'<p>South Field purchased.</p>':'<button data-test-south-buy class="primary" '+(q.ok?'':'disabled')+'>Buy South Field · '+money(q.price)+'</button>')+actions;
+        }
     }else if(p.kind==='pitch'){
         const cap=p.capability,van=p.van,guest=p.guest;
         const ready=PitchCapabilities.canHostCurrent(state,p.entity,{accommodation:van?'static':'tent',headcount:1,requiredServices:['toilets']});
@@ -212,8 +293,12 @@ $('#mg-purchase').addEventListener('close',()=>{purchaseId=null;});
 $('#mg-purchase-confirm').addEventListener('click',()=>{if(!purchaseId)return;$('#mg-purchase-confirm').disabled=true;const result=api.purchaseLand(purchaseId);if(result.ok){$('#mg-purchase').close();map.invalidate();}else $('#mg-purchase-body').textContent=result.reasons.join(' ');render(true);});
 function toolButton(tool,label,meta,disabled=false){return `<button class="build-tool" data-tool="${tool}" aria-pressed="${api.getState().activeTool===tool}" ${disabled?'disabled':''}><strong>${label}</strong><small>${meta}</small><span aria-hidden="true">+</span></button>`;}
 function renderBuild(state){
-    const html=`<div class="build-intro"><p>Choose a tool, then lay it out on the map. The game checks space, funds and connections before starting work.</p><button id="mg-stop-build" class="text-button">Return to selecting</button></div><h3>Ground & pitches</h3>${toolButton('clear','Clear overgrowth','Click a tree or brush · Harvests timber')}${toolButton('path','Park path','£10 / tile · Drag an area')}${toolButton('road','Park road','£20 / tile · Drag an area')}${toolButton('pitch_grass','Grass pitch','£100 each · Draw at least 4 × 6 tiles')}${toolButton('pitch_gravel','Hardstanding','£250 each · Draw at least 4 × 8 tiles',!state.tools.shovel)}<h3>Facilities</h3>${Object.entries(api.facilityDefinitions).map(([type,f])=>toolButton('build_'+type,M.names[type],`${money(f.cost)} · ${f.w} × ${f.h} tiles · Click to place`)).join('')}<h3>Utilities</h3><p class="build-note">Mains connect at a park edge. Lines must follow roads or paths.</p>${!state.tools.shovel?'<button class="primary" data-action="shovel">Buy shovel to unlock · £350</button>':''}${ParkServices.UTILITY_TYPES.map(type=>toolButton('utility_'+type,title(type),`${money({gas:25,water:20,electricity:30,waste:35}[type])} / tile · Drag a line`,!state.tools.shovel)).join('')}${toolButton('build_tree','Plant a tree','£30 · Click clear ground')}`;
+    const html=`<div class="build-intro"><p>Choose a tool, then lay it out on the map. The game checks space, funds and connections before starting work.</p><button id="mg-stop-build" class="text-button">Return to selecting</button></div><h3>Ground & pitches</h3><p>Roads and paths are marked physically in walking mode.</p>${toolButton('pitch_grass','Grass pitch','£100 each · Draw at least 4 × 6 tiles')}${toolButton('pitch_gravel','Hardstanding','£250 each · Draw at least 4 × 8 tiles',!state.tools.shovel)}<h3>Facilities</h3>${Object.entries(api.facilityDefinitions).map(([type,f])=>toolButton('build_'+type,M.names[type],`${money(f.cost)} · ${f.w} × ${f.h} tiles · Click to place`)).join('')}${toolButton('build_tree','Plant a tree','£30 · Click clear ground')}`;
     if(html!==lastBuild){replaceKeepingFocus($('#build-list'),html);lastBuild=html;}
+}
+function renderUtilities(state){
+ const html='<div class="build-intro"><p>Install services along your park roads and paths. A shovel is needed to dig trenches.</p><button id="mg-stop-build" class="text-button">Return to selecting</button></div><h3>Service connections</h3>'+(!state.tools.shovel?'<button class="primary" data-action="shovel">Buy shovel to unlock · £350</button>':'')+ParkServices.UTILITY_TYPES.map(type=>toolButton('utility_'+type,title(type),money({gas:25,water:20,electricity:30,waste:35}[type])+' / tile · Drag a line',!state.tools.shovel)).join('');
+ if(html!==lastBuild){replaceKeepingFocus($('#build-list'),html);lastBuild=html;}
 }
 function panelHeader(kicker,name,description){return `<header class="panel-top"><div><p class="eyebrow">${kicker}</p><h2>${name}</h2><p>${description}</p></div><button data-close-panel aria-label="Close management panel">×</button></header>`;}
 function renderPanel(state){
@@ -232,7 +317,7 @@ function renderPanel(state){
         html+=transactions.length?`<div class="table-scroll"><table><thead><tr><th>Day</th><th>Transaction</th><th>Amount</th><th>Balance</th></tr></thead><tbody>${transactions.map(t=>`<tr><td>${t.day}</td><td>${esc(t.description)}<small>${esc(title(t.category))}</small></td><td class="${t.amount<0?'negative':'positive'}">${money(t.amount)}</td><td>${money(t.balance)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="panel-empty"><h3>A clean set of books.</h3><p>Your first building project or guest booking will appear here. The starting scenario includes its opening assets.</p></div>';
     }
     if(app.view==='settings'){
-        html=panelHeader('THE PARK OFFICE','Keep the park ticking.','Staff, tools, time settings and a safe place for your progress.')+`<div class="settings-grid"><article><h3>Your team</h3><p>${state.groundsStaff?'Grounds staff are cleaning and maintaining toilets for £1 per game hour.':'Grounds staff unlock at 4 facilities and 6 pitches. Hiring costs £250, then £1 per game hour.'}</p><button class="primary" data-action="grounds" ${!state.groundsStaff&&(state.facilities.length<4||state.pitches.length<6||state.cash<250)?'disabled':''}>${state.groundsStaff?'Dismiss grounds staff':'Hire grounds staff · £250'}</button><p>A handyman can cover urgent repairs for 24 game hours.</p><button data-action="handyman" ${state.handymanContractHoursRemaining>0||state.cash<100?'disabled':''}>${state.handymanContractHoursRemaining>0?'Handyman booked · '+state.handymanContractHoursRemaining+'h left':'Book handyman · £100'}</button></article><article><h3>Tools & timber</h3><button data-action="fiddl">Browse pitch accessories</button><p>The shovel unlocks hardstanding preparation and utility trenching.</p><button data-action="shovel" ${state.tools.shovel||state.cash<350?'disabled':''}>${state.tools.shovel?'Shovel owned':'Buy shovel · £350'}</button><p>${state.wood} timber in storage.</p><button data-action="timber" ${state.wood<=0?'disabled':''}>Sell timber · ${money(LandManagement.getTimberSaleValue(state.wood))}</button><h3>Game pace</h3><label for="mg-day-length">Day length setting: ${state.dayLengthMinutes} min</label><input id="mg-day-length" type="range" min="3" max="60" value="${state.dayLengthMinutes}"></article><article><h3>Your save</h3><p>Progress is saved in this browser. Export a game file to keep a portable copy or move to another device.</p><button class="primary" id="mg-export">Export game save</button><button id="mg-import">Import game save</button><button id="mg-export-backup" ${!api.getBackup()?'disabled':''}>Export recovery backup</button><p>A previous-save backup is created before loading a file or starting another scenario.</p></article><article><h3>A different perspective</h3><p>The classic avatar view uses the same simulation and local save. Your management camera is stored separately.</p><a class="button-link" href="walkabout.html">Open classic walkabout</a><h3>Start another park</h3><p>Choose a new farm or a developed park. Your current park is kept as a recovery backup.</p><button id="mg-new-park">Choose a new scenario</button></article></div>`;
+        html=panelHeader('THE PARK OFFICE','Your park, organised.','Save files, park settings and business administration.')+`<div class="settings-grid"><article><h3>Park records</h3><p>Keep a portable copy of your progress or restore a saved game.</p><button class="primary" id="mg-export">Export game save</button><button id="mg-import">Import game save</button><button id="mg-export-backup" ${!api.getBackup()?'disabled':''}>Export recovery backup</button></article><article><h3>Park settings</h3><label for="mg-day-length">Day length: ${state.dayLengthMinutes} minutes</label><input id="mg-day-length" type="range" min="3" max="60" value="${state.dayLengthMinutes}"><p>Current game time and speed are controlled from the park HUD.</p></article><article><h3>Start another park</h3><p>Create a new farm or take over a developed park. Your current save is backed up first.</p><button id="mg-new-park">Choose a new scenario</button></article><article><h3>Local services</h3><p>Recruitment is handled through the Job Centre. Building supplies and tools belong with the relevant traders.</p><button type="button" data-parkpad-open="jobs">Open Job Centre</button></article></div>`;
     }
     if(html!==lastPanel){replaceKeepingFocus($('#mg-panel'),html);lastPanel=html;}
 }
@@ -245,7 +330,7 @@ function render(force=false){
     setText('mobile-list',app.view==='build'?'☰ Tools':'☰ Places');
     $('#location-controls').hidden=['build','land'].includes(app.view);$('#mg-results').hidden=app.view==='build';$('#build-list').hidden=app.view!=='build';$('#mg-count').parentElement.hidden=app.view==='build';
     $('.sidebar-heading h1').innerHTML=app.view==='build'?'Room for<br>something new.':app.view==='land'?'A little more<br>of the coast.':'A place to stay.<br>A park to grow.';
-    if(app.view==='build')renderBuild(state);else renderResults();
+    if(app.view==='build'&&document.querySelector('#management-app')?.dataset.parkpadView==='utilities')renderUtilities(state);else if(app.view==='build')renderBuild(state);else renderResults();
     const alerts=M.getAlerts(state,places),priorities=alerts.slice(0,2).map(a=>`<button ${a.place?'data-select="'+esc(a.place)+'"':'data-view="'+esc(a.kind)+'"'}><strong>${esc(a.title)}</strong><small>${esc(a.text)}</small></button>`).join('');
     replaceKeepingFocus($('#mg-priorities'),priorities?`<p class="eyebrow">${alerts.length} THING${alerts.length===1?'':'S'} TO WATCH</p>${priorities}`:'');$('#mg-priorities').hidden=Boolean(app.selected)||app.view!=='map'||!alerts.length;
     const now=Construction.getGameTimeMinutes(state),queue=state.constructions.slice(0,3).map(j=>`<div><span class="queue-dot"></span><span>${esc(title(j.type||j.surface||j.utility||j.kind))} <small>${Math.max(0,Math.ceil(j.completesAt-now))} game min left</small></span></div>`).join('');replaceKeepingFocus($('#mg-queue'),queue?'<p class="eyebrow">WORK IN PROGRESS</p>'+queue:'');$('#mg-queue').hidden=!queue||!['map','build','land'].includes(app.view);
@@ -261,6 +346,12 @@ function showWelcome(){if(api.getState().pitches.length||localStorage.getItem('c
 function runAction(action){const p=current(),entity=p?.van||p?.entity;const result=api.action(action,entity);render(true);return result;}
 $('#mg-search').addEventListener('input',e=>{app.query=e.target.value;render(true);});$('#mg-status').addEventListener('change',e=>{app.status=e.target.value;render(true);});
 $('#mg-saved').addEventListener('click',()=>{app.savedOnly=!app.savedOnly;render(true);});$('#mg-reset-filters').addEventListener('click',resetFilters);
+$('#management-app').addEventListener('click',event=>{
+    const button=event.target.closest('[data-test-south-buy]');if(!button)return;
+    const q=api.southFieldQuote();if(!q.ok){announce(q.reasons.join(' '));render(true);return;}
+    if(!window.confirm('Development test: buy South Field instantly for '+money(q.price)+'?'))return;
+    const result=api.purchaseSouthFieldTest();if(!result.ok)announce(result.reasons.join(' '));render(true);
+});
 $('#mg-pause').addEventListener('click',()=>{api.pause();render(true);});$('#mg-save').addEventListener('click',()=>{if(api.save()){setText('save-status','Saved just now');announce('Park saved in this browser.');}});
 $('#mg-plan').addEventListener('click',()=>{const plan=map.togglePlan();$('#mg-plan').setAttribute('aria-pressed',String(plan));$('#mg-plan').textContent=plan?'◇ Landscape view':'◇ Plan view';});
 $('#mg-layers').addEventListener('click',()=>{const open=$('#layers-panel').hidden;$('#layers-panel').hidden=!open;$('#mg-layers').setAttribute('aria-expanded',String(open));});
@@ -277,7 +368,7 @@ $('#management-app').addEventListener('click',e=>{
     const tool=e.target.closest('[data-tool]');if(tool){setTool(tool.dataset.tool);return;}
     const speed=e.target.closest('[data-game-speed]');if(speed){api.speed(speed.dataset.gameSpeed);render(true);return;}
     const category=e.target.closest('[data-category]');if(category){app.category=category.dataset.category;render(true);return;}
-    const start=e.target.closest('[data-start]');if(start){const result=api.begin(start.dataset.start);if(result.ok){app.selected=null;app.route=false;app.view='map';resetFilters();$('#mg-welcome').close();map.invalidate();map.fit();if(walking)map.followPlayer(walkingPosition());render(true);}return;}
+    const start=e.target.closest('[data-start]');if(start){const result=api.begin(start.dataset.start);if(result.ok){app.selected=null;app.route=false;app.view='map';resetFilters();$('#mg-welcome').close();stopWalking();walkerState=null;setTablet(false);map.invalidate();render(true);frameStartingPlayer();}return;}
     if(e.target.closest('[data-reset]')){resetFilters();return;}
     if(e.target.closest('.detail-close')){select(null,false);return;}
     if(e.target.closest('[data-open-settings]')){setView('settings');return;}
@@ -293,7 +384,7 @@ $('#management-app').addEventListener('click',e=>{
 $('#mg-panel').addEventListener('change',e=>{if(e.target.id==='mg-day-length'){api.dayLength(e.target.value);render(true);}});
 $('#mg-import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>5*1024*1024)throw new Error('Choose a game save under 5 MB.');const result=api.importSave(await file.text());if(result.ok){stopWalking();interaction=null;app.selected=null;app.route=false;map.invalidate();resetFilters();if(walking)map.followPlayer(walkingPosition());}}catch(error){announce(error.message);}finally{e.target.value='';render(true);}});
 window.addEventListener('hashchange',()=>{const id=new URLSearchParams(location.hash.slice(1)).get('place');select(id);});
-document.addEventListener('keyup',e=>held.delete(e.key.toLowerCase()));
+document.addEventListener('keyup',e=>{held.delete(e.key.toLowerCase());if(e.key.toLowerCase()==='r')stopSpray();});
 window.addEventListener('blur',()=>held.clear());
 document.addEventListener('keydown',e=>{
  if(!ready)return;
@@ -304,13 +395,26 @@ document.addEventListener('keydown',e=>{
  }
  if(editing||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  if(walking){
-  if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();held.add(key);return;}
-  if(key==='e'&&interaction){
-   e.preventDefault();const p=LivingParkMovement.tile(walkingPosition());
-   if(LivingParkMovement.adjacent(p,interaction)&&['tree','debris'].includes(api.getState().tiles[interaction.y]?.[interaction.x]?.nature)){
-    const result=api.build('clear',interaction,interaction);
+  if(key==='shift'){held.add(key);return;}
+  if(key==='e'){e.preventDefault();if(!e.repeat){actionMenuOpen=!actionMenuOpen;stopSpray();stopWalking();refreshMarking();}return;}
+  if(key==='escape'&&(actionMenuOpen||surfaceTool)){e.preventDefault();if(actionMenuOpen)actionMenuOpen=false;else surfaceTool='';stopSpray();refreshMarking();return;}
+  if(actionMenuOpen)return;
+  if(key==='r'&&['road','path'].includes(surfaceTool)){e.preventDefault();if(!e.repeat){spraying=true;lastMark=null;api.getState().playerPath=[];sprayAtPlayer();}return;}
+  if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();if(!held.has(key))map.followPlayer(walkingPosition());held.add(key);return;}
+  if(key==='r'&&surfaceTool==='clear'){
+   e.preventDefault();if(e.repeat)return;
+   const state=api.getState(),p=LivingParkMovement.tile(walkingPosition());
+   const candidates=[interaction,{x:p.x,y:p.y-1},{x:p.x+1,y:p.y},{x:p.x,y:p.y+1},{x:p.x-1,y:p.y}]
+    .filter(Boolean)
+    .filter(t=>LivingParkMovement.adjacent(p,t)&&['tree','debris'].includes((window.CaravanLandParcels.inParcel(t.x,t.y)?window.CaravanExternalTerrain.getTile(state,t.x,t.y):state.tiles[t.y]?.[t.x])?.nature));
+   const target=candidates[0];
+   if(target){
+    const field=window.CaravanLandParcels.inParcel(target.x,target.y);
+    const result=Boolean(field)?window.CaravanExternalTerrain.clear(state,target.x,target.y):api.build('clear',target,target);
+    if(result.ok&&field?.id==='south_field'){api.save();window.dispatchEvent(new CustomEvent('caravan:change'));}
     if(result.ok){interaction=null;map.invalidate();render(true);}
-   }else announce('Walk next to the tree or debris before interacting.');
+    else announce('Unable to clear this tree or debris.');
+   }else announce('Stand next to a tree or debris in your park and press R with Clear Trees/Bushes selected.');
   }
   return;
  }
@@ -330,17 +434,18 @@ window.addEventListener('caravan:ready',()=>{
       api.getState().playerPath=[];
       api.save();
     }
-    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,onGround:target=>{
-        const nature=api.getState().tiles[target.y]?.[target.x]?.nature;
+    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,getSurfaceMarks:()=>getSurfaceMarks(),onGround:target=>{
+        const st=api.getState();
+        const nature=(window.CaravanLandParcels.inParcel(target.x,target.y)?window.CaravanExternalTerrain.getTile(st,target.x,target.y):st.tiles[target.y]?.[target.x])?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
-        if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press E to clear it.');
+        if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press R with Clear Trees/Bushes selected.');
     },onSelect:id=>{if(!walking)select(id);},onBuild:(tool,start,end)=>{if(walking)return;api.build(tool,start,end);$('#mg-build-hint').dataset.preview='';map.invalidate();render(true);},onPreview:p=>{$('#mg-build-hint').dataset.preview='true';$('#mg-build-hint').innerHTML=`<strong>${esc(p.label)}${p.cost===null?'':' · '+money(p.cost)}</strong><span>Release to build · Subject to game placement checks</span><button id="mg-cancel-tool">Cancel</button>`;}});
     places=M.getPlaces(api.getState());const id=new URLSearchParams(location.hash.slice(1)).get('place');if(places.some(p=>p.id===id))app.selected=id;
-    let cameraSaved=false;try{cameraSaved=Boolean(localStorage.getItem('caravanweb_management_camera_v1'));}catch{}
-    if(!cameraSaved)map.fit();render(true);
+    render(true);
     const walkButton=document.createElement('button');walkButton.id='mg-walk-mode';walkButton.type='button';walkButton.textContent='📱 Tablet';walkButton.setAttribute('aria-pressed','false');walkButton.setAttribute('aria-label','Open management tablet');walkButton.style.cssText='position:absolute;bottom:52px;right:18px;z-index:5;padding:10px 14px;border-radius:12px;background:#fff8e8;color:#294a36;border:2px solid #718c70;cursor:pointer;font-weight:700;box-shadow:0 3px 12px #223c3522';
     $('.map-shell').append(walkButton);walkButton.addEventListener('click',()=>setTablet(walking));
-    map.followPlayer(walkingPosition());
+    installMarking();
+    frameStartingPlayer();
     const plan=map.getCamera().tilt===1;$('#mg-plan').setAttribute('aria-pressed',String(plan));$('#mg-plan').textContent=plan?'◇ Landscape view':'◇ Plan view';
     let exists=false;try{exists=Boolean(localStorage.getItem('caravan_tycoon_save'));}catch{}
     if(!exists)showWelcome();

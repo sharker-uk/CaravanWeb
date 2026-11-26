@@ -1,0 +1,159 @@
+/* ParkPad is the primary management UI. Legacy engine stays alive underneath. */
+body[data-management="true"] #management-app {padding-top:0}
+#parkpad-bar[hidden],.parkpad-screen[hidden]{display:none!important}
+body:not(.tablet-open) #management-app .masthead{display:none}
+body:not(.tablet-open) #management-app .management-status{display:none}
+body:not(.tablet-open) #management-app .sidebar{display:none}
+body:not(.tablet-open) #management-app .map-shell{width:100%;flex:1}
+body.tablet-open #management-app{padding-top:66px}
+#management-app .masthead {display:none}
+.parkpad-bar{position:fixed;z-index:120;top:0;left:0;right:0;min-height:66px;background:#faf9f2;border-bottom:1px solid #d6d9c9;display:flex;align-items:center;gap:18px;padding:10px clamp(12px,3vw,42px);font-family:system-ui,sans-serif;color:#314b3b}
+.parkpad-bar button{border:1px solid #a7b5a2;border-radius:9px;padding:9px 15px;background:#fffdf4;color:#314b3b;cursor:pointer;font-weight:700}
+#parkpad-home-button{font-size:17px}
+#parkpad-location{font-size:14px;flex:1}
+#parkpad-balance{font-weight:700;font-size:20px}
+.parkpad-screen{position:fixed;z-index:95;top:66px;bottom:0;left:0;right:0;overflow-y:auto;background:#f2f1e8;color:#2c4438;padding:clamp(22px,4vw,55px)}
+.parkpad-screen[hidden]{display:none}
+#parkpad-content{max-width:1150px;margin:auto}
+.parkpad-intro{margin:0 0 28px}
+.parkpad-kicker{font-size:11px;letter-spacing:.17em;text-transform:uppercase;color:#657e65;font-weight:800}
+.parkpad-intro h1{font-family:Georgia,serif;font-size:clamp(30px,4vw,50px);font-weight:400;margin:9px 0}
+.parkpad-intro>p{max-width:750px}
+.parkpad-app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px}
+.parkpad-app{border:1px solid #d9d9c9;border-radius:16px;background:#fffdf7;text-align:left;padding:24px;min-height:188px;display:flex;flex-direction:column;align-items:flex-start;gap:9px;cursor:pointer;box-shadow:0 5px 20px #233e2a0c}
+.parkpad-app:hover,.parkpad-app:focus-visible{outline:2px solid #739775;outline-offset:2px}
+.parkpad-icon{font-size:34px;background:#e4e9d8;border-radius:13px;padding:12px}
+.parkpad-app strong{font-family:Georgia,serif;font-size:21px}
+.parkpad-app small{font-size:13px;color:#657064;line-height:1.5}
+.parkpad-properties{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:20px}
+.parkpad-property{border:1px solid #d6d9c9;border-radius:14px;overflow:hidden;background:#fffdf7}
+.parkpad-property-art{height:112px;background:linear-gradient(155deg,#8fa77b 0%,#b7c49a 53%,#d4c9a0 54%,#c5b88d 100%);display:flex;align-items:center;justify-content:space-evenly;font-size:37px}
+.parkpad-property-info{padding:20px}
+.parkpad-property h2{font-family:Georgia,serif;font-size:27px;font-weight:400;margin:8px 0}
+.parkpad-property-info>p{line-height:1.5}
+.parkpad-property-meta{display:flex;flex-wrap:wrap;align-items:center;gap:14px;border-top:1px solid #e4e4d9;padding-top:12px;margin-top:15px;font-size:13px}
+.parkpad-property-meta strong{font-size:23px}
+.parkpad-buy{margin-top:17px;border:0;background:#416b4b;color:white;padding:13px 16px;border-radius:8px;cursor:pointer;font-weight:700}
+.parkpad-buy:hover{background:#2e5138}
+.parkpad-test,.parkpad-owned{background:#e6eddd;border-radius:8px;padding:12px}
+.parkpad-pending{font-size:13px;color:#8c6944}
+#management-app[data-parkpad-view="map"] .sidebar,#management-app[data-parkpad-view="map"] #mg-detail{display:none!important}
+#management-app[data-parkpad-view="map"] .map-shell{width:100%;flex:1}
+@media(max-width:650px){.parkpad-bar{gap:9px;padding:8px}.parkpad-bar button{padding:8px}.parkpad-screen{padding:16px}.parkpad-properties{grid-template-columns:1fr}.parkpad-app-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.parkpad-app{padding:14px;min-height:160px}}
+
+
+/* ParkPad device shell: lightweight physical tablet, with the live park visible
+   around it. Only the launcher and estate-agent website use this shell. */
+body.tablet-open #management-app[data-parkpad-visible="true"]::before{
+ content:"";position:fixed;inset:0;background:rgba(18,31,24,.46);
+ backdrop-filter:blur(3px);z-index:90;pointer-events:none;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]{
+ --parkpad-edge:clamp(12px,3.4vw,54px);
+ --parkpad-top:clamp(22px,5vh,55px);
+ --parkpad-bottom:clamp(20px,5vh,55px);
+}
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-bar{
+ top:var(--parkpad-top);left:var(--parkpad-edge);right:var(--parkpad-edge);
+ min-height:66px;border:12px solid #29352f;border-bottom:0;
+ border-radius:27px 27px 0 0;
+ background:linear-gradient(180deg,#fafaf5,#f2f1e9);
+ box-shadow:0 0 0 2px #66766c,0 16px 52px #101c14a8;
+ padding:8px clamp(12px,2.5vw,34px);z-index:121;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-bar::after{
+ content:"";position:absolute;top:-8px;left:50%;width:5px;height:5px;
+ border-radius:50%;background:#687c74;box-shadow:0 0 0 2px #18231e;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-screen{
+ top:calc(var(--parkpad-top) + 66px);bottom:var(--parkpad-bottom);
+ left:var(--parkpad-edge);right:var(--parkpad-edge);
+ border:12px solid #29352f;border-top:0;
+ border-radius:0 0 27px 27px;
+ background:radial-gradient(ellipse at 15% 8%,#e7ecdf 0%,transparent 45%),
+ linear-gradient(140deg,#f5f3e9,#e8ecdf);
+ box-shadow:0 0 0 2px #66766c,0 25px 55px #101c1480;
+ padding:clamp(18px,3vw,46px);
+}
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-screen::before{
+ content:"";position:sticky;display:block;top:0;height:3px;margin:-9px 0 12px;
+ background:linear-gradient(90deg,transparent,#d7dfd1,transparent);
+ pointer-events:none;
+}
+@media(max-width:650px){
+ body.tablet-open #management-app[data-parkpad-visible="true"]{
+  --parkpad-edge:6px;--parkpad-top:8px;--parkpad-bottom:8px;
+ }
+ body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-bar{
+  border-width:7px;border-bottom:0;min-height:58px;border-radius:19px 19px 0 0;
+  padding:6px;gap:7px;
+ }
+ body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-screen{
+  top:calc(var(--parkpad-top) + 58px);border-width:7px;border-top:0;
+  border-radius:0 0 19px 19px;padding:12px;
+ }
+ #parkpad-location{display:none}
+ #parkpad-balance{font-size:15px;margin-left:auto}
+}
+
+/* All ParkPad apps share one device shell. Legacy panels are content within
+   the device, never allowed to fall back to a full-screen management UI. */
+body.tablet-open #management-app[data-parkpad-visible="true"] .masthead,
+body.tablet-open #management-app[data-parkpad-visible="true"] .management-status{
+ display:none!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-bar{z-index:125}
+body.tablet-open #management-app[data-parkpad-visible="true"] .workspace{
+ position:fixed!important;inset:calc(var(--parkpad-top) + 66px) var(--parkpad-edge) var(--parkpad-bottom);
+ z-index:100;overflow:hidden;border:12px solid #29352f;border-top:0;border-radius:0 0 27px 27px;
+ background:#f3f1e7;box-shadow:0 0 0 2px #66766c,0 25px 55px #101c1480;
+ display:block!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"] .parkpad-screen{
+ z-index:110;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="settings"],[data-parkpad-view="guests"],[data-parkpad-view="finances"]) .sidebar,
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="settings"],[data-parkpad-view="guests"],[data-parkpad-view="finances"]) .map-shell> :not(#mg-panel){
+ display:none!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="settings"],[data-parkpad-view="guests"],[data-parkpad-view="finances"]) .map-shell{
+ position:static!important;width:100%!important;height:100%!important;min-height:0!important;
+ display:block!important;overflow:auto!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="settings"],[data-parkpad-view="guests"],[data-parkpad-view="finances"]) #mg-panel{
+ position:relative!important;inset:auto!important;display:block!important;
+ width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;
+ overflow:visible!important;box-shadow:none!important;border:0!important;border-radius:0!important;
+ padding:clamp(16px,3vw,35px)!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="build"],[data-parkpad-view="utilities"]) .map-shell{
+ display:none!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="build"],[data-parkpad-view="utilities"]) .sidebar{
+ display:block!important;position:relative!important;inset:auto!important;
+ width:100%!important;max-width:none!important;height:100%!important;overflow:auto!important;
+ padding:clamp(14px,3vw,34px);background:#f6f4eb;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"]:is([data-parkpad-view="build"],[data-parkpad-view="utilities"]) .sidebar-footer{
+ display:none!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"][data-parkpad-view="map"] .sidebar,
+body.tablet-open #management-app[data-parkpad-visible="true"][data-parkpad-view="map"] #mg-detail{
+ display:none!important;
+}
+body.tablet-open #management-app[data-parkpad-visible="true"][data-parkpad-view="map"] .map-shell{
+ display:block!important;position:relative!important;width:100%!important;height:100%!important;
+ min-height:0!important;
+}
+@media(max-width:650px){
+ body.tablet-open #management-app[data-parkpad-visible="true"] .workspace{
+  inset:calc(var(--parkpad-top) + 58px) var(--parkpad-edge) var(--parkpad-bottom);
+  border-width:7px;border-top:0;border-radius:0 0 19px 19px;
+ }
+}
+
+/* Job Centre uses the same ParkPad shell as Estate Agents. */
+body.tablet-open #management-app:is([data-parkpad-view="jobs"],[data-parkpad-view="contractors"]) .parkpad-screen{display:block}
+body.tablet-open #management-app:is([data-parkpad-view="jobs"],[data-parkpad-view="contractors"]) .workspace{visibility:hidden}
+body.tablet-open #management-app:is([data-parkpad-view="jobs"],[data-parkpad-view="contractors"]) .parkpad-screen,
+body.tablet-open #management-app:is([data-parkpad-view="jobs"],[data-parkpad-view="contractors"]) .parkpad-bar{visibility:visible}

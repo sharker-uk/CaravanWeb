@@ -145,7 +145,8 @@ const PALETTE = {
     tree: '#1e8449'
 };
 const STARTING_LANDMARKS = [
-    {type: 'farmhouse', name: 'Run-down farmhouse', x: 10, y: 18, w: 6, h: 5, blocksBuilding: true, blocksMovement: true, interactable: true},
+    {type: 'farmhouse', name: 'Run-down farmhouse', x: 8, y: 18, w: 6, h: 5, blocksBuilding: true, blocksMovement: true, interactable: true},
+    {type: 'selling_stall', name: 'Farmhouse selling stall', x: 9, y: 23, w: 1, h: 1, blocksBuilding: true, blocksMovement: true, interactable: false},
     {type: 'for_sale', name: 'Land for sale', x: 29, y: 12, w: 17, h: 16, blocksBuilding: true, blocksMovement: false, interactable: false}
 ];
 
@@ -289,6 +290,11 @@ function init() {
     state.landmarks = Array.isArray(data.landmarks) ? data.landmarks : [];
     state.constructions = Array.isArray(data.constructions) ? data.constructions : [];
     state.land = LandExpansion.restoreState(data);
+    state.surfaceMarks = Array.isArray(data.surfaceMarks) ? data.surfaceMarks.filter(m=>m&&['road','path'].includes(m.surface)&&Number.isInteger(m.x)&&Number.isInteger(m.y)&&m.x>=0&&m.x<GRID_W&&m.y>=0&&m.y<GRID_H) : [];
+    state.externalTerrain = {};
+    for(const parcel of CaravanLandParcels.PARCELS){
+        if(data.externalTerrain?.[parcel.id])state.externalTerrain[parcel.id]=CaravanExternalTerrain.normalise(data.externalTerrain[parcel.id],parcel.id);
+    }
     LandExpansion.syncLandmarks(state);
     state.staticDeliveries = Array.isArray(data.staticDeliveries) ? data.staticDeliveries : [];
     state.accessoryInventory = data.accessoryInventory || {bbq: 0, patio: 0, firepit: 0, hot_tub: 0};
@@ -408,7 +414,9 @@ function init() {
             console.error('Saved caravan construction refers to an unavailable pitch.', job);
         }
     });
-    if (canOccupyPlayer(data.player.x, data.player.y)) {
+    const inOwnedSouthField = data.player && CaravanLandParcels.inParcel(data.player.x,data.player.y) &&
+        CaravanExternalTerrain.canEnter(state,Math.floor(data.player.x),Math.floor(data.player.y));
+    if (inOwnedSouthField || canOccupyPlayer(data.player.x, data.player.y)) {
         state.player = {...data.player};
     } else {
         let closest = null;
@@ -450,7 +458,9 @@ function generateNewMap() {
     state.guests = [];
     state.facilities = [];
     state.landmarks = STARTING_LANDMARKS.map(landmark => ({...landmark}));
+    state.surfaceMarks = [];
     state.land = LandExpansion.createState(true);
+    state.externalTerrain = {};
     LandExpansion.syncLandmarks(state);
     state.constructions = [];
     state.player = {x: 15.5, y: 25.5};
@@ -458,8 +468,9 @@ function generateNewMap() {
     for (let y = 0; y < GRID_H; y++) {
         state.tiles[y] = [];
         for (let x = 0; x < GRID_W; x++) {
-            const terrain = x >= 50 ? 'water' : x >= 47 ? 'sand' :
-                Math.hypot(x - 23, y - 20) < 2.5 ? 'water' : 'grass';
+            // The public beach and sea are village scenery, not duplicate park tiles.
+            // Preserve the inland pond and the beach-access approach tiles.
+            const terrain = Math.hypot(x - 23, y - 20) < 2.5 ? 'water' : 'grass';
             const road = terrain === 'grass' && x >= 8 && x <= 9 && y >= 24 && y <= 25;
             const path = terrain === 'grass' && y >= 24 && y <= 25 && x >= 10 && x <= 16;
             const roll = Math.abs((x * 73 + y * 37 + x * y * 11 + 19) % 100);
@@ -1012,6 +1023,8 @@ function saveGame() {
             tools: {axe: true, shovel: Boolean(state.tools?.shovel)},
             transactions: state.transactions,
             tiles: state.tiles,
+            externalTerrain: state.externalTerrain || {},
+            surfaceMarks: state.surfaceMarks || [],
             pitches: state.pitches,
             staticDeliveries: state.staticDeliveries,
             accessoryInventory: state.accessoryInventory,
@@ -1625,9 +1638,10 @@ function getTileBounds(tiles) {
 }
 
 function startConstruction(kind, payload, footprint, cost, description, category = 'construction') {
+    const duration=kind==='surface'?Construction.surfaceDuration(payload.surface,payload.tiles.length):['pitch','pitches'].includes(kind)?1440:120;
     const job = Construction.queueConstruction(state, {
         kind, ...payload, footprint, blocksMovement: true
-    });
+    },duration);
     if (!job) {
         console.error('Unable to queue construction.', {kind, payload, footprint});
         showToast('❌ Construction could not be scheduled.');
@@ -1642,7 +1656,7 @@ function startConstruction(kind, payload, footprint, cost, description, category
         pitch.constructionReserved = true;
     }
     saveGame();
-    showToast('Construction started · ready in 2 in-game hours.');
+    showToast('Construction started · ready in '+(duration/60)+' in-game hours.');
     return true;
 }
 

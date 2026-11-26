@@ -38,7 +38,11 @@
         return completed;
     }
 
-    const api = {getGameTimeMinutes, queueConstruction, completeDueConstructions};
+    function surfaceDuration(surface,count){
+        const road=surface==='road', batch=road?20:10;
+        return (road?240:120)+Math.max(0,Math.ceil(count/batch)-1)*(road?120:60);
+    }
+    const api = {getGameTimeMinutes, queueConstruction, completeDueConstructions, surfaceDuration};
 
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = api;

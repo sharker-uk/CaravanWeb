@@ -8,9 +8,18 @@ const distanceToSegment=(x,y,a,b)=>{
 };
 function canWalk(world,x,y){
  if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||y<0||x>world.bounds.w||y>world.bounds.h)return false;
- // WW1 allows roads and their shoulders; WW2 will add proper pavement polygons.
- const onRoad=world.roads.some(r=>world.nodes[r.a]&&world.nodes[r.b]&&distanceToSegment(x,y,world.nodes[r.a],world.nodes[r.b])<=Math.max(14,r.width*.75));
- if(!onRoad)return false;
+ // Open countryside and public beach are traversable; the sea is not.
+ const seaEdge=world.park?world.park.x+world.park.w+70:world.bounds.w;
+ if(x>=seaEdge)return false;
+ // Match the residential renderer's rotated kerbside car footprint.
+ const scale=world.park.w/world.park.gridWidth;
+ const road=world.roads?.find(r=>r.id==='res-road');
+ if(road&&Number.isFinite(scale)&&scale>0){
+  const front=world.nodes[road.a][1]+road.width/2+road.pavement;
+  if((world.buildings||[]).some(b=>b.scalePilot&&b.driveway&&
+   x>=b.x+.4*scale&&x<=b.x+4.9*scale&&
+   y>=front-2.05*scale&&y<=front-.25*scale))return false;
+ }
  // Do not pass through buildings even where they overlap a road shoulder.
  return !(world.buildings||[]).some(b=>x>=b.x-4&&x<=b.x+b.w+4&&y>=b.y-4&&y<=b.y+b.h+4);
 }
