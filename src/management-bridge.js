@@ -38,7 +38,7 @@
         surfaceQuote(surface){
             const marks=(state.surfaceMarks||[]).filter(m=>m.surface===surface);
             const cost=marks.length*(surface==='road'?20:10);
-            return {count:marks.length,cost,ok:marks.length>0&&state.cash>=cost&&marks.every(m=>this.canMarkSurface(m.x,m.y))};
+            return {count:marks.length,cost,hours:marks.length?Construction.surfaceDuration(surface,marks.length)/60:0,ok:marks.length>0&&state.cash>=cost&&marks.every(m=>this.canMarkSurface(m.x,m.y))};
         },
         hireBuilder(surface){
             if(!['road','path'].includes(surface))return fail('Choose road or path construction.');
@@ -56,8 +56,9 @@
             const tiles=[...unique.values()],cost=tiles.reduce((n,m)=>n+(m.surface==='road'?20:10),0);
             if(state.cash<cost)return fail('Not enough money for this route.');
             const before=state.constructions.length;
+            const durations=Object.fromEntries(['road','path'].map(s=>[s,Construction.surfaceDuration(s,tiles.filter(t=>t.surface===s).length)]));
             for(const {x,y,surface} of tiles){
-                if(!Construction.queueConstruction(state,{kind:'surface',surface,tiles:[{x,y}],footprint:{x,y,w:1,h:1},blocksMovement:false})){
+                if(!Construction.queueConstruction(state,{kind:'surface',surface,tiles:[{x,y}],footprint:{x,y,w:1,h:1},blocksMovement:false},durations[surface])){
                     state.constructions.length=before;return fail('Unable to schedule route.');
                 }
             }
@@ -65,7 +66,7 @@
                 state.constructions.length=before;return {ok:false};
             }
             state.surfaceMarks=(state.surfaceMarks||[]).filter(m=>!unique.has(m.x+','+m.y));
-            saveGame();changed();showToast('Builder hired · ready in 2 in-game hours.');
+            saveGame();changed();showToast('Builder hired · see construction quotation for duration.');
             return {ok:true};
         },
         build(tool,start,end) {
