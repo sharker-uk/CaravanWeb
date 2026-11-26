@@ -10,7 +10,8 @@
  const apps=[
   ['estate','🏡','Estate Agents','Find land and make an offer'],
   ['map','🗺️','Park Map','Explore your park and village'],
-  ['build','🏗️','Builders','Roads, paths, pitches and construction'],
+  ['contractors','🏗️','Builders','Hire contractors for marked roads and paths'],
+  ['build','🧱','Park Development','Pitches and facilities'],
   ['utilities','⚡','Utilities','Water, electricity and services'],
   ['finances','📊','Accounts','Your income and expenditure'],
   ['guests','🧳','Guests','Bookings and visitor needs'],
@@ -21,7 +22,7 @@
  const screen=document.querySelector('#parkpad-screen'),content=document.querySelector('#parkpad-content'),locationLabel=document.querySelector('#parkpad-location'),balance=document.querySelector('#parkpad-balance');
  let current='home',ready=false,pendingSouthPurchase=false,purchaseFeedback='',lastEstateKey=null;
  const tabletOpen=()=>document.body.classList.contains('tablet-open');
- function showTablet(open){document.querySelector('#parkpad-bar').hidden=!open;screen.hidden=!open||!['home','estate','jobs'].includes(current);root.dataset.parkpadVisible=String(open);}
+ function showTablet(open){document.querySelector('#parkpad-bar').hidden=!open;screen.hidden=!open||!['home','estate','jobs','contractors'].includes(current);root.dataset.parkpadVisible=String(open);}
  window.addEventListener('caravan:tablet',event=>{if(event.detail.open){navigate('home');showTablet(true);}else showTablet(false);});
  const game=()=>window.CaravanGame;
  const state=()=>game()?.getState();
@@ -31,17 +32,26 @@
   if(view!=='estate'){pendingSouthPurchase=false;purchaseFeedback='';}
   current=view;root.dataset.parkpadView=view;locationLabel.textContent=view==='home'?'Home':apps.find(a=>a[0]===view)?.[2]||view;
   const legacy=view==='estate'?'land':view==='utilities'?'build':view;
-  if(!['home','estate','jobs'].includes(view)){
+  if(!['home','estate','jobs','contractors'].includes(view)){
    const button=root.querySelector('.main-nav [data-view="'+legacy+'"]');button?.click();
   }
-  screen.hidden=!tabletOpen()||!['home','estate','jobs'].includes(view);
+  screen.hidden=!tabletOpen()||!['home','estate','jobs','contractors'].includes(view);
   if(view==='home')renderHome();
   if(view==='estate')renderEstate();
   if(view==='jobs')renderJobs();
+  if(view==='contractors')renderContractors();
   syncBalance();
  }
  function renderHome(){
   content.innerHTML=`<div class="parkpad-intro"><p class="parkpad-kicker">NORFOLK COAST · PARKPAD</p><h1>Your park. Your business.</h1><p>Local services and everything you need to run your caravan park.</p></div><div class="parkpad-app-grid">${apps.map(([id,icon,name,desc])=>`<button class="parkpad-app" data-parkpad-open="${id}"><span class="parkpad-icon">${icon}</span><strong>${name}</strong><small>${desc}</small></button>`).join('')}</div>`;
+ }
+ let contractorKey='';
+ function renderContractors(){
+  const s=state();if(!s)return;
+  const quotes=['road','path'].map(surface=>({surface,...game().surfaceQuote(surface)}));
+  const jobs=s.constructions.filter(j=>j.kind==='surface');
+  contractorKey=JSON.stringify([s.cash,quotes,jobs.length]);
+  content.innerHTML='<div class="parkpad-intro"><p class="parkpad-kicker">CAISTER BUILDERS</p><h1>Commission your marked routes</h1><p>Marking is free. Hire a builder when you are ready. Work takes two in-game hours.</p></div><div class="parkpad-properties">'+quotes.map(q=>`<article class="parkpad-property"><div class="parkpad-property-info"><h2>${q.surface==='road'?'Road':'Path'} construction</h2><p>${q.count} marked tiles · ${money(q.surface==='road'?20:10)} per tile</p><p>Quote: <strong>${money(q.cost)}</strong> · Balance after work: ${money(s.cash-q.cost)}</p><button class="parkpad-buy" data-hire-builder="${q.surface}" ${q.ok?'':'disabled'}>Hire builder · ${money(q.cost)}</button>${q.count&&!q.ok?'<p>Insufficient funds or obstructed markings.</p>':''}</div></article>`).join('')+'</div><p>Construction in progress: '+jobs.length+' tiles. Resume game time to complete work.</p>';
  }
  function renderJobs(){
   const s=state();if(!s){content.innerHTML='<p>Loading Job Centre…</p>';return;}
@@ -68,6 +78,8 @@
  // legacy management shell's delegated click handling.
  screen.addEventListener('click',event=>{
   const target=event.target;
+  const hire=target.closest('[data-hire-builder]');
+  if(hire){event.preventDefault();event.stopPropagation();game().hireBuilder(hire.dataset.hireBuilder);syncBalance();renderContractors();return;}
   const open=target.closest('[data-parkpad-open]');
   const buy=target.closest('[data-parkpad-buy]');
   const confirm=target.closest('[data-parkpad-confirm]');
@@ -90,7 +102,7 @@
  document.querySelector('#parkpad-close').addEventListener('click',()=>document.querySelector('#mg-walk-mode')?.click());
  document.querySelector('#parkpad-save').addEventListener('click',()=>{if(game()?.save())window.showToast?.('Park saved.');});
  window.addEventListener('caravan:ready',()=>{ready=true;navigate('home');});
- window.addEventListener('caravan:change',()=>{if(!ready)return;syncBalance();if(current==='estate'&&estateKey()!==lastEstateKey)renderEstate();});
+ window.addEventListener('caravan:change',()=>{if(!ready)return;syncBalance();if(current==='estate'&&estateKey()!==lastEstateKey)renderEstate();if(current==='contractors'&&tabletOpen()){const s=state(),quotes=['road','path'].map(surface=>({surface,...game().surfaceQuote(surface)}));if(JSON.stringify([s.cash,quotes,s.constructions.filter(j=>j.kind==='surface').length])!==contractorKey)renderContractors();}});
  // Existing management shell has already registered its own ready listener.
  // On a late injection the game may already exist.
  if(game()?.getState?.()){ready=true;navigate('home');}
