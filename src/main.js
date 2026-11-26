@@ -289,6 +289,7 @@ function init() {
     state.landmarks = Array.isArray(data.landmarks) ? data.landmarks : [];
     state.constructions = Array.isArray(data.constructions) ? data.constructions : [];
     state.land = LandExpansion.restoreState(data);
+    state.surfaceMarks = Array.isArray(data.surfaceMarks) ? data.surfaceMarks.filter(m=>m&&['road','path'].includes(m.surface)&&Number.isInteger(m.x)&&Number.isInteger(m.y)&&m.x>=0&&m.x<GRID_W&&m.y>=0&&m.y<GRID_H) : [];
     state.externalTerrain = {};
     for(const parcel of CaravanLandParcels.PARCELS){
         if(data.externalTerrain?.[parcel.id])state.externalTerrain[parcel.id]=CaravanExternalTerrain.normalise(data.externalTerrain[parcel.id],parcel.id);
@@ -1021,6 +1022,7 @@ function saveGame() {
             transactions: state.transactions,
             tiles: state.tiles,
             externalTerrain: state.externalTerrain || {},
+            surfaceMarks: state.surfaceMarks || [],
             pitches: state.pitches,
             staticDeliveries: state.staticDeliveries,
             accessoryInventory: state.accessoryInventory,
