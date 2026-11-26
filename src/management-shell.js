@@ -88,7 +88,7 @@ function walkingPosition(){
 }
 const held=new Set();
 const surfaceMarks=new Map();
-let surfaceTool='',sprayPointer=null,lastMark=null,markState=null;
+let surfaceTool='',spraying=false,lastMark=null,markState=null,actionMenuOpen=false;
 function getSurfaceMarks(){
  if(markState!==api.getState()){surfaceMarks.clear();markState=api.getState();lastMark=null;}
  return [...surfaceMarks.values()].map(m=>({...m,valid:api.canMarkSurface(m.x,m.y)}));
@@ -96,14 +96,18 @@ function getSurfaceMarks(){
 function refreshMarking(){
  const panel=$('#gp-marking');if(!panel)return;
  panel.hidden=!walking;
+ panel.querySelector('[data-action-menu]').hidden=!actionMenuOpen;
+ panel.querySelector('[data-equipped]').textContent=({road:'Mark Road',path:'Mark Path',clear:'Clear Trees/Bushes'})[surfaceTool]||'No action selected';
+ panel.querySelector('[data-route-controls]').hidden=!marksAvailable();
  const marks=getSurfaceMarks(),cost=marks.reduce((n,m)=>n+(m.surface==='road'?20:10),0);
  panel.querySelector('output').textContent=marks.length+' tiles · '+money(cost);
  panel.querySelector('[data-commission]').disabled=!marks.length||cost>api.getState().cash||marks.some(m=>!m.valid);
  panel.querySelectorAll('[data-surface]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.surface===surfaceTool)));
  map.drawSurfaceMarks(walking?marks:[]);
 }
+function marksAvailable(){return surfaceMarks.size>0||['road','path'].includes(surfaceTool);}
 function sprayAtPlayer(){
- if(!surfaceTool)return;
+ if(!['road','path'].includes(surfaceTool))return;
  getSurfaceMarks();
  const p=LivingParkMovement.tile(walkingPosition());
  const erase=held.has('shift');
@@ -114,27 +118,20 @@ function sprayAtPlayer(){
  }
  put(p.x,p.y);lastMark=p;refreshMarking();
 }
-function stopSpray(){sprayPointer=null;lastMark=null;}
+function stopSpray(){spraying=false;lastMark=null;}
 function installMarking(){
  const panel=document.createElement('div');panel.id='gp-marking';
  panel.style.cssText='position:absolute;bottom:105px;left:12px;z-index:6;background:#fff8e8;color:#294a36;padding:10px;border:1px solid #718c70;border-radius:10px;max-width:calc(100% - 24px)';
- panel.innerHTML='<div><button data-surface="road">Road £20</button> <button data-surface="path">Path £10</button> <button data-surface="">Walk</button></div><small>Hold left mouse while walking to spray · Shift erases</small><div><output></output> <button data-commission>Build route</button> <button data-clear>Clear</button></div>';
+ panel.innerHTML='<div><button data-toggle-actions>E · Actions</button> <strong data-equipped></strong></div><div data-action-menu hidden><button data-surface="clear">Clear Trees/Bushes</button> <button data-surface="road">Mark Road</button> <button data-surface="path">Mark Path</button></div><small>R · Use selected action (hold to mark while walking)</small><div data-route-controls hidden><output></output> <button data-commission>Build route</button> <button data-clear>Clear markings</button><small> · Shift + R erases</small></div>';
  $('.map-shell').append(panel);
  panel.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
-  if(b.hasAttribute('data-surface')){surfaceTool=b.dataset.surface;stopSpray();stopWalking();}
+  if(b.hasAttribute('data-toggle-actions')){actionMenuOpen=!actionMenuOpen;stopSpray();stopWalking();}
+  if(b.hasAttribute('data-surface')){surfaceTool=b.dataset.surface;actionMenuOpen=false;stopSpray();stopWalking();}
   if(b.hasAttribute('data-clear')){surfaceMarks.clear();stopSpray();}
   if(b.hasAttribute('data-commission')&&api.commissionSurfaces(getSurfaceMarks()).ok){surfaceMarks.clear();stopSpray();map.invalidate();render(true);}
   refreshMarking();$('#park-map').focus({preventScroll:true});
  });
- const svg=$('#park-map');
- svg.addEventListener('pointerdown',e=>{
-  if(!walking||!surfaceTool||e.button!==0||e.pointerType==='touch')return;
-  e.preventDefault();e.stopImmediatePropagation();sprayPointer=e.pointerId;lastMark=null;svg.setPointerCapture(e.pointerId);api.getState().playerPath=[];sprayAtPlayer();
- },true);
- for(const event of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(event,e=>{
-  if(e.pointerId!==sprayPointer)return;stopSpray();e.stopImmediatePropagation();
- },true);
  window.addEventListener('blur',stopSpray);
  refreshMarking();
 }
@@ -142,7 +139,7 @@ const canWalk=(state,x,y)=>world.usesFarmBoundary(state)?world.tileWalkable(stat
 function stopWalking(){held.clear();if(api){api.getState().playerPath=[];}}
 function setTablet(open){
  if(!ready)return;
- walking=!open;stopWalking();stopSpray();interaction=null;api.tool('select');
+ walking=!open;actionMenuOpen=false;stopWalking();stopSpray();interaction=null;api.tool('select');
  document.body.classList.toggle('tablet-open',open);
  window.dispatchEvent(new CustomEvent('caravan:tablet',{detail:{open}}));
  $('#park-map').setAttribute('aria-label',open
@@ -171,7 +168,7 @@ function walkingFrame(timestamp){
  requestAnimationFrame(walkingFrame);
  if(!ready){lastFrame=timestamp;return;}
  const dt=Math.min((timestamp-(lastFrame||timestamp))/1000,.05);lastFrame=timestamp;
- if(!walking||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
+ if(!walking||actionMenuOpen||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  const state=api.getState();
  const player=walkingPosition();
  const input={left:held.has('a')||held.has('arrowleft'),right:held.has('d')||held.has('arrowright'),up:held.has('w')||held.has('arrowup'),down:held.has('s')||held.has('arrowdown')};
@@ -181,7 +178,7 @@ function walkingFrame(timestamp){
   state.walkingInVillage=inVillage;
   interaction=null;
  }
- if(sprayPointer!==null&&surfaceTool){const p=LivingParkMovement.tile(player);if(!lastMark||p.x!==lastMark.x||p.y!==lastMark.y)sprayAtPlayer();}
+ if(spraying&&['road','path'].includes(surfaceTool)){const p=LivingParkMovement.tile(player);if(!lastMark||p.x!==lastMark.x||p.y!==lastMark.y)sprayAtPlayer();}
  map.updatePlayer(player);
  if(moving&&!inVillage&&(world.inFarm(player.x,player.y)||window.CaravanLandParcels.inParcel(player.x,player.y))){
   Object.assign(state.player,player);
@@ -376,7 +373,7 @@ $('#management-app').addEventListener('click',e=>{
 $('#mg-panel').addEventListener('change',e=>{if(e.target.id==='mg-day-length'){api.dayLength(e.target.value);render(true);}});
 $('#mg-import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>5*1024*1024)throw new Error('Choose a game save under 5 MB.');const result=api.importSave(await file.text());if(result.ok){stopWalking();interaction=null;app.selected=null;app.route=false;map.invalidate();resetFilters();if(walking)map.followPlayer(walkingPosition());}}catch(error){announce(error.message);}finally{e.target.value='';render(true);}});
 window.addEventListener('hashchange',()=>{const id=new URLSearchParams(location.hash.slice(1)).get('place');select(id);});
-document.addEventListener('keyup',e=>held.delete(e.key.toLowerCase()));
+document.addEventListener('keyup',e=>{held.delete(e.key.toLowerCase());if(e.key.toLowerCase()==='r')stopSpray();});
 window.addEventListener('blur',()=>held.clear());
 document.addEventListener('keydown',e=>{
  if(!ready)return;
@@ -388,10 +385,13 @@ document.addEventListener('keydown',e=>{
  if(editing||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  if(walking){
   if(key==='shift'){held.add(key);return;}
-  if(key==='escape'&&surfaceTool){surfaceTool='';stopSpray();refreshMarking();return;}
+  if(key==='e'){e.preventDefault();if(!e.repeat){actionMenuOpen=!actionMenuOpen;stopSpray();stopWalking();refreshMarking();}return;}
+  if(key==='escape'&&(actionMenuOpen||surfaceTool)){e.preventDefault();if(actionMenuOpen)actionMenuOpen=false;else surfaceTool='';stopSpray();refreshMarking();return;}
+  if(actionMenuOpen)return;
+  if(key==='r'&&['road','path'].includes(surfaceTool)){e.preventDefault();if(!e.repeat){spraying=true;lastMark=null;api.getState().playerPath=[];sprayAtPlayer();}return;}
   if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();if(!held.has(key))map.followPlayer(walkingPosition());held.add(key);return;}
-  if(key==='e'){
-   e.preventDefault();
+  if(key==='r'&&surfaceTool==='clear'){
+   e.preventDefault();if(e.repeat)return;
    const state=api.getState(),p=LivingParkMovement.tile(walkingPosition());
    const candidates=[interaction,{x:p.x,y:p.y-1},{x:p.x+1,y:p.y},{x:p.x,y:p.y+1},{x:p.x-1,y:p.y}]
     .filter(Boolean)
@@ -403,7 +403,7 @@ document.addEventListener('keydown',e=>{
     if(result.ok&&field?.id==='south_field'){api.save();window.dispatchEvent(new CustomEvent('caravan:change'));}
     if(result.ok){interaction=null;map.invalidate();render(true);}
     else announce('Unable to clear this tree or debris.');
-   }else announce('Stand next to a tree or debris in your park and press E to clear it.');
+   }else announce('Stand next to a tree or debris in your park and press R with Clear Trees/Bushes selected.');
   }
   return;
  }
@@ -427,7 +427,7 @@ window.addEventListener('caravan:ready',()=>{
         const st=api.getState();
         const nature=(window.CaravanLandParcels.inParcel(target.x,target.y)?window.CaravanExternalTerrain.getTile(st,target.x,target.y):st.tiles[target.y]?.[target.x])?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
-        if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press E to clear it.');
+        if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press R with Clear Trees/Bushes selected.');
     },onSelect:id=>{if(!walking)select(id);},onBuild:(tool,start,end)=>{if(walking)return;api.build(tool,start,end);$('#mg-build-hint').dataset.preview='';map.invalidate();render(true);},onPreview:p=>{$('#mg-build-hint').dataset.preview='true';$('#mg-build-hint').innerHTML=`<strong>${esc(p.label)}${p.cost===null?'':' · '+money(p.cost)}</strong><span>Release to build · Subject to game placement checks</span><button id="mg-cancel-tool">Cancel</button>`;}});
     places=M.getPlaces(api.getState());const id=new URLSearchParams(location.hash.slice(1)).get('place');if(places.some(p=>p.id===id))app.selected=id;
     render(true);
