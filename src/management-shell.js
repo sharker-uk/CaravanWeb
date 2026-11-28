@@ -187,7 +187,7 @@ function walkingFrame(timestamp){
   interaction=null;
  }
  if(spraying&&['road','path'].includes(surfaceTool)){const p=LivingParkMovement.tile(player);if(!lastMark||p.x!==lastMark.x||p.y!==lastMark.y)sprayAtPlayer();}
- map.updatePlayer(player);
+ if(moving)map.updatePlayer(player);
  if(moving&&!inVillage&&(world.inFarm(player.x,player.y)||window.CaravanLandParcels.inParcel(player.x,player.y))){
   Object.assign(state.player,player);
   if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
@@ -409,7 +409,7 @@ document.addEventListener('keydown',e=>{
     const field=window.CaravanLandParcels.inParcel(target.x,target.y);
     const result=Boolean(field)?window.CaravanExternalTerrain.clear(state,target.x,target.y):api.build('clear',target,target);
     if(result.ok&&field?.id==='south_field'){api.save();window.dispatchEvent(new CustomEvent('caravan:change'));}
-    if(result.ok){interaction=null;map.invalidate();render(true);}
+    if(result.ok){interaction=null;render(true);}
     else announce('Unable to clear this tree or debris.');
    }else announce('Stand next to a tree or debris in your park and press R with Clear Trees/Bushes selected.');
   }
