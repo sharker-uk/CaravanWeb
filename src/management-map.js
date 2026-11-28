@@ -385,8 +385,8 @@ root.ManagementArt={tree,building};
             for (const [attribute, tiles] of Object.entries({x:pitch.x,y:pitch.y,width:pitch.w,height:pitch.h})) {
                 pitchOutline.setAttribute(attribute, tiles * unit);
             }
-            pitchOutline.setAttribute('fill', valid ? '#a9dc8870' : '#dc827870');
-            pitchOutline.setAttribute('stroke', valid ? '#416634' : '#972f2a');
+            pitchOutline.setAttribute('fill', valid === null ? '#fff8e840' : valid ? '#a9dc8870' : '#dc827870');
+            pitchOutline.setAttribute('stroke', valid === null ? '#6a6554' : valid ? '#416634' : '#972f2a');
         }
         const api={render,showPitchOutline,updatePlayer,drawSurfaceMarks,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},canWalk:(state,x,y)=>W.canOccupy(state,x,y,villageData,placement,root.GameState.canOccupyPlayer),
             followPlayer:(p,dt)=>{const framing=root.CaravanWorldCamera,target=framing.target(p,{width,height});

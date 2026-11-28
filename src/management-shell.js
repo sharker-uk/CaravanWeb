@@ -59,7 +59,7 @@ const money=n=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',ma
 const title=s=>String(s||'').replaceAll('_',' ').replace(/^\w/,c=>c.toUpperCase());
 const app={view:'map',selected:null,query:'',category:'all',status:'all',savedOnly:false,saved:[],route:false,layers:{labels:true,people:true,utilities:false,grid:false}};
 let api,map,places=[],renderTimer,ready=false,lastDetail='',lastResults='',lastPanel='',lastBuild='';
-let equippedPitch=null,pitchRotated=false,pitchOutlineKey=null;
+let equippedPitch=null,pitchRotated=false,pitchOutlineKey=null,pitchMoving=false;
 let walking=true,interaction=null,lastFrame=0,lastAutosave=0;
 let walker=null, walkerState=null;
 const world=window.CaravanConnectedWorld;
@@ -152,7 +152,7 @@ const canWalk=(state,x,y)=>world.usesFarmBoundary(state)?world.tileWalkable(stat
 function stopWalking(){held.clear();if(api){api.getState().playerPath=[];}}
 function setTablet(open){
  if(!ready)return;
- walking=!open;actionMenuOpen=false;stopWalking();stopSpray();interaction=null;api.tool('select');
+ walking=!open;pitchMoving=false;actionMenuOpen=false;stopWalking();stopSpray();interaction=null;api.tool('select');
  document.body.classList.toggle('tablet-open',open);
  window.dispatchEvent(new CustomEvent('caravan:tablet',{detail:{open}}));
  $('#park-map').setAttribute('aria-label',open
@@ -192,7 +192,11 @@ function walkingFrame(timestamp){
  if(spraying&&['road','path'].includes(surfaceTool)){const p=LivingParkMovement.tile(player);if(!lastMark||p.x!==lastMark.x||p.y!==lastMark.y)sprayAtPlayer();}
  if(moving){
   map.updatePlayer(player);
-  if(previousTile&&(Math.floor(player.x)!==previousTile.x||Math.floor(player.y)!==previousTile.y))refreshPitchOutline();
+ }
+ if(equippedPitch&&(moving!==pitchMoving||
+    (moving&&(Math.floor(player.x)!==previousTile.x||Math.floor(player.y)!==previousTile.y)))){
+  pitchMoving=moving;
+  refreshPitchOutline();
  }
  if(moving&&!inVillage&&(world.inFarm(player.x,player.y)||window.CaravanLandParcels.inParcel(player.x,player.y))){
   Object.assign(state.player,player);
@@ -226,13 +230,15 @@ function pitchAtPlayer(){
  const {x,y}=LivingParkMovement.tile(walkingPosition());
  return {...preset,x:x-Math.floor(preset.w/2),y:y-Math.floor(preset.h/2)};
 }
-function refreshPitchOutline(){
+function refreshPitchOutline(checkNow=false){
  const pitch=walking&&equippedPitch?pitchAtPlayer():null;
- const issue=pitch?pitchPlacementIssue(pitch,pitch.cost):'';
- const key=JSON.stringify([pitch,issue]);
+ const shouldCheck=Boolean(pitch)&&(!pitchMoving||checkNow);
+ const issue=shouldCheck?pitchPlacementIssue(pitch,pitch.cost):'';
+ const valid=shouldCheck?!issue:null;
+ const key=JSON.stringify([pitch,valid,issue]);
  if(key===pitchOutlineKey)return;
  pitchOutlineKey=key;
- map.showPitchOutline(pitch,!issue);
+ map.showPitchOutline(pitch,valid);
  const hint=$('#mg-pitch-walking');
  hint.hidden=!pitch;
  if(pitch)hint.textContent=`${pitch.name} · ${pitch.w} × ${pitch.h} · F rotate · R place · Esc cancel${issue?' · '+issue:''}`;
@@ -443,7 +449,7 @@ document.addEventListener('keydown',e=>{
      render(true);
     }
    }
-   refreshPitchOutline();
+   refreshPitchOutline(key==='f'||key==='r');
    if(key!=='e')return;
   }
   if(key==='shift'){held.add(key);return;}
