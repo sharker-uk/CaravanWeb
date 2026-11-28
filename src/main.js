@@ -1568,7 +1568,7 @@ function createPitch(x, y, w, h, type, cost) {
         showToast(`❌ ${result.reason}`);
         return;
     }
-    startConstruction('pitch', {pitch}, pitch, cost, `Built ${type} pitch`);
+    return startConstruction('pitch', {pitch}, pitch, cost, `Built ${type} pitch`);
 }
 
 function createPitchesInBox(start, end, type) {

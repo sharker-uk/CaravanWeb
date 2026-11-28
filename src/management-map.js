@@ -332,6 +332,7 @@ root.ManagementArt={tree,building};
             lastPlayerPosition={x:p.x,y:p.y};
         }
         function render(nextGame,nextPlaces,options={}){
+            if(tool!==(options.tool||'select')){buildPreview.replaceChildren();pitchHover=null;}
             game=nextGame;places=nextPlaces;selected=options.selected;visibleIds=options.visibleIds||null;route=options.route||null;tool=options.tool||'select';layers={...layers,...options.layers};
             const key=JSON.stringify([game.tiles,places.map(p=>[p.id,p.status,p.guest?.accommodation,p.van?.modelId,p.entity.decking,p.entity.accessories]),game.constructions,game.externalTerrain,game.land?.ownedPlotIds,[...visibleIds||[]],layers,tool]);
             if(key!==worldKey){
@@ -347,7 +348,9 @@ root.ManagementArt={tree,building};
             cameraChanged(!callbacks.isWalking?.());
         }
         function pointerGrid(event){const r=svg.getBoundingClientRect(),xy=M.unproject(event.clientX-r.left,event.clientY-r.top,camera,width,height);return {x:Math.floor(xy[0]/unit),y:Math.floor(xy[1]/unit)};}
-        function preview(start,end){const p=M.buildPreview(tool,start,end,callbacks.facilityDefinitions);world.querySelector('#mg-build-preview').innerHTML=`<rect x="${p.x*unit}" y="${p.y*unit}" width="${p.w*unit}" height="${p.h*unit}" fill="#faf8d855" stroke="#496d44" stroke-width="2" stroke-dasharray="4 3"/>`;callbacks.onPreview?.(p);}
+        let pitchHover=null;
+        const fixedPitch=()=>Object.hasOwn(root.GameRules.PITCH_PRESETS,tool);
+        function preview(start,end){const p=M.buildPreview(tool,start,end,callbacks.facilityDefinitions,callbacks.isPitchRotated?.());world.querySelector('#mg-build-preview').innerHTML=`<rect x="${p.x*unit}" y="${p.y*unit}" width="${p.w*unit}" height="${p.h*unit}" fill="#faf8d855" stroke="#496d44" stroke-width="2" stroke-dasharray="4 3"/>`;callbacks.onPreview?.(p);}
         svg.addEventListener('contextmenu',e=>e.preventDefault());
         svg.addEventListener('wheel',e=>{e.preventDefault();const r=svg.getBoundingClientRect();zoom(Math.exp(-Math.max(-150,Math.min(150,e.deltaY))*.002),e.clientX-r.left,e.clientY-r.top);},{passive:false});
         svg.addEventListener('pointerdown',e=>{
@@ -357,7 +360,7 @@ root.ManagementArt={tree,building};
             if(pointer.build)preview(pointer.start,pointer.start);svg.classList.add('dragging');
         });
         svg.addEventListener('pointermove',e=>{
-            if(!touches.has(e.pointerId))return;touches.set(e.pointerId,[e.clientX,e.clientY]);
+            if(!touches.has(e.pointerId)){if(fixedPitch()){pitchHover=pointerGrid(e);preview(pitchHover,pitchHover);}return;}touches.set(e.pointerId,[e.clientX,e.clientY]);
             if(touches.size===2){const [a,b]=[...touches.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]),r=svg.getBoundingClientRect();if(pinchDistance)zoom(d/pinchDistance,(a[0]+b[0])/2-r.left,(a[1]+b[1])/2-r.top);pinchDistance=d;moved=true;return;}
             if(!pointer)return;
             const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(dx,dy)>4)moved=true;
@@ -365,14 +368,15 @@ root.ManagementArt={tree,building};
             if(moved){const a=M.unproject(0,0,pointer.camera,width,height),b=M.unproject(dx,dy,pointer.camera,width,height);clampCamera(pointer.camera.x+a[0]-b[0],pointer.camera.y+a[1]-b[1]);cameraChanged();}
         });
         function end(e){
-            if(pointer&&e.type==='pointerup'&&touches.size===1){if(pointer.build)callbacks.onBuild?.(tool,pointer.start,pointerGrid(e));else if(!moved){if(callbacks.onGround&&callbacks.isWalking?.())callbacks.onGround(pointerGrid(e));else callbacks.onSelect?.(pointer.place||null);}}
+            if(pointer&&e.type==='pointerup'&&touches.size===1){if(pointer.build){if(!fixedPitch()||!moved)callbacks.onBuild?.(tool,pointer.start,pointerGrid(e));}else if(!moved){if(callbacks.onGround&&callbacks.isWalking?.())callbacks.onGround(pointerGrid(e));else callbacks.onSelect?.(pointer.place||null);}}
             touches.delete(e.pointerId);pointer=null;pinchDistance=null;world.querySelector('#mg-build-preview')?.replaceChildren();svg.classList.remove('dragging');
         }
+        svg.addEventListener('pointerleave',()=>{pitchHover=null;if(fixedPitch()&&!pointer)buildPreview.replaceChildren();});
         svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);svg.addEventListener('lostpointercapture',end);
         labels.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&e.target.dataset.place){e.preventDefault();e.stopPropagation();callbacks.onSelect(e.target.dataset.place);}});
         new ResizeObserver(()=>{dimensions();cameraChanged();}).observe(svg);
         dimensions();
-        const api={render,updatePlayer,drawSurfaceMarks,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},canWalk:(state,x,y)=>W.canOccupy(state,x,y,villageData,placement,root.GameState.canOccupyPlayer),
+        const api={render,refreshPitchPreview:()=>{if(pitchHover&&fixedPitch())preview(pitchHover,pitchHover);},updatePlayer,drawSurfaceMarks,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},canWalk:(state,x,y)=>W.canOccupy(state,x,y,villageData,placement,root.GameState.canOccupyPlayer),
             followPlayer:(p,dt)=>{const framing=root.CaravanWorldCamera,target=framing.target(p,{width,height});
                 const distance=Math.hypot(camera.x-target.x,camera.y-target.y);
                 const next=dt===undefined||distance<.1?target:framing.smooth(camera,target,dt);

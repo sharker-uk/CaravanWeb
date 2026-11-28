@@ -58,6 +58,7 @@ const money=n=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',ma
 const title=s=>String(s||'').replaceAll('_',' ').replace(/^\w/,c=>c.toUpperCase());
 const app={view:'map',selected:null,query:'',category:'all',status:'all',savedOnly:false,saved:[],route:false,layers:{labels:true,people:true,utilities:false,grid:false}};
 let api,map,places=[],renderTimer,ready=false,lastDetail='',lastResults='',lastPanel='',lastBuild='';
+let pitchRotated=false;
 let walking=true,interaction=null,lastFrame=0,lastAutosave=0;
 let walker=null, walkerState=null;
 const world=window.CaravanConnectedWorld;
@@ -215,7 +216,7 @@ function select(id,recenter=true){
     $('#sidebar').classList.remove('mobile-open');$('#mobile-list').setAttribute('aria-expanded','false');render(true);
 }
 function setView(view){app.view=view;app.route=false;if(view==='land'){resetFilters();app.selected=places.find(p=>p.kind==='land')?.id||null;}if(view!=='build')api.tool('select');const open=view==='build'&&innerWidth<=700;$('#sidebar').classList.toggle('mobile-open',open);$('#mobile-list').setAttribute('aria-expanded',String(open));render(true);}
-function setTool(tool){const actual=api.tool(tool);if(actual!==tool)return;app.view='build';app.route=false;$('#sidebar').classList.remove('mobile-open');$('#mobile-list').setAttribute('aria-expanded','false');if(tool.startsWith('utility_')){app.layers.utilities=true;$('#mg-utilities').checked=true;}render(true);}
+function setTool(tool){pitchRotated=false;const actual=api.tool(tool);if(actual!==tool)return;app.view='build';app.route=false;$('#sidebar').classList.remove('mobile-open');$('#mobile-list').setAttribute('aria-expanded','false');if(tool.startsWith('utility_')){app.layers.utilities=true;$('#mg-utilities').checked=true;}render(true);}
 function renderResults(){
     const list=filtered();setText('mg-count',`${list.length} ${list.length===1?'place':'places'} in your park`);setText('mg-saved-count',app.saved.length);
     $('#mg-reset-filters').hidden=!app.query&&app.category==='all'&&app.status==='all'&&!app.savedOnly;
@@ -294,7 +295,7 @@ $('#mg-purchase').addEventListener('close',()=>{purchaseId=null;});
 $('#mg-purchase-confirm').addEventListener('click',()=>{if(!purchaseId)return;$('#mg-purchase-confirm').disabled=true;const result=api.purchaseLand(purchaseId);if(result.ok){$('#mg-purchase').close();map.invalidate();}else $('#mg-purchase-body').textContent=result.reasons.join(' ');render(true);});
 function toolButton(tool,label,meta,disabled=false){return `<button class="build-tool" data-tool="${tool}" aria-pressed="${api.getState().activeTool===tool}" ${disabled?'disabled':''}><strong>${label}</strong><small>${meta}</small><span aria-hidden="true">+</span></button>`;}
 function renderBuild(state){
-    const html=`<div class="build-intro"><p>Choose a tool, then lay it out on the map. The game checks space, funds and connections before starting work.</p><button id="mg-stop-build" class="text-button">Return to selecting</button></div><h3>Ground & pitches</h3><p>Roads and paths are marked physically in walking mode.</p>${toolButton('pitch_grass','Grass pitch','£100 each · Draw at least 4 × 6 tiles')}${toolButton('pitch_gravel','Hardstanding','£250 each · Draw at least 4 × 8 tiles',!state.tools.shovel)}<h3>Facilities</h3>${Object.entries(api.facilityDefinitions).map(([type,f])=>toolButton('build_'+type,M.names[type],`${money(f.cost)} · ${f.w} × ${f.h} tiles · Click to place`)).join('')}${toolButton('build_tree','Plant a tree','£30 · Click clear ground')}`;
+    const html=`<div class="build-intro"><p>Choose a tool, then lay it out on the map. The game checks space, funds and connections before starting work.</p><button id="mg-stop-build" class="text-button">Return to selecting</button></div><h3>Ground & pitches</h3><p>Roads and paths are marked physically in walking mode.</p>${Object.entries(GameRulesApi.PITCH_PRESETS).map(([tool,pitch])=>toolButton(tool,pitch.name,`${money(pitch.cost)} · ${pitch.w} × ${pitch.h} tiles`,pitch.type==='gravel'&&!state.tools.shovel)).join('')}<h3>Facilities</h3>${Object.entries(api.facilityDefinitions).map(([type,f])=>toolButton('build_'+type,M.names[type],`${money(f.cost)} · ${f.w} × ${f.h} tiles · Click to place`)).join('')}${toolButton('build_tree','Plant a tree','£30 · Click clear ground')}`;
     if(html!==lastBuild){replaceKeepingFocus($('#build-list'),html);lastBuild=html;}
 }
 function renderUtilities(state){
@@ -342,7 +343,7 @@ function render(force=false){
     replaceKeepingFocus($('#mg-priorities'),priorities?`<p class="eyebrow">${alerts.length} THING${alerts.length===1?'':'S'} TO WATCH</p>${priorities}`:'');$('#mg-priorities').hidden=Boolean(app.selected)||app.view!=='map'||!alerts.length;
     const now=Construction.getGameTimeMinutes(state),queue=state.constructions.slice(0,3).map(j=>`<div><span class="queue-dot"></span><span>${esc(title(j.type||j.surface||j.utility||j.kind))} <small>${Math.max(0,Math.ceil(j.completesAt-now))} game min left</small></span></div>`).join('');replaceKeepingFocus($('#mg-queue'),queue?'<p class="eyebrow">WORK IN PROGRESS</p>'+queue:'');$('#mg-queue').hidden=!queue||!['map','build','land'].includes(app.view);
     renderDetail(state);renderPanel(state);
-    const tool=state.activeTool||'select';$('#mg-build-hint').hidden=tool==='select';if(tool!=='select'&&!$('#mg-build-hint').dataset.preview)$('#mg-build-hint').innerHTML=`<strong>${esc(title(tool.replace('build_','')))}</strong><span>${tool.startsWith('place_accessory_')?'Click an eligible pitch tile to place your purchase.':'Draw on the map to place. Right-drag pans. Escape cancels.'}</span><button id="mg-cancel-tool">Cancel</button>`;
+    const tool=state.activeTool||'select';$('#mg-build-hint').hidden=tool==='select';if(tool!=='select'&&!$('#mg-build-hint').dataset.preview)$('#mg-build-hint').innerHTML=`<strong>${esc(title(tool.replace('build_','')))}</strong><span>${tool.startsWith('place_accessory_')?'Click an eligible pitch tile to place your purchase.':GameRulesApi.pitchPreset(tool)?'Click to place. T or F rotates. Escape cancels.':'Draw on the map to place. Right-drag pans. Escape cancels.'}</span><button id="mg-cancel-tool">Cancel</button>`;
     const route=app.route?M.getRoute(state,current()):null;$('#mg-route-info').hidden=!app.route;
     if(app.route)$('#mg-route-info').innerHTML=route?`<strong>Park office → ${esc(current().name)}</strong><small>${route.tiles} path tiles · Game grid, not real-world distance</small>`:'<strong>No connected path to this entrance</strong><small>Routes follow roads and paths. Add a link to reach this location.</small>';
     map.render(state,places,{selected:app.selected,visibleIds:new Set(filtered().map(p=>p.id)),route,tool,layers:app.layers});
@@ -437,6 +438,7 @@ document.addEventListener('keydown',e=>{
   }
   return;
  }
+ if(['t','f'].includes(key)&&GameRulesApi.pitchPreset(api.getState().activeTool)){e.preventDefault();if(!e.repeat){pitchRotated=!pitchRotated;map.refreshPitchPreview();}return;}
  if(key==='/'){e.preventDefault();if(innerWidth<=700){$('#sidebar').classList.add('mobile-open');$('#mobile-list').setAttribute('aria-expanded','true');}$('#mg-search').focus();return;}
  if(key==='escape'){setTablet(false);return;}
  if(!e.target.closest('#park-map')&&e.target!==document.body)return;
@@ -453,7 +455,7 @@ window.addEventListener('caravan:ready',()=>{
       api.getState().playerPath=[];
       api.save();
     }
-    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,getSurfaceMarks:()=>getSurfaceMarks(),onGround:target=>{
+    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isPitchRotated:()=>pitchRotated,isWalking:()=>walking,getWalker:walkingPosition,getSurfaceMarks:()=>getSurfaceMarks(),onGround:target=>{
         const st=api.getState(),stall=LandManagement.findStall(st);
         if(stall?.x===target.x&&stall.y===target.y){
             interaction={...target,stall:true};
@@ -463,7 +465,7 @@ window.addEventListener('caravan:ready',()=>{
         const nature=(window.CaravanLandParcels.inParcel(target.x,target.y)?window.CaravanExternalTerrain.getTile(st,target.x,target.y):st.tiles[target.y]?.[target.x])?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
         if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press R with Clear Trees/Bushes selected.');
-    },onSelect:id=>{if(!walking)select(id);},onBuild:(tool,start,end)=>{if(walking)return;api.build(tool,start,end);$('#mg-build-hint').dataset.preview='';map.invalidate();render(true);},onPreview:p=>{$('#mg-build-hint').dataset.preview='true';$('#mg-build-hint').innerHTML=`<strong>${esc(p.label)}${p.cost===null?'':' · '+money(p.cost)}</strong><span>Release to build · Subject to game placement checks</span><button id="mg-cancel-tool">Cancel</button>`;}});
+    },onSelect:id=>{if(!walking)select(id);},onBuild:(tool,start,end)=>{if(walking)return;api.build(tool,start,end,pitchRotated);$('#mg-build-hint').dataset.preview='';map.invalidate();render(true);},onPreview:p=>{$('#mg-build-hint').dataset.preview='true';$('#mg-build-hint').innerHTML=`<strong>${esc(p.label)}${p.cost===null?'':' · '+money(p.cost)}</strong><span>${p.fixedPitch?'Click to place · T or F rotates':'Release to build'} · Subject to game placement checks</span><button id="mg-cancel-tool">Cancel</button>`;}});
     places=M.getPlaces(api.getState());const id=new URLSearchParams(location.hash.slice(1)).get('place');if(places.some(p=>p.id===id))app.selected=id;
     render(true);
     const walkButton=document.createElement('button');walkButton.id='mg-walk-mode';walkButton.type='button';walkButton.textContent='📱 Tablet';walkButton.setAttribute('aria-pressed','false');walkButton.setAttribute('aria-label','Open management tablet');walkButton.style.cssText='position:absolute;bottom:52px;right:18px;z-index:5;padding:10px 14px;border-radius:12px;background:#fff8e8;color:#294a36;border:2px solid #718c70;cursor:pointer;font-weight:700;box-shadow:0 3px 12px #223c3522';
