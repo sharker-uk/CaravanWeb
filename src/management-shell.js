@@ -165,9 +165,6 @@ function setTablet(open){
 function walkTo(target,approach=false){
  if(!walking)return false;
  const state=api.getState(),player=walkingPosition();
- if(world.usesFarmBoundary(state)&&(!map.canWalk(state,player.x,player.y)||!map.canWalk(state,target.x+.5,target.y+.5))){
-  announce('Use WASD or the arrow keys to walk in the village.');return false;
- }
  const walkable=(s,x,y)=>world.usesFarmBoundary(s)?map.canWalk(s,x+.5,y+.5):canWalk(s,x,y);
  const path=LivingParkMovement.route(state,player,target,walkable,approach);
  if(!path){announce('No walkable route to that spot.');return false;}

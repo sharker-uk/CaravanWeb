@@ -56,6 +56,7 @@ function completeConstruction(job) {
     } else if (job.kind === 'facility') {
         state.facilities.push({...FacilityOperations.getFacilityDefaults(job.type), ...job.facility});
     } else if (job.kind === 'tree') {
+        if (GameStateApi.playerOverlapsFootprint(state.player, job.footprint)) return false;
         state.tiles[job.y][job.x].nature = 'tree';
     } else if (job.kind === 'caravan') {
         const pitch = state.pitches[job.pitchIndex];

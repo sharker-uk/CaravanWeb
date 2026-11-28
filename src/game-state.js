@@ -208,6 +208,7 @@
         createGameState,
         getTileProperties,
         canOccupyPlayer,
+        playerOverlapsFootprint,
         findPathToAny,
         findInteractableAt
     };
