@@ -21,3 +21,15 @@ body[data-management="true"]:not(.tablet-open) #park-map{cursor:crosshair}
 #mg-walk-mode{min-width:112px}
 body[data-management="true"]:not(.tablet-open) #mg-walk-mode{bottom:20px!important;right:20px!important}
 @media(max-width:700px){#mg-walk-mode{bottom:105px!important;right:12px!important;min-height:44px}}
+
+.pitch-walking-hint {
+  position: absolute;
+  z-index: 7;
+  top: 16px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fff8e8;
+  color: #294a36;
+}

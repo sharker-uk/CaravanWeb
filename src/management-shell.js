@@ -35,6 +35,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="management-app">
    <filter id="tree-shadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="4" dy="6" stdDeviation="2" flood-color="#324e35" flood-opacity=".13"/></filter>
    <filter id="pin-shadow" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#223c35" flood-opacity=".25"/></filter>
   </defs><g id="mg-world"></g><g id="mg-map-labels"></g></svg>
+  <div id="mg-pitch-walking" class="pitch-walking-hint" role="status" hidden></div>
   <div id="mg-priorities" class="priorities"></div>
   <div id="mg-queue" class="construction-queue"></div>
   <div class="map-caption"><span class="caption-line"></span><span>A coastal park. A slower pace.</span><small>The big picture, with the little details.</small></div>
@@ -58,7 +59,7 @@ const money=n=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',ma
 const title=s=>String(s||'').replaceAll('_',' ').replace(/^\w/,c=>c.toUpperCase());
 const app={view:'map',selected:null,query:'',category:'all',status:'all',savedOnly:false,saved:[],route:false,layers:{labels:true,people:true,utilities:false,grid:false}};
 let api,map,places=[],renderTimer,ready=false,lastDetail='',lastResults='',lastPanel='',lastBuild='';
-let pitchRotated=false;
+let equippedPitch=null,pitchRotated=false,pitchOutlineKey=null;
 let walking=true,interaction=null,lastFrame=0,lastAutosave=0;
 let walker=null, walkerState=null;
 const world=window.CaravanConnectedWorld;
@@ -161,7 +162,7 @@ function setTablet(open){
  if(button){button.textContent=open?'🚶 Resume walking':'📱 Tablet';button.setAttribute('aria-label',open?'Close tablet and return to walking':'Open management tablet');button.setAttribute('aria-pressed',String(open));}
  if(open&&api.getState().walkingInVillage)map.followPlayer(api.getState().player);
  if(!open){map.followPlayer(walkingPosition());document.getElementById('park-map').focus({preventScroll:true});}
- map.invalidate();render(true);refreshMarking();
+ map.invalidate();render(true);refreshMarking();refreshPitchOutline();
 }
 function walkTo(target,approach=false){
  if(!walking)return false;
@@ -181,6 +182,7 @@ function walkingFrame(timestamp){
  const state=api.getState();
  const player=walkingPosition();
  const input={left:held.has('a')||held.has('arrowleft'),right:held.has('d')||held.has('arrowright'),up:held.has('w')||held.has('arrowup'),down:held.has('s')||held.has('arrowdown')};
+ const previousTile=equippedPitch?LivingParkMovement.tile(player):null;
  const moving=LivingParkMovement.advance(state,dt,input,GameStateApi.getTileProperties,map.canWalk,4,player);
  const inVillage=world.usesFarmBoundary(state)&&!world.inFarm(player.x,player.y)&&!window.CaravanLandParcels.inParcel(player.x,player.y);
  if(inVillage!==Boolean(state.walkingInVillage)){
@@ -188,7 +190,10 @@ function walkingFrame(timestamp){
   interaction=null;
  }
  if(spraying&&['road','path'].includes(surfaceTool)){const p=LivingParkMovement.tile(player);if(!lastMark||p.x!==lastMark.x||p.y!==lastMark.y)sprayAtPlayer();}
- if(moving)map.updatePlayer(player);
+ if(moving){
+  map.updatePlayer(player);
+  if(previousTile&&(Math.floor(player.x)!==previousTile.x||Math.floor(player.y)!==previousTile.y))refreshPitchOutline();
+ }
  if(moving&&!inVillage&&(world.inFarm(player.x,player.y)||window.CaravanLandParcels.inParcel(player.x,player.y))){
   Object.assign(state.player,player);
   if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
@@ -216,7 +221,29 @@ function select(id,recenter=true){
     $('#sidebar').classList.remove('mobile-open');$('#mobile-list').setAttribute('aria-expanded','false');render(true);
 }
 function setView(view){app.view=view;app.route=false;if(view==='land'){resetFilters();app.selected=places.find(p=>p.kind==='land')?.id||null;}if(view!=='build')api.tool('select');const open=view==='build'&&innerWidth<=700;$('#sidebar').classList.toggle('mobile-open',open);$('#mobile-list').setAttribute('aria-expanded',String(open));render(true);}
-function setTool(tool){pitchRotated=false;const actual=api.tool(tool);if(actual!==tool)return;app.view='build';app.route=false;$('#sidebar').classList.remove('mobile-open');$('#mobile-list').setAttribute('aria-expanded','false');if(tool.startsWith('utility_')){app.layers.utilities=true;$('#mg-utilities').checked=true;}render(true);}
+function pitchAtPlayer(){
+ const preset=GameRulesApi.pitchPreset(equippedPitch,pitchRotated);
+ const {x,y}=LivingParkMovement.tile(walkingPosition());
+ return {...preset,x:x-Math.floor(preset.w/2),y:y-Math.floor(preset.h/2)};
+}
+function refreshPitchOutline(){
+ const pitch=walking&&equippedPitch?pitchAtPlayer():null;
+ const issue=pitch?pitchPlacementIssue(pitch,pitch.cost):'';
+ const key=JSON.stringify([pitch,issue]);
+ if(key===pitchOutlineKey)return;
+ pitchOutlineKey=key;
+ map.showPitchOutline(pitch,!issue);
+ const hint=$('#mg-pitch-walking');
+ hint.hidden=!pitch;
+ if(pitch)hint.textContent=`${pitch.name} · ${pitch.w} × ${pitch.h} · F rotate · R place · Esc cancel${issue?' · '+issue:''}`;
+}
+function setTool(tool){
+ if(GameRulesApi.pitchPreset(tool)){
+  equippedPitch=tool;pitchRotated=false;surfaceTool='';
+  setTablet(false);
+  return;
+ }
+ const actual=api.tool(tool);if(actual!==tool)return;app.view='build';app.route=false;$('#sidebar').classList.remove('mobile-open');$('#mobile-list').setAttribute('aria-expanded','false');if(tool.startsWith('utility_')){app.layers.utilities=true;$('#mg-utilities').checked=true;}render(true);}
 function renderResults(){
     const list=filtered();setText('mg-count',`${list.length} ${list.length===1?'place':'places'} in your park`);setText('mg-saved-count',app.saved.length);
     $('#mg-reset-filters').hidden=!app.query&&app.category==='all'&&app.status==='all'&&!app.savedOnly;
@@ -329,6 +356,7 @@ function render(force=false){
     places=M.getPlaces(state);
     if(walking){
         map.render(state,places,{tool:'select',layers:app.layers,walking:true});
+        refreshPitchOutline();
         return;
     }
     if(app.selected&&!places.some(p=>p.id===app.selected)){app.selected=null;app.route=false;}
@@ -376,7 +404,7 @@ $('#management-app').addEventListener('click',e=>{
     const tool=e.target.closest('[data-tool]');if(tool){setTool(tool.dataset.tool);return;}
     const speed=e.target.closest('[data-game-speed]');if(speed){api.speed(speed.dataset.gameSpeed);render(true);return;}
     const category=e.target.closest('[data-category]');if(category){app.category=category.dataset.category;render(true);return;}
-    const start=e.target.closest('[data-start]');if(start){const result=api.begin(start.dataset.start);if(result.ok){app.selected=null;app.route=false;app.view='map';resetFilters();$('#mg-welcome').close();stopWalking();walkerState=null;setTablet(false);map.invalidate();render(true);frameStartingPlayer();}return;}
+    const start=e.target.closest('[data-start]');if(start){const result=api.begin(start.dataset.start);if(result.ok){equippedPitch=null;app.selected=null;app.route=false;app.view='map';resetFilters();$('#mg-welcome').close();stopWalking();walkerState=null;setTablet(false);map.invalidate();render(true);frameStartingPlayer();}return;}
     if(e.target.closest('[data-reset]')){resetFilters();return;}
     if(e.target.closest('.detail-close')){select(null,false);return;}
     if(e.target.closest('[data-open-settings]')){setView('settings');return;}
@@ -390,7 +418,7 @@ $('#management-app').addEventListener('click',e=>{
     if(e.target.closest('#mg-new-park'))showWelcome();
 });
 $('#mg-panel').addEventListener('change',e=>{if(e.target.id==='mg-day-length'){api.dayLength(e.target.value);render(true);}});
-$('#mg-import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>5*1024*1024)throw new Error('Choose a game save under 5 MB.');const result=api.importSave(await file.text());if(result.ok){stopWalking();interaction=null;app.selected=null;app.route=false;map.invalidate();resetFilters();if(walking)map.followPlayer(walkingPosition());}}catch(error){announce(error.message);}finally{e.target.value='';render(true);}});
+$('#mg-import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>5*1024*1024)throw new Error('Choose a game save under 5 MB.');const result=api.importSave(await file.text());if(result.ok){equippedPitch=null;stopWalking();interaction=null;app.selected=null;app.route=false;map.invalidate();resetFilters();if(walking)map.followPlayer(walkingPosition());}}catch(error){announce(error.message);}finally{e.target.value='';render(true);}});
 window.addEventListener('hashchange',()=>{const id=new URLSearchParams(location.hash.slice(1)).get('place');select(id);});
 document.addEventListener('keyup',e=>{held.delete(e.key.toLowerCase());if(e.key.toLowerCase()==='r')stopSpray();});
 window.addEventListener('blur',()=>held.clear());
@@ -403,6 +431,21 @@ document.addEventListener('keydown',e=>{
  }
  if(editing||document.querySelector('dialog[open]')||!$('#vendor-dialog').hidden)return;
  if(walking){
+  if(equippedPitch&&['f','r','escape','e'].includes(key)){
+   e.preventDefault();
+   if(e.repeat)return;
+   if(key==='f')pitchRotated=!pitchRotated;
+   if(key==='escape'||key==='e')equippedPitch=null;
+   if(key==='r'){
+    const {x,y}=pitchAtPlayer();
+    if(api.build(equippedPitch,{x,y},{x,y},pitchRotated).ok){
+     equippedPitch=null;
+     render(true);
+    }
+   }
+   refreshPitchOutline();
+   if(key!=='e')return;
+  }
   if(key==='shift'){held.add(key);return;}
   if(key==='e'){e.preventDefault();if(!e.repeat){actionMenuOpen=!actionMenuOpen;stopSpray();stopWalking();refreshMarking();}return;}
   if(key==='escape'&&(actionMenuOpen||surfaceTool)){e.preventDefault();if(actionMenuOpen)actionMenuOpen=false;else surfaceTool='';stopSpray();refreshMarking();return;}
@@ -438,7 +481,6 @@ document.addEventListener('keydown',e=>{
   }
   return;
  }
- if(['t','f'].includes(key)&&GameRulesApi.pitchPreset(api.getState().activeTool)){e.preventDefault();if(!e.repeat){pitchRotated=!pitchRotated;map.refreshPitchPreview();}return;}
  if(key==='/'){e.preventDefault();if(innerWidth<=700){$('#sidebar').classList.add('mobile-open');$('#mobile-list').setAttribute('aria-expanded','true');}$('#mg-search').focus();return;}
  if(key==='escape'){setTablet(false);return;}
  if(!e.target.closest('#park-map')&&e.target!==document.body)return;
@@ -455,7 +497,7 @@ window.addEventListener('caravan:ready',()=>{
       api.getState().playerPath=[];
       api.save();
     }
-    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isPitchRotated:()=>pitchRotated,isWalking:()=>walking,getWalker:walkingPosition,getSurfaceMarks:()=>getSurfaceMarks(),onGround:target=>{
+    map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,getSurfaceMarks:()=>getSurfaceMarks(),onGround:target=>{
         const st=api.getState(),stall=LandManagement.findStall(st);
         if(stall?.x===target.x&&stall.y===target.y){
             interaction={...target,stall:true};
@@ -465,7 +507,7 @@ window.addEventListener('caravan:ready',()=>{
         const nature=(window.CaravanLandParcels.inParcel(target.x,target.y)?window.CaravanExternalTerrain.getTile(st,target.x,target.y):st.tiles[target.y]?.[target.x])?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
         if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press R with Clear Trees/Bushes selected.');
-    },onSelect:id=>{if(!walking)select(id);},onBuild:(tool,start,end)=>{if(walking)return;api.build(tool,start,end,pitchRotated);$('#mg-build-hint').dataset.preview='';map.invalidate();render(true);},onPreview:p=>{$('#mg-build-hint').dataset.preview='true';$('#mg-build-hint').innerHTML=`<strong>${esc(p.label)}${p.cost===null?'':' · '+money(p.cost)}</strong><span>${p.fixedPitch?'Click to place · T or F rotates':'Release to build'} · Subject to game placement checks</span><button id="mg-cancel-tool">Cancel</button>`;}});
+    },onSelect:id=>{if(!walking)select(id);},onBuild:(tool,start,end)=>{if(walking)return;api.build(tool,start,end);$('#mg-build-hint').dataset.preview='';map.invalidate();render(true);},onPreview:p=>{$('#mg-build-hint').dataset.preview='true';$('#mg-build-hint').innerHTML=`<strong>${esc(p.label)}${p.cost===null?'':' · '+money(p.cost)}</strong><span>${p.fixedPitch?'Click to place · T or F rotates':'Release to build'} · Subject to game placement checks</span><button id="mg-cancel-tool">Cancel</button>`;}});
     places=M.getPlaces(api.getState());const id=new URLSearchParams(location.hash.slice(1)).get('place');if(places.some(p=>p.id===id))app.selected=id;
     render(true);
     const walkButton=document.createElement('button');walkButton.id='mg-walk-mode';walkButton.type='button';walkButton.textContent='📱 Tablet';walkButton.setAttribute('aria-pressed','false');walkButton.setAttribute('aria-label','Open management tablet');walkButton.style.cssText='position:absolute;bottom:52px;right:18px;z-index:5;padding:10px 14px;border-radius:12px;background:#fff8e8;color:#294a36;border:2px solid #718c70;cursor:pointer;font-weight:700;box-shadow:0 3px 12px #223c3522';

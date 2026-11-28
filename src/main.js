@@ -1555,18 +1555,24 @@ function placeFacility(x, y, w, h, type, cost) {
     }, {x, y, w, h}, cost, `Built ${type} facility`);
 }
 
-function createPitch(x, y, w, h, type, cost) {
-    const pitch = {x, y, w, h, type, occupied: false};
-    if (!isFootprintAvailable(x, y, w, h)) {
-        showToast('❌ That pitch area is blocked or out of bounds.');
-        return;
+function pitchPlacementIssue(pitch, cost) {
+    if (!isFootprintAvailable(pitch.x, pitch.y, pitch.w, pitch.h)) {
+        return 'That pitch area is blocked or out of bounds.';
     }
     const result = GameRulesApi.validatePitchPlacement(
         pitch, state.tiles, state.pitches, state.facilities
     );
-    if (!result.valid) {
-        showToast(`❌ ${result.reason}`);
-        return;
+    if (!result.valid) return result.reason;
+    if (state.cash < cost) return 'There is not enough cash to build this pitch.';
+    return '';
+}
+
+function createPitch(x, y, w, h, type, cost) {
+    const pitch = {x, y, w, h, type, occupied: false};
+    const issue = pitchPlacementIssue(pitch, cost);
+    if (issue) {
+        showToast(`❌ ${issue}`);
+        return false;
     }
     return startConstruction('pitch', {pitch}, pitch, cost, `Built ${type} pitch`);
 }
