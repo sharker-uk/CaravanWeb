@@ -69,10 +69,17 @@
             saveGame();changed();showToast('Builder hired · see construction quotation for duration.');
             return {ok:true};
         },
-        build(tool,start,end) {
+        build(tool,start,end,rotated=false) {
             const inBounds=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&p.x>=0&&p.x<GRID_W&&p.y>=0&&p.y<GRID_H;
             const allowed=['select','clear','road','path','pitch_grass','pitch_gravel','build_tree',...Object.keys(FACILITY_BUILDINGS).map(t=>'build_'+t),...UTILITY_TYPES.map(t=>'utility_'+t),...Object.keys(StaticCaravans.ACCESSORIES).map(t=>'place_accessory_'+t)];
-            if(!allowed.includes(tool)||!inBounds(start)||!inBounds(end))return fail('Choose a valid tool and a tile inside the park.');
+            const preset=GameRulesApi.pitchPreset(tool,rotated===true);
+            if((!preset&&!allowed.includes(tool))||!inBounds(start)||!inBounds(end))return fail('Choose a valid tool and a tile inside the park.');
+            if(preset){
+                if(preset.type==='gravel'&&!state.tools.shovel)return fail('Buy the shovel to build hardstanding.');
+                const ok=Boolean(createPitch(end.x,end.y,preset.w,preset.h,preset.type,preset.cost));
+                changed();
+                return {ok};
+            }
             const before=JSON.stringify([state.cash,state.wood,state.constructions.length,state.accessoryInventory,state.tiles[end.y][end.x].nature]);
             if(tool==='clear'){
                 const tile=state.tiles[end.y][end.x];

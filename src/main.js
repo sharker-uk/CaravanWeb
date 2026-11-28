@@ -1555,20 +1555,26 @@ function placeFacility(x, y, w, h, type, cost) {
     }, {x, y, w, h}, cost, `Built ${type} facility`);
 }
 
-function createPitch(x, y, w, h, type, cost) {
-    const pitch = {x, y, w, h, type, occupied: false};
-    if (!isFootprintAvailable(x, y, w, h)) {
-        showToast('❌ That pitch area is blocked or out of bounds.');
-        return;
+function pitchPlacementIssue(pitch, cost) {
+    if (!isFootprintAvailable(pitch.x, pitch.y, pitch.w, pitch.h)) {
+        return 'That pitch area is blocked or out of bounds.';
     }
     const result = GameRulesApi.validatePitchPlacement(
         pitch, state.tiles, state.pitches, state.facilities
     );
-    if (!result.valid) {
-        showToast(`❌ ${result.reason}`);
-        return;
+    if (!result.valid) return result.reason;
+    if (state.cash < cost) return 'There is not enough cash to build this pitch.';
+    return '';
+}
+
+function createPitch(x, y, w, h, type, cost) {
+    const pitch = {x, y, w, h, type, occupied: false};
+    const issue = pitchPlacementIssue(pitch, cost);
+    if (issue) {
+        showToast(`❌ ${issue}`);
+        return false;
     }
-    startConstruction('pitch', {pitch}, pitch, cost, `Built ${type} pitch`);
+    return startConstruction('pitch', {pitch}, pitch, cost, `Built ${type} pitch`);
 }
 
 function createPitchesInBox(start, end, type) {
@@ -1652,7 +1658,12 @@ function getTileBounds(tiles) {
 }
 
 function startConstruction(kind, payload, footprint, cost, description, category = 'construction') {
-    const duration=kind==='surface'?Construction.surfaceDuration(payload.surface,payload.tiles.length):['pitch','pitches'].includes(kind)?1440:120;
+    let duration = 120;
+    if (kind === 'surface') duration = Construction.surfaceDuration(payload.surface, payload.tiles.length);
+    if (kind === 'pitch') duration = GameRulesApi.pitchBuildMinutes(payload.pitch);
+    if (kind === 'pitches') {
+        duration = payload.pitches.reduce((total, pitch) => total + GameRulesApi.pitchBuildMinutes(pitch), 0);
+    }
     const job = Construction.queueConstruction(state, {
         kind, ...payload, footprint, blocksMovement: true
     },duration);
@@ -1670,7 +1681,11 @@ function startConstruction(kind, payload, footprint, cost, description, category
         pitch.constructionReserved = true;
     }
     saveGame();
-    showToast('Construction started · ready in '+(duration/60)+' in-game hours.');
+    if (kind === 'pitch' || kind === 'pitches') {
+        showToast(`Pitch construction started · expected ${formatGameTime(Math.ceil(job.completesAt))}.`);
+    } else {
+        showToast('Construction started · ready in '+(duration/60)+' in-game hours.');
+    }
     return true;
 }
 

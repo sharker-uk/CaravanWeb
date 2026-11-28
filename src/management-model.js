@@ -64,7 +64,9 @@
         // Grid cells are gameplay units. No unverified real-world metre scale is assumed.
         return {points,tiles:Math.max(0,points.length-1)};
     }
-    function buildPreview(tool,start,end,facilityDefinitions) {
+    function buildPreview(tool,start,end,facilityDefinitions,rotated=false) {
+        const preset=rules.pitchPreset(tool,rotated);
+        if(preset)return {x:end.x,y:end.y,w:preset.w,h:preset.h,cost:preset.cost,label:`${preset.name} · ${preset.w} × ${preset.h}`,fixedPitch:true};
         const box={x:Math.min(start.x,end.x),y:Math.min(start.y,end.y),w:Math.abs(start.x-end.x)+1,h:Math.abs(start.y-end.y)+1};
         if(tool==='pitch_grass'||tool==='pitch_gravel'){const plan=rules.planPitchBox(start,end,tool==='pitch_grass'?'grass':'gravel');return {...box,cost:plan.valid?plan.pitches.length*(tool==='pitch_grass'?100:250):null,label:plan.valid?`${plan.pitches.length} pitch${plan.pitches.length===1?'':'es'}`:plan.reason};}
         if(tool==='path'||tool==='road')return {...box,cost:box.w*box.h*(tool==='path'?10:20),label:`${box.w*box.h} tiles`};

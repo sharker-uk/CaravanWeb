@@ -332,6 +332,7 @@ root.ManagementArt={tree,building};
             lastPlayerPosition={x:p.x,y:p.y};
         }
         function render(nextGame,nextPlaces,options={}){
+            if(tool!==(options.tool||'select'))buildPreview.replaceChildren();
             game=nextGame;places=nextPlaces;selected=options.selected;visibleIds=options.visibleIds||null;route=options.route||null;tool=options.tool||'select';layers={...layers,...options.layers};
             const key=JSON.stringify([game.tiles,places.map(p=>[p.id,p.status,p.guest?.accommodation,p.van?.modelId,p.entity.decking,p.entity.accessories]),game.constructions,game.externalTerrain,game.land?.ownedPlotIds,[...visibleIds||[]],layers,tool]);
             if(key!==worldKey){
@@ -372,7 +373,22 @@ root.ManagementArt={tree,building};
         labels.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&e.target.dataset.place){e.preventDefault();e.stopPropagation();callbacks.onSelect(e.target.dataset.place);}});
         new ResizeObserver(()=>{dimensions();cameraChanged();}).observe(svg);
         dimensions();
-        const api={render,updatePlayer,drawSurfaceMarks,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},canWalk:(state,x,y)=>W.canOccupy(state,x,y,villageData,placement,root.GameState.canOccupyPlayer),
+        const pitchOutline = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        pitchOutline.setAttribute('pointer-events', 'none');
+        pitchOutline.setAttribute('stroke-width', '2');
+        pitchOutline.setAttribute('stroke-dasharray', '5 4');
+        pitchOutline.setAttribute('visibility', 'hidden');
+        world.append(pitchOutline);
+        function showPitchOutline(pitch, valid) {
+            pitchOutline.setAttribute('visibility', pitch ? 'visible' : 'hidden');
+            if (!pitch) return;
+            for (const [attribute, tiles] of Object.entries({x:pitch.x,y:pitch.y,width:pitch.w,height:pitch.h})) {
+                pitchOutline.setAttribute(attribute, tiles * unit);
+            }
+            pitchOutline.setAttribute('fill', valid === null ? '#fff8e840' : valid ? '#a9dc8870' : '#dc827870');
+            pitchOutline.setAttribute('stroke', valid === null ? '#6a6554' : valid ? '#416634' : '#972f2a');
+        }
+        const api={render,showPitchOutline,updatePlayer,drawSurfaceMarks,fit,zoom,pan,focus,turn:delta=>{camera.rotation=(camera.rotation+delta+360)%360;cameraChanged();},north:()=>{camera.rotation=0;cameraChanged();},togglePlan:()=>{camera.tilt=camera.tilt===1?.8:1;dimensions();cameraChanged();return camera.tilt===1;},getCamera:()=>({...camera}),showRoute:r=>{route=r;cameraChanged();},canWalk:(state,x,y)=>W.canOccupy(state,x,y,villageData,placement,root.GameState.canOccupyPlayer),
             followPlayer:(p,dt)=>{const framing=root.CaravanWorldCamera,target=framing.target(p,{width,height});
                 const distance=Math.hypot(camera.x-target.x,camera.y-target.y);
                 const next=dt===undefined||distance<.1?target:framing.smooth(camera,target,dt);

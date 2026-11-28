@@ -158,6 +158,27 @@
         return {valid: true, reason: ''};
     }
 
+    const PITCH_PRESETS = Object.freeze({
+        pitch_grass_small: {type:'grass', name:'Small grass', w:4, h:6, cost:100, hours:2},
+        pitch_grass_medium: {type:'grass', name:'Medium grass', w:6, h:8, cost:150, hours:3},
+        pitch_grass_large: {type:'grass', name:'Large grass', w:8, h:10, cost:200, hours:4},
+        pitch_gravel_small: {type:'gravel', name:'Small hardstanding', w:4, h:8, cost:250, hours:4},
+        pitch_gravel_medium: {type:'gravel', name:'Medium hardstanding', w:6, h:8, cost:375, hours:6},
+        pitch_gravel_large: {type:'gravel', name:'Large hardstanding', w:8, h:10, cost:500, hours:8}
+    });
+    function pitchPreset(tool, rotated = false) {
+        if (!Object.hasOwn(PITCH_PRESETS, tool)) return null;
+        const {w,h,...preset} = PITCH_PRESETS[tool];
+        return {...preset,w:rotated?h:w,h:rotated?w:h};
+    }
+
+    function pitchBuildMinutes(pitch) {
+        const sizes = Object.values(PITCH_PRESETS).filter(preset => preset.type === pitch.type);
+        const area = pitch.w * pitch.h;
+        const size = sizes.find(preset => area <= preset.w * preset.h) ?? sizes.at(-1);
+        return size.hours * 60;
+    }
+
     function planPitchBox(start, end, type) {
         if (!start || !end || !['x', 'y'].every(key =>
             Number.isInteger(start[key]) && Number.isInteger(end[key])) ||
@@ -298,6 +319,9 @@
         isPitchReadyForStatic,
         validatePitchPlacement,
         planPitchBox,
+        PITCH_PRESETS,
+        pitchPreset,
+        pitchBuildMinutes,
         validateUtilityLine,
         getPitchHookups,
         getGuestDailyIncome,
