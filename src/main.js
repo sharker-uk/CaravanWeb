@@ -1658,7 +1658,12 @@ function getTileBounds(tiles) {
 }
 
 function startConstruction(kind, payload, footprint, cost, description, category = 'construction') {
-    const duration=kind==='surface'?Construction.surfaceDuration(payload.surface,payload.tiles.length):['pitch','pitches'].includes(kind)?1440:120;
+    let duration = 120;
+    if (kind === 'surface') duration = Construction.surfaceDuration(payload.surface, payload.tiles.length);
+    if (kind === 'pitch') duration = GameRulesApi.pitchBuildMinutes(payload.pitch);
+    if (kind === 'pitches') {
+        duration = payload.pitches.reduce((total, pitch) => total + GameRulesApi.pitchBuildMinutes(pitch), 0);
+    }
     const job = Construction.queueConstruction(state, {
         kind, ...payload, footprint, blocksMovement: true
     },duration);
@@ -1676,7 +1681,11 @@ function startConstruction(kind, payload, footprint, cost, description, category
         pitch.constructionReserved = true;
     }
     saveGame();
-    showToast('Construction started · ready in '+(duration/60)+' in-game hours.');
+    if (kind === 'pitch' || kind === 'pitches') {
+        showToast(`Pitch construction started · expected ${formatGameTime(Math.ceil(job.completesAt))}.`);
+    } else {
+        showToast('Construction started · ready in '+(duration/60)+' in-game hours.');
+    }
     return true;
 }
 
