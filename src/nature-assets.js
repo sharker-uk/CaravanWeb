@@ -16,18 +16,35 @@ function tileVisual(tile,x,y){
  const nature=t.nature==='tree'?'tree':t.nature==='debris'?'debris':null;
  return {terrain,nature,groundState:terrain==='grass'?(nature||hash(x,y,4)%9===0?'overgrown':hash(x,y,5)%7===0?'maintained':'normal'):'normal',natureState:nature==='tree'?'standing':nature==='debris'?'scattered':null};
 }
-function groundDetails(tile,x,y,unit=20){
- const v=tileVisual(tile,x,y);if(v.terrain!=='grass'||tile?.road||tile?.path)return '';
+function addGroundDetails(batch,tile,x,y,unit){
+ const {bladesByColour,flowers}=batch;
+ const v=tileVisual(tile,x,y);if(v.terrain!=='grass'||tile?.road||tile?.path)return;
  const seed=hash(x,y,8),cx=x*unit,cy=y*unit;
  const blades=v.groundState==='overgrown'?4:v.groundState==='maintained'?1:2;
- let out='';
+ const colour=seed%3===0?'#78966a':'#8ca67b';
  for(let i=0;i<blades;i++){
   const px=cx+3+(hash(x+i,y,10+i)%14),py=cy+5+(hash(x,y+i,18+i)%12);
   const height=v.groundState==='overgrown'?5:3;
-  out+=`<path d="M${px} ${py}l-1 -${height}m1 ${height}l2 -${height-1}" fill="none" stroke="${seed%3===0?'#78966a':'#8ca67b'}" stroke-width=".8" opacity=".68"/>`;
+  bladesByColour[colour]+= `M${px} ${py}l-1 -${height}m1 ${height}l2 -${height-1}`;
  }
- if(seed%19===0&&v.groundState!=='maintained')out+=`<circle cx="${cx+11}" cy="${cy+9}" r="1.2" fill="#d9c7a1"/><circle cx="${cx+13}" cy="${cy+10}" r=".8" fill="#e8dfc2"/>`;
- return out;
+ if(seed%19===0&&v.groundState!=='maintained')flowers.push(`<circle cx="${cx+11}" cy="${cy+9}" r="1.2" fill="#d9c7a1"/><circle cx="${cx+13}" cy="${cy+10}" r=".8" fill="#e8dfc2"/>`);
+}
+function groundBatch(){
+ return {bladesByColour:{'#78966a':'','#8ca67b':''},flowers:[]};
+}
+function renderGround(batch){
+ return Object.entries(batch.bladesByColour).map(([colour,d])=>d?
+  `<path d="${d}" fill="none" stroke="${colour}" stroke-width=".8" opacity=".68"/>`:'').join('')+batch.flowers.join('');
+}
+function groundDetails(tile,x,y,unit=20){
+ const batch=groundBatch();
+ addGroundDetails(batch,tile,x,y,unit);
+ return renderGround(batch);
+}
+function groundRowDetails(row,y,unit=20){
+ const batch=groundBatch();
+ row.forEach((tile,x)=>addGroundDetails(batch,tile,x,y,unit));
+ return renderGround(batch);
 }
 function tree(x,y,r=12,shade=0){
  const leaves=['#68875b','#738f61','#809968','#5c7d55'],a=leaves[shade%4],b=leaves[(shade+1)%4],c=leaves[(shade+2)%4];
@@ -43,7 +60,7 @@ function natureGraphic(tile,x,y,unit=20){
  if(v.nature==='debris')return debris(cx,cy,hash(x,y,7));
  return '';
 }
-const api=Object.freeze({registry,hash,tileVisual,groundDetails,natureGraphic,tree,debris});
+const api=Object.freeze({registry,hash,tileVisual,groundDetails,groundRowDetails,natureGraphic,tree,debris});
 root.CaravanNatureAssets=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

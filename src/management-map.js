@@ -65,6 +65,19 @@ root.ManagementArt={tree,building};
         const world=svg.querySelector('#mg-world'),labels=svg.querySelector('#mg-map-labels');
         const scene=document.createElementNS('http://www.w3.org/2000/svg','g');
         world.append(scene);
+        const artLayers = new Map();
+        function setArtwork(parent, cache, name, markup) {
+            let layer = cache.get(name);
+            if (!layer) {
+                const node = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                parent.append(node);
+                layer = {node, markup: ''};
+                cache.set(name, layer);
+            }
+            if (layer.markup === markup) return;
+            layer.node.innerHTML = markup;
+            layer.markup = markup;
+        }
         let width=1,height=1,baseZoom=.8,game=null,places=[],selected=null,visibleIds=null,route=null,tool='select',layers={labels:true,people:true,utilities:false,grid:false},worldKey='',pointer=null,moved=false,pinchDistance=null;
         const MIN_OVERVIEW_ZOOM=.025;
         const camera={x:570,y:400,zoom:1.4,rotation:0,tilt:1},touches=new Map();
@@ -202,16 +215,22 @@ root.ManagementArt={tree,building};
             return `<g id="external-parcel-terrain" pointer-events="none">${art}</g>`;
         }
         function worldMarkup() {
-            let ground='',nature='',grid='',utilities='';
+            let grid='',utilities='';
+            const groundRows=[],natureRows=[];
             const artDefs='<defs><pattern id="art3-grass" patternUnits="userSpaceOnUse" width="20" height="20"><image href="assets/art-staging/terrain/individual/terrain/grass_0.png" width="20" height="20"/></pattern><pattern id="art3-tarmac" patternUnits="userSpaceOnUse" width="20" height="20"><image href="assets/art-staging/terrain/individual/terrain/tarmac_0.png" width="20" height="20"/></pattern><pattern id="art3-paving" patternUnits="userSpaceOnUse" width="20" height="20"><image href="assets/art-staging/terrain/individual/terrain/paving_0.png" width="20" height="20"/></pattern><pattern id="art3-gravel" patternUnits="userSpaceOnUse" width="20" height="20"><image href="assets/art-staging/terrain/individual/terrain/gravel_0.png" width="20" height="20"/></pattern><pattern id="art3-sand" patternUnits="userSpaceOnUse" width="20" height="20"><image href="assets/art-staging/terrain/individual/terrain/sand_0.png" width="20" height="20"/></pattern></defs>';
             for(let y=0;y<game.tiles.length;y++){
                 const row=game.tiles[y];
+                let ground='',nature='';
                 for(const surface of ['sand','water','road','path']){
                     for(let x=0;x<row.length;){const active=t=>surface==='sand'||surface==='water'?t?.terrain===surface:Boolean(t?.[surface]);if(!active(row[x])){x++;continue;}let end=x+1;while(end<row.length&&active(row[end]))end++;
                         ground+=`<rect x="${x*unit}" y="${y*unit}" width="${(end-x)*unit}" height="${unit}" fill="${surface==='sand'?'url(#art3-sand)':surface==='water'?'url(#water)':surface==='road'?'url(#art3-tarmac)':'url(#art3-paving)'}"/>`;x=end;
                     }
                 }
-                row.forEach((t,x)=>{const assets=root.CaravanNatureAssets;if(assets){ground+=assets.groundDetails(t,x,y,unit);nature+=t.nature==='tree'?`<image href="assets/art-staging/nature/trees/${['oak','birch','pine'][assets.hash(x,y)%3]}_overgrown.png" x="${x*unit-10}" y="${y*unit-28}" width="40" height="48" preserveAspectRatio="xMidYMax meet" pointer-events="none"/>`:assets.natureGraphic(t,x,y,unit);}else if(t.nature==='tree')nature+=A.tree(x*unit+10,y*unit+12,9+(x+y)%4,(x+y)%4);});
+                const assets=root.CaravanNatureAssets;
+                if(assets)ground+=assets.groundRowDetails(row,y,unit);
+                row.forEach((t,x)=>{if(assets){nature+=t.nature==='tree'?`<image href="assets/art-staging/nature/trees/${['oak','birch','pine'][assets.hash(x,y)%3]}_overgrown.png" x="${x*unit-10}" y="${y*unit-28}" width="40" height="48" preserveAspectRatio="xMidYMax meet" pointer-events="none"/>`:assets.natureGraphic(t,x,y,unit);}else if(t.nature==='tree')nature+=A.tree(x*unit+10,y*unit+12,9+(x+y)%4,(x+y)%4);});
+                groundRows.push(ground);
+                natureRows.push(nature);
             }
             if(layers.utilities){
                 for(const [i,type] of root.ParkServices.UTILITY_TYPES.entries()){
@@ -228,8 +247,28 @@ root.ManagementArt={tree,building};
             const lots=places.filter(p=>p.kind==='pitch').map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
             const buildings=places.filter(p=>p.kind!=='pitch'&&p.type!=='land_plot').sort((a,b)=>(a.y+a.h)-(b.y+b.h)).map(p=>`<g opacity="${!visibleIds||visibleIds.has(p.id)?1:.35}">${placeArt(p)}</g>`).join('');
             const jobs=game.constructions.map(j=>{const b=j.footprint;return b?`<rect x="${b.x*unit+1}" y="${b.y*unit+1}" width="${b.w*unit-2}" height="${b.h*unit-2}" fill="#d6ad5c55" stroke="#a88948" stroke-width="2" stroke-dasharray="6 4"/>`:'';}).join('');
+            return [
+                ['background', artDefs + (villageData && W.usesFarmBoundary(game)
+                    ? villageFringe()
+                    : '<rect x="-2400" y="-2400" width="4800" height="4800" fill="url(#art3-grass)"/>')],
+                ...groundRows.map((markup,y)=>['ground-'+y,markup]),
+                ['boundary',farmBoundary()+externalFieldPreview()],
+                ['field-art',externalTerrainArtwork()],
+                ['land',W.usesFarmBoundary(game)?'':places.filter(p=>p.type==='land_plot').map(placeArt).join('')],
+                ...natureRows.map((markup,y)=>['nature-'+y,markup]),
+                ['park-objects',lots+buildings+utilities+jobs],
+                ['grid',`<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/>`]
+            ];
+        }
+        const overlays = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        world.append(overlays);
+        const overlayLayers = new Map();
+        const buildPreview = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        buildPreview.id = 'mg-build-preview';
+        world.append(buildPreview);
+        function updateGuestArtwork() {
             const people=layers.people?game.guests.flatMap(g=>(g.party?.members||[{}]).map((m,i)=>{const pos=g.position||{x:g.pitch.x+1,y:g.pitch.y+1},x=pos.x*unit+(i%3)*5,y=pos.y*unit+Math.floor(i/3)*5;return `<g><ellipse cx="${x+1}" cy="${y+8}" rx="3" ry="1.5" fill="#446a4c44"/><path d="M${x} ${y+2}v6" stroke="${/^#[0-9a-fA-F]{6}$/.test(m.appearance?.top||'')?m.appearance.top:'#7a91a0'}" stroke-width="4"/><circle cx="${x}" cy="${y}" r="2.5" fill="#dcbb96"/></g>`;})).join(''):'';
-            return `${artDefs}${villageData&&W.usesFarmBoundary(game)?villageFringe():'<rect x="-2400" y="-2400" width="4800" height="4800" fill="url(#art3-grass)"/>'}${ground}${farmBoundary()}${externalFieldPreview()}${externalTerrainArtwork()}${W.usesFarmBoundary(game)?'':places.filter(p=>p.type==='land_plot').map(placeArt).join('')}${nature}${lots}${buildings}${utilities}${jobs}${people}<path d="${grid}" fill="none" stroke="#637b4b" stroke-width=".6" opacity=".22"/><g id="mg-build-preview"></g>`;
+            setArtwork(overlays, overlayLayers, 'guests', people);
         }
         function farmBoundary(){
             if(!W.usesFarmBoundary(game))return '';
@@ -255,11 +294,16 @@ root.ManagementArt={tree,building};
             if(focusedId)labels.querySelector(`[data-place="${CSS.escape(focusedId)}"]`)?.focus({preventScroll:true});
         }
         let playerFacing='down',lastPlayerPosition=null,lastSpriteFrame='',playerMotionSince=0;
+        const surfaceLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        surfaceLayer.id = 'gp-surface-marks';
+        surfaceLayer.setAttribute('pointer-events', 'none');
+        world.append(surfaceLayer);
+        let surfaceMarkup = '';
         function drawSurfaceMarks(marks){
-            let layer=world.querySelector('#gp-surface-marks');
-            if(!layer){world.insertAdjacentHTML('beforeend','<g id="gp-surface-marks" pointer-events="none"></g>');layer=world.querySelector('#gp-surface-marks');}
-            layer.innerHTML=marks.map(({x,y,surface,valid})=>`<rect x="${x*unit+2}" y="${y*unit+2}" width="${unit-4}" height="${unit-4}" rx="3" fill="${valid?'#ffffff22':'#d43b4166'}" stroke="${surface==='road'?'#fff':'#f5d76e'}" stroke-width="2" stroke-dasharray="4 3"/>`).join('');
-            const player=world.querySelector('#living-park-player');if(player)world.append(player);
+            const markup=marks.map(({x,y,surface,valid})=>`<rect x="${x*unit+2}" y="${y*unit+2}" width="${unit-4}" height="${unit-4}" rx="3" fill="${valid?'#ffffff22':'#d43b4166'}" stroke="${surface==='road'?'#fff':'#f5d76e'}" stroke-width="2" stroke-dasharray="4 3"/>`).join('');
+            if (markup === surfaceMarkup) return;
+            surfaceLayer.innerHTML = markup;
+            surfaceMarkup = markup;
         }
         function updatePlayer(p){
             if(!p)return;
@@ -289,8 +333,12 @@ root.ManagementArt={tree,building};
         }
         function render(nextGame,nextPlaces,options={}){
             game=nextGame;places=nextPlaces;selected=options.selected;visibleIds=options.visibleIds||null;route=options.route||null;tool=options.tool||'select';layers={...layers,...options.layers};
-            const key=JSON.stringify([game.tiles,places.map(p=>[p.id,p.status,p.guest?.accommodation,p.van?.modelId,p.entity.decking,p.entity.accessories]),game.constructions,game.externalTerrain,game.land?.ownedPlotIds,game.guests.map(g=>[g.position,g.party?.headcount]),[...visibleIds||[]],layers,tool]);
-            if(key!==worldKey){scene.innerHTML=worldMarkup();worldKey=key;}
+            const key=JSON.stringify([game.tiles,places.map(p=>[p.id,p.status,p.guest?.accommodation,p.van?.modelId,p.entity.decking,p.entity.accessories]),game.constructions,game.externalTerrain,game.land?.ownedPlotIds,[...visibleIds||[]],layers,tool]);
+            if(key!==worldKey){
+                for (const [name,markup] of worldMarkup()) setArtwork(scene,artLayers,name,markup);
+                worldKey=key;
+            }
+            updateGuestArtwork();
             drawSurfaceMarks(callbacks.getSurfaceMarks?.()||[]);
             updatePlayer(callbacks.getWalker?.() || game.player);
             // Keep focused map controls alive when only time / condition values change.

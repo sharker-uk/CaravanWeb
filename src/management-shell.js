@@ -165,9 +165,6 @@ function setTablet(open){
 function walkTo(target,approach=false){
  if(!walking)return false;
  const state=api.getState(),player=walkingPosition();
- if(world.usesFarmBoundary(state)&&(!map.canWalk(state,player.x,player.y)||!map.canWalk(state,target.x+.5,target.y+.5))){
-  announce('Use WASD or the arrow keys to walk in the village.');return false;
- }
  const walkable=(s,x,y)=>world.usesFarmBoundary(s)?map.canWalk(s,x+.5,y+.5):canWalk(s,x,y);
  const path=LivingParkMovement.route(state,player,target,walkable,approach);
  if(!path){announce('No walkable route to that spot.');return false;}
@@ -190,7 +187,7 @@ function walkingFrame(timestamp){
   interaction=null;
  }
  if(spraying&&['road','path'].includes(surfaceTool)){const p=LivingParkMovement.tile(player);if(!lastMark||p.x!==lastMark.x||p.y!==lastMark.y)sprayAtPlayer();}
- map.updatePlayer(player);
+ if(moving)map.updatePlayer(player);
  if(moving&&!inVillage&&(world.inFarm(player.x,player.y)||window.CaravanLandParcels.inParcel(player.x,player.y))){
   Object.assign(state.player,player);
   if(timestamp-lastAutosave>5000){api.save();lastAutosave=timestamp;}
@@ -266,6 +263,10 @@ function renderDetail(state){
         actions+=actionButton('toggleFacility',f.isOperational===false?'Reopen facility':'Close facility');
     }else{
         body=`<p>${esc(({farmhouse:'The park office and home at the heart of your coastal business.',rusty_resales:'Browse the static caravan catalogue, compare trade-ins and arrange delivery to an eligible hardstanding pitch.',fiddl_shop:'Buy pitch accessories for your park. Choose an item here, then place it on the map.',job_centre:'Hire grounds staff or book a handyman from the Park tab.',for_sale:'Inspect expansion fields from Land & beach.'})[p.type]||'Part of your coastal park.')}</p>`;
+        if(p.type==='selling_stall'){
+            body='<p>Sell firewood to passing villagers at the farmhouse entrance.</p>';
+            actions=actionButton('firewood','Manage firewood stall',false,true);
+        }
         if(p.type==='rusty_resales')actions=actionButton('rusty','Browse static caravans',false,true);
         if(p.type==='fiddl_shop')actions=actionButton('fiddl','Browse accessories',false,true);
         if(p.type==='job_centre')actions='<button data-open-settings class="primary">Open staffing</button>';
@@ -322,7 +323,13 @@ function renderPanel(state){
     if(html!==lastPanel){replaceKeepingFocus($('#mg-panel'),html);lastPanel=html;}
 }
 function render(force=false){
-    if(!ready)return;const state=api.getState();places=M.getPlaces(state);
+    if(!ready)return;
+    const state=api.getState();
+    places=M.getPlaces(state);
+    if(walking){
+        map.render(state,places,{tool:'select',layers:app.layers,walking:true});
+        return;
+    }
     if(app.selected&&!places.some(p=>p.id===app.selected)){app.selected=null;app.route=false;}
     setText('mg-cash',money(Math.floor(state.cash)));setText('mg-clock',`Day ${state.day} · ${String(state.hour).padStart(2,'0')}:${String(Math.floor(state.minute)).padStart(2,'0')}`);setText('mg-weather',state.weather);setText('mg-occupancy',`${state.pitches.filter(p=>p.occupied).length} / ${state.pitches.length} pitches`);setText('mg-guests',`${state.guests.reduce((n,g)=>n+(g.party?.headcount||1),0)} guests`);setText('mg-rating',`${state.rating.toFixed(1)} / 5`);setText('mg-pause',state.isPaused?'Resume':'Pause');$('#mg-pause').setAttribute('aria-label',state.isPaused?'Resume time':'Pause time');
     document.querySelectorAll('[data-game-speed]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.gameSpeed)===state.simulationSpeed)));
@@ -338,7 +345,7 @@ function render(force=false){
     const tool=state.activeTool||'select';$('#mg-build-hint').hidden=tool==='select';if(tool!=='select'&&!$('#mg-build-hint').dataset.preview)$('#mg-build-hint').innerHTML=`<strong>${esc(title(tool.replace('build_','')))}</strong><span>${tool.startsWith('place_accessory_')?'Click an eligible pitch tile to place your purchase.':'Draw on the map to place. Right-drag pans. Escape cancels.'}</span><button id="mg-cancel-tool">Cancel</button>`;
     const route=app.route?M.getRoute(state,current()):null;$('#mg-route-info').hidden=!app.route;
     if(app.route)$('#mg-route-info').innerHTML=route?`<strong>Park office → ${esc(current().name)}</strong><small>${route.tiles} path tiles · Game grid, not real-world distance</small>`:'<strong>No connected path to this entrance</strong><small>Routes follow roads and paths. Add a link to reach this location.</small>';
-    map.render(state,places,{selected:app.selected,visibleIds:new Set(filtered().map(p=>p.id)),route,tool:walking?'select':tool,layers:app.layers,walking});
+    map.render(state,places,{selected:app.selected,visibleIds:new Set(filtered().map(p=>p.id)),route,tool,layers:app.layers});
     $('.map-shell').classList.toggle('has-panel',['guests','finances','settings'].includes(app.view));
 }
 function resetFilters(){Object.assign(app,{query:'',category:'all',status:'all',savedOnly:false});$('#mg-search').value='';$('#mg-status').value='all';render(true);}
@@ -399,6 +406,18 @@ document.addEventListener('keydown',e=>{
   if(key==='e'){e.preventDefault();if(!e.repeat){actionMenuOpen=!actionMenuOpen;stopSpray();stopWalking();refreshMarking();}return;}
   if(key==='escape'&&(actionMenuOpen||surfaceTool)){e.preventDefault();if(actionMenuOpen)actionMenuOpen=false;else surfaceTool='';stopSpray();refreshMarking();return;}
   if(actionMenuOpen)return;
+  if(key==='r'&&interaction?.stall){
+   e.preventDefault();
+   if(e.repeat)return;
+   if(!LivingParkMovement.adjacent(LivingParkMovement.tile(walkingPosition()),interaction)){
+    announce('Walk next to the firewood stall before interacting.');
+    return;
+   }
+   stopWalking();
+   interaction=null;
+   runAction('firewood');
+   return;
+  }
   if(key==='r'&&['road','path'].includes(surfaceTool)){e.preventDefault();if(!e.repeat){spraying=true;lastMark=null;api.getState().playerPath=[];sprayAtPlayer();}return;}
   if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();if(!held.has(key))map.followPlayer(walkingPosition());held.add(key);return;}
   if(key==='r'&&surfaceTool==='clear'){
@@ -412,7 +431,7 @@ document.addEventListener('keydown',e=>{
     const field=window.CaravanLandParcels.inParcel(target.x,target.y);
     const result=Boolean(field)?window.CaravanExternalTerrain.clear(state,target.x,target.y):api.build('clear',target,target);
     if(result.ok&&field?.id==='south_field'){api.save();window.dispatchEvent(new CustomEvent('caravan:change'));}
-    if(result.ok){interaction=null;map.invalidate();render(true);}
+    if(result.ok){interaction=null;render(true);}
     else announce('Unable to clear this tree or debris.');
    }else announce('Stand next to a tree or debris in your park and press R with Clear Trees/Bushes selected.');
   }
@@ -435,7 +454,12 @@ window.addEventListener('caravan:ready',()=>{
       api.save();
     }
     map=ManagementMap.create($('#park-map'),{facilityDefinitions:api.facilityDefinitions,isWalking:()=>walking,getWalker:walkingPosition,getSurfaceMarks:()=>getSurfaceMarks(),onGround:target=>{
-        const st=api.getState();
+        const st=api.getState(),stall=LandManagement.findStall(st);
+        if(stall?.x===target.x&&stall.y===target.y){
+            interaction={...target,stall:true};
+            if(walkTo(target,true))announce('Approach the firewood stall, then press R to stock it.');
+            return;
+        }
         const nature=(window.CaravanLandParcels.inParcel(target.x,target.y)?window.CaravanExternalTerrain.getTile(st,target.x,target.y):st.tiles[target.y]?.[target.x])?.nature;
         interaction=['tree','debris'].includes(nature)?target:null;
         if(walkTo(target,Boolean(interaction))&&interaction)announce('Approach the '+nature+', then press R with Clear Trees/Bushes selected.');

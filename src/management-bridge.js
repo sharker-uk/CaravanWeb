@@ -95,7 +95,7 @@
             if(['repair','skirting','sell','rental'].includes(action)&&!liveVan)return fail('That caravan is no longer in the park.');
             if(['clean','repairFacility','toggleFacility'].includes(action)&&!liveFacility)return fail('That facility is no longer in the park.');
             state.selectedEntity=entity||null;
-            const commands={repair:repairSelectedCaravan,skirting:fitSelectedSkirting,sell:sellSelectedCaravan,clean:cleanSelectedToiletBlock,repairFacility:repairSelectedToiletBlock,toggleFacility:toggleSelectedFacility,shovel:()=>buyTool('shovel'),timber:sellTimber,handyman:hireHandyman,grounds:hireGroundsStaff,rusty:openRustyResales,fiddl:openFiddlShop};
+            const commands={repair:repairSelectedCaravan,skirting:fitSelectedSkirting,sell:sellSelectedCaravan,clean:cleanSelectedToiletBlock,repairFacility:repairSelectedToiletBlock,toggleFacility:toggleSelectedFacility,shovel:()=>buyTool('shovel'),firewood:openFirewoodStall,handyman:hireHandyman,grounds:hireGroundsStaff,rusty:openRustyResales,fiddl:openFiddlShop};
             if(action==='rental'){
                 entity.isOperational=entity.isOperational===false;
                 saveGame();

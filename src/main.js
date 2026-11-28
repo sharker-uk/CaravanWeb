@@ -56,6 +56,7 @@ function completeConstruction(job) {
     } else if (job.kind === 'facility') {
         state.facilities.push({...FacilityOperations.getFacilityDefaults(job.type), ...job.facility});
     } else if (job.kind === 'tree') {
+        if (GameStateApi.playerOverlapsFootprint(state.player, job.footprint)) return false;
         state.tiles[job.y][job.x].nature = 'tree';
     } else if (job.kind === 'caravan') {
         const pitch = state.pitches[job.pitchIndex];
@@ -146,7 +147,7 @@ const PALETTE = {
 };
 const STARTING_LANDMARKS = [
     {type: 'farmhouse', name: 'Run-down farmhouse', x: 8, y: 18, w: 6, h: 5, blocksBuilding: true, blocksMovement: true, interactable: true},
-    {type: 'selling_stall', name: 'Farmhouse selling stall', x: 9, y: 23, w: 1, h: 1, blocksBuilding: true, blocksMovement: true, interactable: false},
+    {type: 'selling_stall', name: 'Farmhouse selling stall', x: 9, y: 23, w: 1, h: 1, blocksBuilding: true, blocksMovement: true, interactable: true},
     {type: 'for_sale', name: 'Land for sale', x: 29, y: 12, w: 17, h: 16, blocksBuilding: true, blocksMovement: false, interactable: false}
 ];
 
@@ -154,6 +155,7 @@ let state = GameStateApi ? GameStateApi.createGameState() : {
     cash: 1500,
     initialBalance: 1500,
     wood: 0,
+    firewoodStall: LandManagement.normalizeStall(),
     beauty: 50,
     tools: {axe: true, shovel: false},
     transactions: [],
@@ -272,6 +274,7 @@ function init() {
     }
 
     state.cash = Number.isFinite(data.cash) ? data.cash : state.cash;
+    state.firewoodStall = data.firewoodStall;
     state.wood = Number.isFinite(data.wood) ? Math.max(0, Math.floor(data.wood)) : 0;
     state.tools = {axe: true, shovel: Boolean(data.tools?.shovel)};
     state.initialBalance = Number.isFinite(data.initialBalance) ? data.initialBalance : state.cash;
@@ -448,6 +451,7 @@ function init() {
 
 function generateNewMap() {
     state.wood = 0;
+    state.firewoodStall = LandManagement.normalizeStall();
     state.tools = {axe: true, shovel: false};
     state.overlayMode = 'none';
     state.pitches = [];
@@ -494,6 +498,7 @@ function generateNewMap() {
             };
         }
     }
+    LandManagement.ensureFarmStall(state);
     state.playerAvatar = state.playerAvatar
         ? CharacterSystem.normalizeAvatar(state.playerAvatar)
         : CharacterSystem.randomizeAvatar(CharacterSystem.defaultAvatar());
@@ -786,7 +791,7 @@ function interactWith(target) {
             playSound(180, 'triangle', 0.18);
             saveGame();
             updateUI();
-            showToast(`🪓 Tree felled · collected ${timber} timber. Sell timber from Park Management.`);
+            showToast(`🪓 Tree felled · collected ${timber} timber. Stock the firewood stall by the farmhouse.`);
         } else {
             playSound(280, 'triangle', 0.1);
             saveGame();
@@ -808,6 +813,10 @@ function interactWith(target) {
     if (target.kind === 'landmark') {
         if (['land_plot','beach_gate'].includes(target.entity.type)) {
             openLandOffice(target.entity.type==='land_plot'?target.entity.plotId:'beach'); return;
+        }
+        if (target.entity.type === 'selling_stall') {
+            openFirewoodStall();
+            return;
         }
         if (target.entity.type === 'farmhouse') {
             if (SimulationClock.canSleep(state)) {
@@ -933,6 +942,8 @@ function updateInteractionHint() {
     if (target && distanceToTarget(target) <= 1.25) {
         message = target.kind === 'tree' ? 'Press E to fell tree and collect timber'
             : target.kind === 'debris' ? 'Press E to clear brush and debris'
+            : target.kind === 'landmark' && target.entity.type === 'selling_stall'
+                ? 'Press E to stock the firewood stall'
             : target.kind === 'landmark' && target.entity.type === 'farmhouse'
                 ? 'Old Farm House · sleep available from 8pm to 5am'
             : target.kind === 'landmark' && target.entity.type === 'rusty_resales'
@@ -1020,6 +1031,7 @@ function saveGame() {
             cash: state.cash,
             initialBalance: state.initialBalance,
             wood: state.wood,
+            firewoodStall: state.firewoodStall,
             tools: {axe: true, shovel: Boolean(state.tools?.shovel)},
             transactions: state.transactions,
             tiles: state.tiles,
@@ -1167,6 +1179,7 @@ function applyCaravanDecayForElapsedSeconds(elapsedSeconds) {
 }
 
 function onHourly() {
+    const soldFirewood = LandManagement.processFirewoodHour(state, recordTransaction);
     LandExpansion.processHourly(state, recordTransaction);
     let pitchCapabilitiesChanged = advanceMaintenanceTask();
     if (state.handymanContractHoursRemaining > 0) {
@@ -1232,6 +1245,7 @@ function onHourly() {
         );
         arriveGuest(candidate);
     }
+    if (soldFirewood) showToast(`Sold 1 bundle of firewood · +£${LandManagement.TIMBER_SELL_PRICE}`);
     saveGame();
 }
 
@@ -1935,6 +1949,16 @@ function draw(timestamp = 0) {
             ctx.strokeStyle = LandExpansion.beachStatus(state).operational ? '#a4ce9a' : '#d2b37a';
             ctx.strokeRect(px, py, width, height); ctx.fillText('BEACH',px,py-4); return;
         }
+        if (landmark.type === 'selling_stall') {
+            ctx.fillStyle = '#764b2d';
+            ctx.fillRect(px + 1, py + 4, width - 2, height - 5);
+            ctx.fillStyle = '#ceaa6d';
+            ctx.fillRect(px, py + 2, width, 5);
+            ctx.fillStyle = '#fff4dc';
+            ctx.font = 'bold 7px Arial';
+            ctx.fillText('£', px + 4, py + height - 3);
+            return;
+        }
         const isFarmhouse = landmark.type === 'farmhouse';
         const hasArtwork = drawAsset(`landmark.${landmark.type}`, px, py, width, height, () => {
             ctx.fillStyle = isFarmhouse ? '#9b8464' : '#d6c4a3';
@@ -2224,6 +2248,7 @@ function draw(timestamp = 0) {
 
 // --- UI & Controls ---
 function updateUI() {
+    updateFirewoodStall();
     if (MANAGEMENT_MODE) {
         state.beauty = LandManagement.calculateBeauty(state.tiles, state.pitches, state.facilities);
         window.dispatchEvent(new Event('caravan:change'));
@@ -2616,18 +2641,32 @@ function buyTool(tool) {
     showToast(`🛠️ ${item.label} purchased! You have ${item.description}.`);
 }
 
-function sellTimber() {
-    const units = Math.floor(state.wood || 0);
-    if (units <= 0) {
-        showToast('No timber to sell. Fell a few trees first.');
-        return;
+function openFirewoodStall() {
+    if (!LandManagement.findStall(state)) return;
+    openVendor('Firewood stall', () => {
+        document.getElementById('vendor-content').innerHTML = `
+            <p>Stock the roadside stall from your timber store. Villagers buy one bundle at a time between 09:00 and 18:00.</p>
+            <p>£${LandManagement.TIMBER_SELL_PRICE} per bundle</p>
+            <p id="firewood-totals"></p>
+            <button type="button" data-firewood-transfer="1">Stock 1 bundle</button>
+            <button type="button" data-firewood-transfer="5">Stock 5 bundles</button>
+            <button type="button" data-firewood-transfer="-1">Return 1 to storage</button>
+            <button type="button" data-firewood-transfer="-5">Return 5 to storage</button>`;
+        updateFirewoodStall();
+    });
+}
+
+function updateFirewoodStall() {
+    const totals = document.getElementById('firewood-totals');
+    if (!totals || document.getElementById('vendor-dialog').hidden) return;
+    const stock = state.firewoodStall.stock;
+    const sold = LandManagement.todayFirewoodSales(state);
+    const summary = `${state.wood} timber in storage · ${stock} bundles on the stall · Today’s sales: ${sold} (£${LandManagement.getTimberSaleValue(sold)})`;
+    if (totals.textContent !== summary) totals.textContent = summary;
+    for (const button of document.querySelectorAll('[data-firewood-transfer]')) {
+        const bundles = Number(button.dataset.firewoodTransfer);
+        button.disabled = bundles > state.wood || -bundles > stock;
     }
-    const value = LandManagement.getTimberSaleValue(units);
-    if (!recordTransaction(value, 'timber sale', `Sold ${units} timber`)) return;
-    state.wood -= units;
-    saveGame();
-    updateUI();
-    showToast(`💰 Sold ${units} timber for £${value}.`);
 }
 
 function updateTutorialVisibility(visible = true) {
@@ -2867,6 +2906,7 @@ window.CaravanWebParkAdapter = {
         state.facilities = facilities;
         state.vehicles = [];
         state.landmarks = [];
+        state.firewoodStall = LandManagement.normalizeStall();
         state.land = LandExpansion.createState(false);
         state.constructions = [];
         state.themeImages = images;
@@ -2931,6 +2971,13 @@ window.onload = () => {
 
         const button = event.target.closest('button');
         if (!button) return;
+        if (button.dataset.firewoodTransfer) {
+            if (LandManagement.transferFirewood(state, Number(button.dataset.firewoodTransfer))) {
+                saveGame();
+                updateUI();
+            }
+            return;
+        }
         if (button.dataset.vendorBuy) {
             const pitch = state.pitches.find(item =>
                 item.id === document.getElementById('rusty-pitch')?.value
