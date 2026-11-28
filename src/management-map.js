@@ -226,7 +226,9 @@ root.ManagementArt={tree,building};
                         ground+=`<rect x="${x*unit}" y="${y*unit}" width="${(end-x)*unit}" height="${unit}" fill="${surface==='sand'?'url(#art3-sand)':surface==='water'?'url(#water)':surface==='road'?'url(#art3-tarmac)':'url(#art3-paving)'}"/>`;x=end;
                     }
                 }
-                row.forEach((t,x)=>{const assets=root.CaravanNatureAssets;if(assets){ground+=assets.groundDetails(t,x,y,unit);nature+=t.nature==='tree'?`<image href="assets/art-staging/nature/trees/${['oak','birch','pine'][assets.hash(x,y)%3]}_overgrown.png" x="${x*unit-10}" y="${y*unit-28}" width="40" height="48" preserveAspectRatio="xMidYMax meet" pointer-events="none"/>`:assets.natureGraphic(t,x,y,unit);}else if(t.nature==='tree')nature+=A.tree(x*unit+10,y*unit+12,9+(x+y)%4,(x+y)%4);});
+                const assets=root.CaravanNatureAssets;
+                if(assets)ground+=assets.groundRowDetails(row,y,unit);
+                row.forEach((t,x)=>{if(assets){nature+=t.nature==='tree'?`<image href="assets/art-staging/nature/trees/${['oak','birch','pine'][assets.hash(x,y)%3]}_overgrown.png" x="${x*unit-10}" y="${y*unit-28}" width="40" height="48" preserveAspectRatio="xMidYMax meet" pointer-events="none"/>`:assets.natureGraphic(t,x,y,unit);}else if(t.nature==='tree')nature+=A.tree(x*unit+10,y*unit+12,9+(x+y)%4,(x+y)%4);});
                 groundRows.push(ground);
                 natureRows.push(nature);
             }

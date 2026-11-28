@@ -24,7 +24,7 @@ test('clearing a tree and moving guests preserve unchanged map artwork', () => {
     svg.append(labels);
     const window = {
         CaravanConnectedWorld: {usesFarmBoundary: () => false},
-        CaravanNatureAssets: {groundDetails: () => '<path/>', hash: () => 0, natureGraphic: () => ''}
+        CaravanNatureAssets: {groundRowDetails: () => '<path/>', hash: () => 0, natureGraphic: () => ''}
     };
     const context = vm.createContext({
         window, document: {createElementNS: () => new Element(), getElementById: () => null},

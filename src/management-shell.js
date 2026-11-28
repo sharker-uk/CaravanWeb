@@ -319,7 +319,13 @@ function renderPanel(state){
     if(html!==lastPanel){replaceKeepingFocus($('#mg-panel'),html);lastPanel=html;}
 }
 function render(force=false){
-    if(!ready)return;const state=api.getState();places=M.getPlaces(state);
+    if(!ready)return;
+    const state=api.getState();
+    places=M.getPlaces(state);
+    if(walking){
+        map.render(state,places,{tool:'select',layers:app.layers,walking:true});
+        return;
+    }
     if(app.selected&&!places.some(p=>p.id===app.selected)){app.selected=null;app.route=false;}
     setText('mg-cash',money(Math.floor(state.cash)));setText('mg-clock',`Day ${state.day} · ${String(state.hour).padStart(2,'0')}:${String(Math.floor(state.minute)).padStart(2,'0')}`);setText('mg-weather',state.weather);setText('mg-occupancy',`${state.pitches.filter(p=>p.occupied).length} / ${state.pitches.length} pitches`);setText('mg-guests',`${state.guests.reduce((n,g)=>n+(g.party?.headcount||1),0)} guests`);setText('mg-rating',`${state.rating.toFixed(1)} / 5`);setText('mg-pause',state.isPaused?'Resume':'Pause');$('#mg-pause').setAttribute('aria-label',state.isPaused?'Resume time':'Pause time');
     document.querySelectorAll('[data-game-speed]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.gameSpeed)===state.simulationSpeed)));
@@ -335,7 +341,7 @@ function render(force=false){
     const tool=state.activeTool||'select';$('#mg-build-hint').hidden=tool==='select';if(tool!=='select'&&!$('#mg-build-hint').dataset.preview)$('#mg-build-hint').innerHTML=`<strong>${esc(title(tool.replace('build_','')))}</strong><span>${tool.startsWith('place_accessory_')?'Click an eligible pitch tile to place your purchase.':'Draw on the map to place. Right-drag pans. Escape cancels.'}</span><button id="mg-cancel-tool">Cancel</button>`;
     const route=app.route?M.getRoute(state,current()):null;$('#mg-route-info').hidden=!app.route;
     if(app.route)$('#mg-route-info').innerHTML=route?`<strong>Park office → ${esc(current().name)}</strong><small>${route.tiles} path tiles · Game grid, not real-world distance</small>`:'<strong>No connected path to this entrance</strong><small>Routes follow roads and paths. Add a link to reach this location.</small>';
-    map.render(state,places,{selected:app.selected,visibleIds:new Set(filtered().map(p=>p.id)),route,tool:walking?'select':tool,layers:app.layers,walking});
+    map.render(state,places,{selected:app.selected,visibleIds:new Set(filtered().map(p=>p.id)),route,tool,layers:app.layers});
     $('.map-shell').classList.toggle('has-panel',['guests','finances','settings'].includes(app.view));
 }
 function resetFilters(){Object.assign(app,{query:'',category:'all',status:'all',savedOnly:false});$('#mg-search').value='';$('#mg-status').value='all';render(true);}
